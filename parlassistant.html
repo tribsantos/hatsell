@@ -1,0 +1,2728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parliamentary Meeting Assistant</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Crimson Text', 'Baskerville', 'Georgia', serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #e8e8e8;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 3px double #d4af37;
+            padding-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            letter-spacing: 0.3em;
+            color: #d4af37;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            font-family: 'Cinzel', 'Trajan', serif;
+        }
+
+        .header .subtitle {
+            font-size: 1.1rem;
+            color: #a8a8a8;
+            font-style: italic;
+            letter-spacing: 0.1em;
+        }
+
+        .login-container {
+            max-width: 500px;
+            margin: 4rem auto;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 8px;
+            padding: 3rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-container h2 {
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            color: #d4af37;
+            text-align: center;
+            font-weight: 300;
+            letter-spacing: 0.15em;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #c8c8c8;
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 4px;
+            color: #e8e8e8;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #d4af37 0%, #aa8a2e 100%);
+            color: #1a1a2e;
+            border: none;
+            padding: 0.875rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #d4af37;
+            border: 1px solid rgba(212, 175, 55, 0.5);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #c62828 0%, #8e0000 100%);
+            color: white;
+        }
+
+        .meeting-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            color: #d4af37;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            padding-bottom: 0.5rem;
+        }
+
+        .participants-list {
+            list-style: none;
+        }
+
+        .participant-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid transparent;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .participant-item.chair {
+            border-left-color: #d4af37;
+            background: rgba(212, 175, 55, 0.08);
+        }
+
+        .participant-item.vice-president {
+            border-left-color: #87ceeb;
+        }
+
+        .participant-item.speaking {
+            border-left-color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .participant-name {
+            font-weight: 600;
+            color: #e8e8e8;
+        }
+
+        .participant-role {
+            font-size: 0.85rem;
+            color: #a8a8a8;
+            font-style: italic;
+        }
+
+        .meeting-stage {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(212, 175, 55, 0.1);
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .meeting-stage h2 {
+            font-size: 2rem;
+            color: #d4af37;
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+            letter-spacing: 0.15em;
+        }
+
+        .meeting-stage .stage-description {
+            color: #c8c8c8;
+            font-size: 1.1rem;
+        }
+
+        .current-motion {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid #d4af37;
+        }
+
+        .current-motion h4 {
+            color: #d4af37;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+        }
+
+        .motion-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.8;
+        }
+
+        .motion-meta {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+            color: #a8a8a8;
+            margin-top: 1rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .action-buttons button {
+            width: 100%;
+            text-align: left;
+            padding: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .speaking-queue {
+            list-style: none;
+        }
+
+        .queue-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+        }
+
+        .queue-item.pro {
+            border-left: 3px solid #4caf50;
+        }
+
+        .queue-item.con {
+            border-left: 3px solid #f44336;
+        }
+
+        .queue-position {
+            background: rgba(212, 175, 55, 0.2);
+            color: #d4af37;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .stance-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stance-badge.pro {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+
+        .stance-badge.con {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+
+        .vote-section {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .vote-section h3 {
+            margin-bottom: 2rem;
+        }
+
+        .vote-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .vote-buttons button {
+            flex: 1;
+            padding: 1.5rem;
+            font-size: 1.2rem;
+        }
+
+        .vote-buttons button.aye {
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            color: white;
+        }
+
+        .vote-buttons button.nay {
+            background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+            color: white;
+        }
+
+        .vote-tally {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .vote-count {
+            text-align: center;
+        }
+
+        .vote-count .number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #d4af37;
+        }
+
+        .vote-count .label {
+            font-size: 0.9rem;
+            color: #a8a8a8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .meeting-log {
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+        }
+
+        .log-entry {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            border-left: 2px solid rgba(212, 175, 55, 0.5);
+        }
+
+        .log-timestamp {
+            color: #888;
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: #1a1a2e;
+            border: 2px solid rgba(212, 175, 55, 0.5);
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h3 {
+            color: #d4af37;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 4px;
+            color: #e8e8e8;
+            font-family: inherit;
+            font-size: 1rem;
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        .info-box {
+            background: rgba(135, 206, 235, 0.1);
+            border-left: 4px solid #87ceeb;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #c8c8c8;
+        }
+
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #c8c8c8;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(212, 175, 55, 0.5);
+        }
+
+        @media (max-width: 1200px) {
+            .meeting-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const MeetingConnection = (() => {
+            const STORAGE_KEY = 'parliamentary_meeting_state';
+            
+            const broadcast = (newState) => {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: STORAGE_KEY,
+                    newValue: JSON.stringify(newState)
+                }));
+            };
+
+            const subscribe = (callback) => {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    try {
+                        callback(JSON.parse(stored));
+                    } catch (e) {
+                        console.error('Error parsing stored state:', e);
+                    }
+                }
+
+                const handler = (e) => {
+                    if (e.key === STORAGE_KEY && e.newValue) {
+                        try {
+                            callback(JSON.parse(e.newValue));
+                        } catch (err) {
+                            console.error('Error parsing state update:', err);
+                        }
+                    }
+                };
+
+                window.addEventListener('storage', handler);
+                
+                return () => {
+                    window.removeEventListener('storage', handler);
+                };
+            };
+
+            const getState = () => {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    try {
+                        return JSON.parse(stored);
+                    } catch (e) {
+                        console.error('Error parsing stored state:', e);
+                        return null;
+                    }
+                }
+                return null;
+            };
+
+            const clearState = () => {
+                localStorage.removeItem(STORAGE_KEY);
+            };
+
+            return {
+                broadcast,
+                subscribe,
+                getState,
+                clearState
+            };
+        })();
+
+        const MEETING_STAGES = {
+            NOT_STARTED: 'not_started',
+            CALL_TO_ORDER: 'call_to_order',
+            ROLL_CALL: 'roll_call',
+            APPROVE_MINUTES: 'approve_minutes',
+            REPORTS: 'reports',
+            UNFINISHED_BUSINESS: 'unfinished_business',
+            NEW_BUSINESS: 'new_business',
+            MOTION_DISCUSSION: 'motion_discussion',
+            VOTING: 'voting',
+            ADJOURNED: 'adjourned'
+        };
+
+        const ROLES = {
+            PRESIDENT: 'President',
+            VICE_PRESIDENT: 'Vice President',
+            SECRETARY: 'Secretary',
+            MEMBER: 'Member'
+        };
+
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [currentUser, setCurrentUser] = useState(null);
+            const [meetingState, setMeetingState] = useState({
+                stage: MEETING_STAGES.NOT_STARTED,
+                participants: [],
+                currentMotion: null,
+                speakingQueue: [],
+                speakingHistory: [],
+                currentSpeaker: null,
+                votes: { aye: 0, nay: 0, abstain: 0 },
+                votedBy: [],
+                log: [],
+                quorum: 0,
+                rollCallStatus: {},
+                pendingAmendments: [],
+                minutesCorrections: []
+            });
+            const [showModal, setShowModal] = useState(null);
+            const [modalData, setModalData] = useState({});
+            const [rollCallStatus, setRollCallStatus] = useState({});
+
+            useEffect(() => {
+                if (!currentUser) return;
+
+                const unsubscribe = MeetingConnection.subscribe((newState) => {
+                    setMeetingState(newState);
+                });
+
+                const heartbeatInterval = setInterval(() => {
+                    if (isLoggedIn && currentUser) {
+                        const now = Date.now();
+                        const updatedParticipants = meetingState.participants.map(p => 
+                            p.name === currentUser.name ? { ...p, lastSeen: now } : p
+                        );
+                        
+                        const activeParticipants = updatedParticipants.filter(p => {
+                            if (!p.lastSeen) return true; 
+                            return (now - p.lastSeen) < 10000;
+                        });
+                        
+                        const hadPresident = meetingState.participants.some(p => p.role === ROLES.PRESIDENT);
+                        const hasPresident = activeParticipants.some(p => p.role === ROLES.PRESIDENT);
+                        
+                        if (hadPresident && !hasPresident && meetingState.stage !== MEETING_STAGES.ADJOURNED) {
+                            const vicePresident = activeParticipants.find(p => p.role === ROLES.VICE_PRESIDENT);
+                            
+                            if (vicePresident && currentUser.name === vicePresident.name) {
+                                const promotedVP = { ...vicePresident, role: ROLES.PRESIDENT, lastSeen: now };
+                                const finalParticipants = activeParticipants.map(p => 
+                                    p.name === vicePresident.name ? promotedVP : p
+                                );
+                                
+                                updateMeetingState({
+                                    participants: finalParticipants,
+                                    log: [...meetingState.log, {
+                                        timestamp: new Date().toLocaleTimeString(),
+                                        message: `President has disconnected. Vice President ${vicePresident.name} assumes the chair.`
+                                    }]
+                                });
+                            } else if (!vicePresident) {
+                                updateMeetingState({
+                                    stage: MEETING_STAGES.ADJOURNED,
+                                    participants: activeParticipants,
+                                    log: [...meetingState.log, {
+                                        timestamp: new Date().toLocaleTimeString(),
+                                        message: 'President has disconnected. No quorum or authorized chair. Meeting automatically adjourned.'
+                                    }]
+                                });
+                            }
+                        } else if (activeParticipants.length !== meetingState.participants.length) {
+                            const removedParticipants = meetingState.participants.filter(p => 
+                                !activeParticipants.find(ap => ap.name === p.name)
+                            );
+                            
+                            if (removedParticipants.length > 0 && currentUser.role === ROLES.PRESIDENT) {
+                                const newLog = [...meetingState.log];
+                                removedParticipants.forEach(p => {
+                                    newLog.push({
+                                        timestamp: new Date().toLocaleTimeString(),
+                                        message: `${p.name} has disconnected.`
+                                    });
+                                });
+                                
+                                updateMeetingState({
+                                    participants: activeParticipants,
+                                    log: newLog
+                                });
+                            }
+                        }
+                    }
+                }, 3000);
+
+                return () => {
+                    unsubscribe();
+                    clearInterval(heartbeatInterval);
+                };
+            }, [currentUser, isLoggedIn, meetingState]);
+
+            const addToLog = (message) => {
+                const timestamp = new Date().toLocaleTimeString();
+                const newLog = [...meetingState.log, { timestamp, message }];
+                return newLog;
+            };
+
+            const updateMeetingState = (updates) => {
+                const newState = { ...meetingState, ...updates };
+                setMeetingState(newState);
+                MeetingConnection.broadcast(newState);
+            };
+
+            const handleLogin = (userData) => {
+                setCurrentUser(userData);
+                setIsLoggedIn(true);
+
+                const existingState = MeetingConnection.getState();
+
+                if (userData.role === ROLES.PRESIDENT) {
+                    if (existingState && existingState.stage !== MEETING_STAGES.ADJOURNED) {
+                        const hasActivePresident = existingState.participants.some(p => {
+                            if (p.role !== ROLES.PRESIDENT) return false;
+                            if (!p.lastSeen) return true; 
+                            return (Date.now() - p.lastSeen) < 10000;
+                        });
+                        
+                        if (hasActivePresident) {
+                            alert('A meeting is already in progress with an active President. Please join as a participant or wait for it to end.');
+                            setIsLoggedIn(false);
+                            setCurrentUser(null);
+                            return;
+                        }
+                    }
+                    
+                    const userWithTimestamp = { ...userData, lastSeen: Date.now() };
+                    const initialState = {
+                        stage: MEETING_STAGES.CALL_TO_ORDER,
+                        participants: [userWithTimestamp],
+                        currentMotion: null,
+                        speakingQueue: [],
+                        speakingHistory: [],
+                        currentSpeaker: null,
+                        votes: { aye: 0, nay: 0, abstain: 0 },
+                        votedBy: [],
+                        log: [{
+                            timestamp: new Date().toLocaleTimeString(),
+                            message: `Meeting created by ${userData.name}`
+                        }],
+                        quorum: 0,
+                        meetingCode: userData.meetingCode,
+                        rollCallStatus: {},
+                        pendingAmendments: [],
+                        minutesCorrections: []
+                    };
+                    setMeetingState(initialState);
+                    MeetingConnection.broadcast(initialState);
+                } else {
+                    if (!existingState) {
+                        alert('No active meeting found. Please wait for the President to start the meeting.');
+                        setIsLoggedIn(false);
+                        setCurrentUser(null);
+                        return;
+                    }
+
+                    const alreadyJoined = existingState.participants.some(p => p.name === userData.name);
+                    
+                    if (alreadyJoined) {
+                        setMeetingState(existingState);
+                    } else {
+                        const userWithTimestamp = { ...userData, lastSeen: Date.now() };
+                        const updatedParticipants = [...existingState.participants, userWithTimestamp];
+                        const newLog = [...existingState.log, {
+                            timestamp: new Date().toLocaleTimeString(),
+                            message: `${userData.name} joined as ${userData.role}`
+                        }];
+                        
+                        const newState = {
+                            ...existingState,
+                            participants: updatedParticipants,
+                            log: newLog
+                        };
+                        setMeetingState(newState);
+                        MeetingConnection.broadcast(newState);
+                    }
+                }
+            };
+
+            const handleCallToOrder = () => {
+                updateMeetingState({
+                    stage: MEETING_STAGES.ROLL_CALL,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: 'Meeting called to order'
+                    }]
+                });
+            };
+
+            const handleRollCall = () => {
+                const officers = meetingState.participants.filter(p => 
+                    p.role === ROLES.PRESIDENT || 
+                    p.role === ROLES.VICE_PRESIDENT || 
+                    p.role === ROLES.SECRETARY
+                ).length;
+                
+                const responded = Object.keys(meetingState.rollCallStatus || {}).filter(key => 
+                    meetingState.rollCallStatus[key] === 'present'
+                ).length;
+                
+                const totalPresent = officers + responded;
+                const quorum = meetingState.participants.length;
+                
+                const newLog = [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Roll call complete. ${totalPresent} of ${quorum} members present. Quorum established.`
+                }];
+                
+                updateMeetingState({
+                    stage: MEETING_STAGES.APPROVE_MINUTES,
+                    quorum,
+                    log: newLog
+                });
+            };
+
+            const handleCallMember = (memberName) => {
+                updateMeetingState({
+                    rollCallStatus: {
+                        ...meetingState.rollCallStatus,
+                        [memberName]: 'called'
+                    },
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `${memberName} called for roll.`
+                    }]
+                });
+            };
+
+            const handleRespondToRollCall = () => {
+                updateMeetingState({
+                    rollCallStatus: {
+                        ...meetingState.rollCallStatus,
+                        [currentUser.name]: 'present'
+                    },
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `${currentUser.name}: Present.`
+                    }]
+                });
+            };
+
+            const handleApproveMinutes = () => {
+                updateMeetingState({
+                    stage: MEETING_STAGES.NEW_BUSINESS,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: 'Minutes approved. Proceeding to New Business.'
+                    }]
+                });
+            };
+
+            const handleNewMotion = (motionText, mover) => {
+                updateMeetingState({
+                    currentMotion: {
+                        text: motionText,
+                        mover: mover,
+                        seconder: null,
+                        needsSecond: true
+                    },
+                    stage: MEETING_STAGES.NEW_BUSINESS,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `${mover} moved: "${motionText}"`
+                    }]
+                });
+                setShowModal(null);
+            };
+
+            const handleSecondMotion = () => {
+                updateMeetingState({
+                    currentMotion: {
+                        ...meetingState.currentMotion,
+                        seconder: currentUser.name,
+                        needsSecond: false
+                    },
+                    stage: MEETING_STAGES.MOTION_DISCUSSION,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `Motion seconded by ${currentUser.name}. Floor is open for discussion.`
+                    }]
+                });
+            };
+
+            const handleRequestToSpeak = (stance) => {
+                const speakingHistory = meetingState.speakingHistory || [];
+                const hasSpokenBefore = speakingHistory.includes(currentUser.name);
+                
+                const newQueue = [...meetingState.speakingQueue, {
+                    participant: currentUser.name,
+                    stance: stance,
+                    requestTime: Date.now(),
+                    hasSpokenBefore: hasSpokenBefore
+                }];
+
+                const sortedQueue = sortSpeakingQueue(newQueue);
+
+                updateMeetingState({
+                    speakingQueue: sortedQueue,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `${currentUser.name} requested to speak (${stance})`
+                    }]
+                });
+            };
+
+            const sortSpeakingQueue = (queue) => {
+                const newSpeakers = queue.filter(q => !q.hasSpokenBefore);
+                const repeatSpeakers = queue.filter(q => q.hasSpokenBefore);
+                
+                const alternateProCon = (group) => {
+                    const pro = group.filter(q => q.stance === 'pro').sort((a, b) => a.requestTime - b.requestTime);
+                    const con = group.filter(q => q.stance === 'con').sort((a, b) => a.requestTime - b.requestTime);
+                    const sorted = [];
+                    
+                    while (pro.length > 0 || con.length > 0) {
+                        if (pro.length > 0) sorted.push(pro.shift());
+                        if (con.length > 0) sorted.push(con.shift());
+                    }
+                    
+                    return sorted;
+                };
+                
+                return [...alternateProCon(newSpeakers), ...alternateProCon(repeatSpeakers)];
+            };
+
+            const handleRecognizeSpeaker = () => {
+                if (meetingState.speakingQueue.length === 0) return;
+
+                const nextSpeaker = meetingState.speakingQueue[0];
+                const remainingQueue = meetingState.speakingQueue.slice(1);
+
+                updateMeetingState({
+                    currentSpeaker: nextSpeaker,
+                    speakingQueue: remainingQueue,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `The chair recognizes ${nextSpeaker.participant}`
+                    }]
+                });
+            };
+
+            const handleFinishSpeaking = () => {
+                const speakerName = meetingState.currentSpeaker.participant;
+                const speakingHistory = meetingState.speakingHistory || [];
+                
+                const updatedHistory = speakingHistory.includes(speakerName) 
+                    ? speakingHistory 
+                    : [...speakingHistory, speakerName];
+
+                updateMeetingState({
+                    currentSpeaker: null,
+                    speakingHistory: updatedHistory,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `${speakerName} yields the floor`
+                    }]
+                });
+            };
+
+            const handleCallVote = () => {
+                updateMeetingState({
+                    stage: MEETING_STAGES.VOTING,
+                    votes: { aye: 0, nay: 0, abstain: 0 },
+                    log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: 'The chair calls the question. All in favor?'
+                }]
+                });
+            };
+
+            const handleCallVoteOnMinutesCorrection = () => {
+                const correction = meetingState.minutesCorrectionDebate;
+                if (!correction) return;
+                
+                const newLog = [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: 'The chair puts the minutes correction to a vote.'
+                }];
+                
+                updateMeetingState({
+                    stage: MEETING_STAGES.VOTING,
+                    currentMotion: {
+                        text: `to approve the proposed correction to the minutes: "${correction.text}"`,
+                        mover: currentUser.name,
+                        needsSecond: false,
+                        isMinutesCorrectionVote: true
+                    },
+                    votes: { aye: 0, nay: 0, abstain: 0 },
+                    votedBy: [],
+                    log: newLog
+                });
+            };
+
+            const handleVote = (vote) => {
+                const newVotes = { ...meetingState.votes };
+                newVotes[vote] = (newVotes[vote] || 0) + 1;
+
+                const votedBy = meetingState.votedBy || [];
+                votedBy.push(currentUser.name);
+
+                updateMeetingState({
+                    votes: newVotes,
+                    votedBy: votedBy,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `${currentUser.name} voted`
+                    }]
+                });
+            };
+
+            const handleAnnounceResult = () => {
+                const { aye, nay } = meetingState.votes;
+                const result = aye > nay ? 'carried' : 'failed';
+                
+                if (meetingState.currentMotion?.isMinutesCorrectionVote) {
+                    const correction = meetingState.minutesCorrectionDebate;
+                    const newLog = [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `Vote on minutes correction: ${aye} ayes, ${nay} nays. The correction ${result}.`
+                    }];
+                    updateMeetingState({
+                        stage: MEETING_STAGES.APPROVE_MINUTES,
+                        currentMotion: null,
+                        minutesCorrectionDebate: null,
+                        votes: { aye: 0, nay: 0, abstain: 0 },
+                        votedBy: [],
+                        currentSpeaker: null,
+                        speakingQueue: [],
+                        speakingHistory: [],
+                        log: newLog
+                    });
+                    return;
+                }
+
+                
+                const isAmendmentVote = meetingState.currentMotion?.amendment !== undefined;
+                
+                if (isAmendmentVote) {
+                    const newLog = [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `Vote on amendment: ${aye} ayes, ${nay} nays. The amendment ${result}. Debate continues on the main motion.`
+                    }];
+                    
+                    updateMeetingState({
+                        stage: MEETING_STAGES.MOTION_DISCUSSION,
+                        currentMotion: {
+                            ...meetingState.currentMotion,
+                            amendment: undefined
+                        },
+                        speakingQueue: meetingState.mainMotionSpeakingQueue || [],
+                        speakingHistory: meetingState.mainMotionSpeakingHistory || [],
+                        mainMotionSpeakingQueue: undefined,
+                        mainMotionSpeakingHistory: undefined,
+                        votes: { aye: 0, nay: 0, abstain: 0 },
+                        votedBy: [],
+                        currentSpeaker: null,
+                        log: newLog
+                    });
+                } else {
+                    const newLog = [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `Vote on main motion: ${aye} ayes, ${nay} nays. The motion ${result}.`
+                    }];
+                    
+                    updateMeetingState({
+                        stage: MEETING_STAGES.NEW_BUSINESS,
+                        currentMotion: null,
+                        pendingAnnouncement: {
+                            motionText: meetingState.currentMotion?.text,
+                            aye,
+                            nay,
+                            result
+                        },
+                        votes: { aye: 0, nay: 0, abstain: 0 },
+                        votedBy: [],
+                        speakingQueue: [],
+                        speakingHistory: [],
+                        currentSpeaker: null,
+                        log: newLog
+                    });
+                }
+            };
+
+            const handleAcknowledgeAnnouncement = () => {
+                if (!meetingState.pendingAnnouncement) return;
+                
+                const newLog = [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: 'Chair proceeded to New Business.'
+                }];
+                
+                updateMeetingState({
+                    pendingAnnouncement: null,
+                    log: newLog
+                });
+            };
+            
+            const handleAdjourn = () => {
+                const newLog = [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: 'Meeting adjourned'
+                }];
+                
+                updateMeetingState({
+                    stage: MEETING_STAGES.ADJOURNED,
+                    log: newLog
+                });
+            };
+
+            const handleAmendMotion = () => {
+                setShowModal('amendment');
+                setModalData({ amendmentText: '' });
+            };
+
+            const handleSubmitAmendment = (amendmentText) => {
+                const pendingAmendments = meetingState.pendingAmendments || [];
+                const newLog = [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `${currentUser.name} wishes to propose an amendment (pending floor)`
+                }];
+                
+                updateMeetingState({
+                    pendingAmendments: [...pendingAmendments, {
+                        proposer: currentUser.name,
+                        text: amendmentText,
+                        timestamp: Date.now()
+                    }],
+                    log: newLog
+                });
+                setShowModal(null);
+            };
+
+            const handleRecognizeAmendment = (amendment) => {
+                const newLog = [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Chair recognizes ${amendment.proposer} to propose an amendment: "${amendment.text}"`
+                }];
+                
+                updateMeetingState({
+                    currentMotion: {
+                        ...meetingState.currentMotion,
+                        amendment: {
+                            text: amendment.text,
+                            mover: amendment.proposer,
+                            seconder: null,
+                            needsSecond: true
+                        }
+                    },
+                    pendingAmendments: (meetingState.pendingAmendments || []).filter(a => a !== amendment),
+                    mainMotionSpeakingQueue: meetingState.speakingQueue,
+                    mainMotionSpeakingHistory: meetingState.speakingHistory || [],
+                    speakingQueue: [],
+                    speakingHistory: [],
+                    currentSpeaker: null,
+                    log: newLog
+                });
+            };
+
+            const handleDismissAmendment = (amendment) => {
+                const newLog = [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Chair declines to recognize amendment from ${amendment.proposer}`
+                }];
+                
+                updateMeetingState({
+                    pendingAmendments: (meetingState.pendingAmendments || []).filter(a => a !== amendment),
+                    log: newLog
+                });
+            };
+
+            const handleSecondAmendment = () => {
+                const newLog = [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Amendment seconded by ${currentUser.name}. Floor is open for debate on the amendment.`
+                }];
+                
+                updateMeetingState({
+                    currentMotion: {
+                        ...meetingState.currentMotion,
+                        amendment: {
+                            ...meetingState.currentMotion.amendment,
+                            seconder: currentUser.name,
+                            needsSecond: false
+                        }
+                    },
+                    log: newLog
+                });
+            };
+
+            const handlePointOfOrder = () => {
+                setShowModal('pointOfOrder');
+                setModalData({ concern: '' });
+            };
+
+            const handleSubmitPointOfOrder = (concern) => {
+                updateMeetingState({
+                    pendingPointOfOrder: {
+                        raisedBy: currentUser.name,
+                        concern: concern,
+                        timestamp: new Date().toLocaleTimeString()
+                    },
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `POINT OF ORDER raised by ${currentUser.name}: ${concern}`
+                    }]
+                });
+                setShowModal(null);
+            };
+
+            const handleSubmitMinutesCorrection = (correction) => {
+                const corrections = meetingState.minutesCorrections || [];
+                updateMeetingState({
+                    minutesCorrections: [...corrections, {
+                        proposedBy: currentUser.name,
+                        text: correction,
+                        timestamp: Date.now()
+                    }],
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `${currentUser.name} proposes correction to minutes: ${correction}`
+                    }]
+                });
+                setShowModal(null);
+            };
+
+            const handleObjectToCorrection = () => {
+                const correction = meetingState.minutesCorrections[0];
+                updateMeetingState({
+                    minutesCorrectionDebate: correction,
+                    minutesCorrections: meetingState.minutesCorrections.slice(1),
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `Objection raised to minutes correction. The correction is now before the assembly.`
+                    }]
+                });
+            };
+
+            const handleAcceptCorrectionByConsent = () => {
+                const correction = meetingState.minutesCorrections[0];
+                updateMeetingState({
+                    minutesCorrections: meetingState.minutesCorrections.slice(1),
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `Minutes corrected by consent: ${correction.text}`
+                    }]
+                });
+            };
+
+            const handleRuleOnPointOfOrder = (ruling) => {
+                const point = meetingState.pendingPointOfOrder;
+                updateMeetingState({
+                    pendingPointOfOrder: null,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `Chair rules: ${ruling}. Point of order by ${point.raisedBy} ${ruling === 'sustained' ? 'SUSTAINED' : 'NOT SUSTAINED'}.`
+                    }]
+                });
+            };
+
+            const handleLogout = () => {
+                if (currentUser.role === ROLES.PRESIDENT) {
+                    const vicePresident = meetingState.participants.find(p => p.role === ROLES.VICE_PRESIDENT);
+                    
+                    if (vicePresident) {
+                        const updatedParticipants = meetingState.participants.filter(p => p.name !== currentUser.name);
+                        const promotedVP = { ...vicePresident, role: ROLES.PRESIDENT };
+                        const finalParticipants = updatedParticipants.map(p => 
+                            p.name === vicePresident.name ? promotedVP : p
+                        );
+                        
+                        updateMeetingState({
+                            participants: finalParticipants,
+                            log: [...meetingState.log, {
+                                timestamp: new Date().toLocaleTimeString(),
+                                message: `President ${currentUser.name} has left. Vice President ${vicePresident.name} assumes the chair.`
+                            }]
+                        });
+                    } else {
+                        const remainingMembers = meetingState.participants.filter(p => p.name !== currentUser.name).length;
+                        
+                        if (remainingMembers === 0) {
+                            updateMeetingState({
+                                stage: MEETING_STAGES.ADJOURNED,
+                                log: [...meetingState.log, {
+                                    timestamp: new Date().toLocaleTimeString(),
+                                    message: `President ${currentUser.name} has left. No quorum present. Meeting automatically adjourned.`
+                                }]
+                            });
+                        } else {
+                            updateMeetingState({
+                                stage: MEETING_STAGES.ADJOURNED,
+                                participants: meetingState.participants.filter(p => p.name !== currentUser.name),
+                                log: [...meetingState.log, {
+                                    timestamp: new Date().toLocaleTimeString(),
+                                    message: `President ${currentUser.name} has left. No authorized person to assume the chair. Meeting automatically adjourned.`
+                                }]
+                            });
+                        }
+                    }
+                } else {
+                    const updatedParticipants = meetingState.participants.filter(p => p.name !== currentUser.name);
+                    updateMeetingState({
+                        participants: updatedParticipants,
+                        log: [...meetingState.log, {
+                            timestamp: new Date().toLocaleTimeString(),
+                            message: `${currentUser.name} has left the meeting.`
+                        }]
+                    });
+                }
+                
+                setIsLoggedIn(false);
+                setCurrentUser(null);
+            };
+
+            const handleClearMeeting = () => {
+                if (confirm('Are you sure you want to clear all meeting data? This will end the meeting for all participants.')) {
+                    MeetingConnection.clearState();
+                    setIsLoggedIn(false);
+                    setCurrentUser(null);
+                    setMeetingState({
+                        stage: MEETING_STAGES.NOT_STARTED,
+                        participants: [],
+                        currentMotion: null,
+                        speakingQueue: [],
+                        currentSpeaker: null,
+                        votes: { aye: 0, nay: 0, abstain: 0 },
+                        log: [],
+                        quorum: 0
+                    });
+                }
+            };
+
+            const openMotionModal = (opts = {}) => {
+                const { motionText = '', heading = 'Introduce a Motion', showSpecialOptions = true } = opts;
+                setShowModal('motion');
+                setModalData({ motionText, heading, showSpecialOptions });
+            };
+
+            // "Incidental" in the New Business button row refers to INCIDENTAL MAIN MOTIONS.
+            const openIncidentalMainModal = () => {
+                setShowModal('incidentalMain');
+                setModalData({});
+            };
+
+            // Separate menu for true incidental motions (Point of Order, Appeal, etc.)
+            const openIncidentalMotionsModal = () => {
+                setShowModal('incidentalMotions');
+                setModalData({});
+            };
+
+            const handleSubmitIncidental = (incidentalType) => {
+                const newLog = [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `${currentUser.name} raises an incidental motion: ${incidentalType}`
+                }];
+                
+                updateMeetingState({
+                    log: newLog
+                });
+                setShowModal(null);
+            };
+
+            if (!isLoggedIn) {
+                return <LoginScreen onLogin={handleLogin} />;
+            }
+
+            return (
+                <div className="app-container">
+                    <header className="header">
+                        <h1>Parliamentary Assistant</h1>
+                        <p className="subtitle">Robert's Rules of Order (1915 Edition)</p>
+                        <div style={{marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center'}}>
+                            <span style={{color: '#a8a8a8'}}>Logged in as: {currentUser.name} ({currentUser.role})</span>
+                            {meetingState.meetingCode && (
+                                <span style={{color: '#d4af37'}}>Meeting Code: <strong>{meetingState.meetingCode}</strong></span>
+                            )}
+                            <button onClick={handleLogout} className="secondary" style={{padding: '0.5rem 1rem'}}>
+                                Logout
+                            </button>
+                            {currentUser.role === ROLES.PRESIDENT && (
+                                <button onClick={handleClearMeeting} className="danger" style={{padding: '0.5rem 1rem'}}>
+                                    Clear Meeting
+                                </button>
+                            )}
+                        </div>
+                    </header>
+
+                    <MeetingView 
+                        meetingState={meetingState}
+                        currentUser={currentUser}
+                        onCallToOrder={handleCallToOrder}
+                        onRollCall={handleRollCall}
+                        onCallMember={handleCallMember}
+                        onRespondToRollCall={handleRespondToRollCall}
+                        onApproveMinutes={handleApproveMinutes}
+                        onNewMotion={openMotionModal}
+                        onSecondMotion={handleSecondMotion}
+                        onRequestToSpeak={handleRequestToSpeak}
+                        onRecognizeSpeaker={handleRecognizeSpeaker}
+                        onFinishSpeaking={handleFinishSpeaking}
+                        onCallVote={handleCallVote}
+                        onVote={handleVote}
+                        onAnnounceResult={handleAnnounceResult}
+                        onAdjourn={handleAdjourn}
+                        onAmendMotion={handleAmendMotion}
+                        onSecondAmendment={handleSecondAmendment}
+                        onRecognizeAmendment={handleRecognizeAmendment}
+                        onDismissAmendment={handleDismissAmendment}
+                        onPointOfOrder={handlePointOfOrder}
+                        onRuleOnPointOfOrder={handleRuleOnPointOfOrder}
+                        updateMeetingState={updateMeetingState}
+                        addToLog={addToLog}
+                        setShowModal={setShowModal}
+                        handleObjectToCorrection={handleObjectToCorrection}
+                        handleAcceptCorrectionByConsent={handleAcceptCorrectionByConsent}
+                        onCallVoteOnMinutesCorrection={handleCallVoteOnMinutesCorrection}
+                        onAcknowledgeAnnouncement={handleAcknowledgeAnnouncement}
+                        onIncidentalMainMotion={openIncidentalMainModal}
+                        onIncidentalMotions={openIncidentalMotionsModal}
+                    />
+
+                    {showModal === 'motion' && (
+                        <MotionModal
+                            heading={modalData.heading}
+                            initialText={modalData.motionText}
+                            showSpecialOptions={modalData.showSpecialOptions}
+                            onSubmit={(text) => handleNewMotion(text, currentUser.name)}
+                            onClose={() => setShowModal(null)}
+                        />
+                    )}
+
+                    {showModal === 'incidentalMain' && (
+                        <IncidentalMainModal
+                            onSelectTemplate={(templateText, templateHeading) => {
+                                openMotionModal({ motionText: templateText, heading: templateHeading, showSpecialOptions: false });
+                            }}
+                            onClose={() => setShowModal(null)}
+                        />
+                    )}
+
+                    {showModal === 'incidentalMotions' && (
+                        <IncidentalMotionsModal
+                            onSubmit={handleSubmitIncidental}
+                            onClose={() => setShowModal(null)}
+                        />
+                    )}
+
+                    {showModal === 'amendment' && (
+                        <AmendmentModal
+                            originalMotion={meetingState.currentMotion?.text}
+                            onSubmit={handleSubmitAmendment}
+                            onClose={() => setShowModal(null)}
+                        />
+                    )}
+
+                    {showModal === 'pointOfOrder' && (
+                        <PointOfOrderModal
+                            onSubmit={handleSubmitPointOfOrder}
+                            onClose={() => setShowModal(null)}
+                        />
+                    )}
+
+                    {showModal === 'minutesCorrection' && (
+                        <MinutesCorrectionModal
+                            onSubmit={handleSubmitMinutesCorrection}
+                            onClose={() => setShowModal(null)}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        function LoginScreen({ onLogin }) {
+            const [name, setName] = useState('');
+            const [role, setRole] = useState(ROLES.PRESIDENT);
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!name) return;
+
+                onLogin({
+                    name,
+                    role,
+                    meetingCode: role === ROLES.PRESIDENT ? Math.random().toString(36).substring(7).toUpperCase() : null
+                });
+            };
+
+            const handleClearMeeting = () => {
+                if (confirm('Clear the existing meeting data and start fresh?')) {
+                    MeetingConnection.clearState();
+                    window.location.reload();
+                }
+            };
+
+            const existingMeeting = MeetingConnection.getState();
+            const hasPresident = existingMeeting?.participants?.some(p => p.role === ROLES.PRESIDENT);
+            const isStale = existingMeeting && !hasPresident;
+
+            return (
+                <div className="app-container">
+                    <header className="header">
+                        <h1>Parliamentary Assistant</h1>
+                        <p className="subtitle">Robert's Rules of Order (1915 Edition)</p>
+                    </header>
+
+                    <div className="login-container">
+                        <h2>{existingMeeting && existingMeeting.stage !== MEETING_STAGES.ADJOURNED ? 'Join Meeting' : 'Start Meeting'}</h2>
+                        
+                        {isStale && (
+                            <div className="warning-box" style={{marginBottom: '1.5rem'}}>
+                                <strong>Stale Meeting Detected</strong><br />
+                                The President has left and there is no quorum. The meeting has been automatically adjourned.
+                                <button 
+                                    onClick={handleClearMeeting} 
+                                    style={{marginTop: '1rem', width: '100%'}}
+                                    className="danger"
+                                >
+                                    Clear Meeting Data
+                                </button>
+                            </div>
+                        )}
+                        
+                        {existingMeeting && existingMeeting.stage !== MEETING_STAGES.ADJOURNED && hasPresident && (
+                            <div className="info-box" style={{marginBottom: '1.5rem'}}>
+                                A meeting is currently in progress with {existingMeeting.participants.length} participant(s).
+                            </div>
+                        )}
+                        
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label>Your Name</label>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="Enter your name"
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Your Role</label>
+                                <select value={role} onChange={(e) => setRole(e.target.value)}>
+                                    {Object.values(ROLES).map(r => (
+                                        <option key={r} value={r}>{r}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {role === ROLES.PRESIDENT && existingMeeting && existingMeeting.stage !== MEETING_STAGES.ADJOURNED && hasPresident && (
+                                <div className="warning-box">
+                                    Warning: Starting as President will create a new meeting and clear the existing one.
+                                </div>
+                            )}
+
+                            <button type="submit" disabled={isStale && role !== ROLES.PRESIDENT}>
+                                {role === ROLES.PRESIDENT ? 'Start Meeting' : 'Join Meeting'}
+                            </button>
+                            
+                            {!isStale && existingMeeting && existingMeeting.stage !== MEETING_STAGES.ADJOURNED && (
+                                <button 
+                                    type="button"
+                                    onClick={handleClearMeeting} 
+                                    style={{marginTop: '1rem', width: '100%'}}
+                                    className="secondary"
+                                >
+                                    Clear Meeting Data
+                                </button>
+                            )}
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        function MeetingView({ 
+            meetingState, 
+            currentUser, 
+            onCallToOrder,
+            onRollCall,
+            onCallMember,
+            onRespondToRollCall,
+            onApproveMinutes,
+            onNewMotion,
+            onSecondMotion,
+            onRequestToSpeak,
+            onRecognizeSpeaker,
+            onFinishSpeaking,
+            onCallVote,
+            onVote,
+            onAnnounceResult,
+            onAdjourn,
+            onAmendMotion,
+            onSecondAmendment,
+            onRecognizeAmendment,
+            onDismissAmendment,
+            onPointOfOrder,
+            onRuleOnPointOfOrder,
+            updateMeetingState,
+            addToLog,
+            setShowModal,
+            handleObjectToCorrection,
+            handleAcceptCorrectionByConsent,
+            onCallVoteOnMinutesCorrection,
+            onAcknowledgeAnnouncement,
+            onIncidentalMainMotion,
+            onIncidentalMotions
+        }) {
+            const isChair = currentUser.role === ROLES.PRESIDENT || currentUser.role === ROLES.VICE_PRESIDENT;
+
+            return (
+                <div className="meeting-container">
+                    <aside className="panel">
+                        <h3>Participants ({meetingState.participants.length})</h3>
+                        <ul className="participants-list">
+                            {meetingState.participants.map((p, idx) => (
+                                <li 
+                                    key={idx} 
+                                    className={`participant-item ${
+                                        p.role === ROLES.PRESIDENT ? 'chair' : ''
+                                    } ${
+                                        p.role === ROLES.VICE_PRESIDENT ? 'vice-president' : ''
+                                    } ${
+                                        meetingState.currentSpeaker?.participant === p.name ? 'speaking' : ''
+                                    }`}
+                                >
+                                    <div className="participant-name">{p.name}</div>
+                                    <div className="participant-role">{p.role}</div>
+                                </li>
+                            ))}
+                        </ul>
+                    </aside>
+
+                    <main className="panel">
+                        <MeetingStage 
+                            stage={meetingState.stage}
+                            currentMotion={meetingState.currentMotion}
+                        />
+
+                        <ChairGuidance 
+                            meetingState={meetingState}
+                            currentUser={currentUser}
+                            isChair={isChair}
+                            onAcknowledgeAnnouncement={onAcknowledgeAnnouncement}
+                        />
+
+                        {meetingState.pendingPointOfOrder && (
+                            <div className="warning-box" style={{marginBottom: '2rem'}}>
+                                <h4 style={{color: '#ffc107', marginBottom: '0.5rem'}}>⚠️ POINT OF ORDER</h4>
+                                <p><strong>Raised by:</strong> {meetingState.pendingPointOfOrder.raisedBy}</p>
+                                <p><strong>Concern:</strong> {meetingState.pendingPointOfOrder.concern}</p>
+                                {isChair && (
+                                    <div style={{display: 'flex', gap: '1rem', marginTop: '1rem'}}>
+                                        <button onClick={() => onRuleOnPointOfOrder('sustained')} style={{flex: 1}}>
+                                            Sustain Point of Order
+                                        </button>
+                                        <button onClick={() => onRuleOnPointOfOrder('not sustained')} className="secondary" style={{flex: 1}}>
+                                            Point Not Sustained
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {meetingState.pendingAmendments && meetingState.pendingAmendments.length > 0 && isChair && (
+                            <div className="info-box" style={{marginBottom: '2rem', background: 'rgba(135, 206, 235, 0.15)'}}>
+                                <h4 style={{color: '#87ceeb', marginBottom: '1rem'}}>📝 Pending Amendments ({meetingState.pendingAmendments.length})</h4>
+                                <p style={{marginBottom: '1rem', color: '#ffc107', fontWeight: '600'}}>⚠️ You must recognize or decline pending amendments before proceeding.</p>
+                                {meetingState.pendingAmendments.map((amendment, idx) => (
+                                    <div key={idx} style={{
+                                        background: 'rgba(0, 0, 0, 0.2)', 
+                                        padding: '1rem', 
+                                        marginBottom: idx < meetingState.pendingAmendments.length - 1 ? '0.75rem' : '0',
+                                        borderRadius: '4px',
+                                        borderLeft: '3px solid #87ceeb'
+                                    }}>
+                                        <p style={{marginBottom: '0.5rem'}}><strong>{amendment.proposer}</strong> wishes to propose:</p>
+                                        <p style={{fontStyle: 'italic', marginBottom: '1rem', fontSize: '0.95rem'}}>"{amendment.text}"</p>
+                                        <div style={{display: 'flex', gap: '0.5rem'}}>
+                                            <button 
+                                                onClick={() => onRecognizeAmendment(amendment)} 
+                                                style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem'}}
+                                            >
+                                                Recognize Amendment
+                                            </button>
+                                            <button 
+                                                onClick={() => onDismissAmendment(amendment)} 
+                                                className="secondary" 
+                                                style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem'}}
+                                            >
+                                                Decline
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {meetingState.stage === MEETING_STAGES.ROLL_CALL && (
+                            <RollCallSection 
+                                participants={meetingState.participants}
+                                rollCallStatus={meetingState.rollCallStatus || {}}
+                                currentUser={currentUser}
+                                isChair={isChair}
+                                onCallMember={onCallMember}
+                                onRespondToRollCall={onRespondToRollCall}
+                            />
+                        )}
+
+                        {meetingState.stage === MEETING_STAGES.APPROVE_MINUTES && (
+                            <MinutesApprovalSection
+                                currentUser={currentUser}
+                                isChair={isChair}
+                                meetingState={meetingState}
+                                onRequestReadMinutes={() => {
+                                    updateMeetingState({
+                                        log: [...meetingState.log, {
+                                            timestamp: new Date().toLocaleTimeString(),
+                                            message: `${currentUser.name} requests that the minutes be read`
+                                        }]
+                                    });
+                                }}
+                                onRequestCorrection={() => {
+                                    setShowModal('minutesCorrection');
+                                }}
+                                onObjectToCorrection={handleObjectToCorrection}
+                                onAcceptByConsent={handleAcceptCorrectionByConsent}
+                                onCallVoteOnCorrection={onCallVoteOnMinutesCorrection}
+                            />
+                        )}
+
+                        {meetingState.currentMotion && (
+                            <div className="current-motion">
+                                <h4>Motion on the Floor</h4>
+                                <div className="motion-text">{meetingState.currentMotion.text}</div>
+                                <div className="motion-meta">
+                                    <div>Moved by: {meetingState.currentMotion.mover}</div>
+                                    {meetingState.currentMotion.seconder && (
+                                        <div>Seconded by: {meetingState.currentMotion.seconder}</div>
+                                    )}
+                                </div>
+                                
+                                {meetingState.currentMotion.amendment && (
+                                    <div style={{marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(212, 175, 55, 0.3)'}}>
+                                        <h4 style={{fontSize: '1rem', color: '#87ceeb'}}>Amendment</h4>
+                                        <div className="motion-text" style={{fontSize: '1rem'}}>{meetingState.currentMotion.amendment.text}</div>
+                                        <div className="motion-meta">
+                                            <div>Moved by: {meetingState.currentMotion.amendment.mover}</div>
+                                            {meetingState.currentMotion.amendment.seconder && (
+                                                <div>Seconded by: {meetingState.currentMotion.amendment.seconder}</div>
+                                            )}
+                                        </div>
+                                        
+                                        {isChair && meetingState.currentMotion.amendment.needsSecond && (
+                                            <div className="info-box" style={{marginTop: '1rem', background: 'rgba(135, 206, 235, 0.15)'}}>
+                                                <strong>Chair:</strong> An amendment has been proposed: "{meetingState.currentMotion.amendment.text}". Is there a second?
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {meetingState.stage === MEETING_STAGES.VOTING && (
+                            <VotingSection 
+                                votes={meetingState.votes}
+                                isChair={isChair}
+                                currentUser={currentUser}
+                                onVote={onVote}
+                                onAnnounceResult={onAnnounceResult}
+                                votedBy={meetingState.votedBy || []}
+                            />
+                        )}
+
+                        <ActionButtons 
+                            meetingState={meetingState}
+                            currentUser={currentUser}
+                            isChair={isChair}
+                            onCallToOrder={onCallToOrder}
+                            onRollCall={onRollCall}
+                            onApproveMinutes={onApproveMinutes}
+                            onNewMotion={onNewMotion}
+                            onSecondMotion={onSecondMotion}
+                            onRequestToSpeak={onRequestToSpeak}
+                            onRecognizeSpeaker={onRecognizeSpeaker}
+                            onFinishSpeaking={onFinishSpeaking}
+                            onCallVote={onCallVote}
+                            onAdjourn={onAdjourn}
+                            onAmendMotion={onAmendMotion}
+                            onSecondAmendment={onSecondAmendment}
+                            onRecognizeAmendment={onRecognizeAmendment}
+                            onDismissAmendment={onDismissAmendment}
+                            onPointOfOrder={onPointOfOrder}
+                            onRuleOnPointOfOrder={onRuleOnPointOfOrder}
+                            onIncidentalMainMotion={onIncidentalMainMotion}
+                            onIncidentalMotions={onIncidentalMotions}
+                        />
+                    </main>
+
+                    <aside className="panel">
+                        <h3>Speaking Queue</h3>
+                        {meetingState.currentSpeaker && (
+                            <div className="info-box">
+                                <strong>Currently Speaking:</strong><br />
+                                {meetingState.currentSpeaker.participant}
+                                <span className={`stance-badge ${meetingState.currentSpeaker.stance}`}>
+                                    {meetingState.currentSpeaker.stance}
+                                </span>
+                            </div>
+                        )}
+                        <ul className="speaking-queue">
+                            {meetingState.speakingQueue.map((item, idx) => (
+                                <li key={idx} className={`queue-item ${item.stance}`}>
+                                    <div>
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                                            <span>{item.participant}</span>
+                                            {item.hasSpokenBefore && (
+                                                <span style={{fontSize: '0.75rem', opacity: 0.6}}>(repeat)</span>
+                                            )}
+                                        </div>
+                                        <span className={`stance-badge ${item.stance}`}>
+                                            {item.stance}
+                                        </span>
+                                    </div>
+                                    <div className="queue-position">{idx + 1}</div>
+                                </li>
+                            ))}
+                        </ul>
+
+                        <h3 style={{ marginTop: '2rem' }}>Meeting Log</h3>
+                        <div className="meeting-log">
+                            {meetingState.log.slice().reverse().map((entry, idx) => (
+                                <div key={idx} className="log-entry">
+                                    <div className="log-timestamp">{entry.timestamp}</div>
+                                    <div>{entry.message}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </aside>
+                </div>
+            );
+        }
+
+        function MeetingStage({ stage, currentMotion }) {
+            const stageInfo = {
+                [MEETING_STAGES.NOT_STARTED]: {
+                    title: 'Meeting Not Started',
+                    description: 'Waiting for chair to call meeting to order'
+                },
+                [MEETING_STAGES.CALL_TO_ORDER]: {
+                    title: 'Call to Order',
+                    description: 'The chair will call the meeting to order'
+                },
+                [MEETING_STAGES.ROLL_CALL]: {
+                    title: 'Roll Call',
+                    description: 'Establishing quorum'
+                },
+                [MEETING_STAGES.APPROVE_MINUTES]: {
+                    title: 'Approve Minutes',
+                    description: 'Review and approve minutes from previous meeting'
+                },
+                [MEETING_STAGES.NEW_BUSINESS]: {
+                    title: currentMotion ? 'Motion Pending Second' : 'New Business',
+                    description: currentMotion 
+                        ? 'Motion requires a second to proceed'
+                        : 'Members may introduce new motions'
+                },
+                [MEETING_STAGES.MOTION_DISCUSSION]: {
+                    title: 'Discussion',
+                    description: 'Members debate the motion on the floor'
+                },
+                [MEETING_STAGES.VOTING]: {
+                    title: 'Voting in Progress',
+                    description: 'Members cast their votes'
+                },
+                [MEETING_STAGES.ADJOURNED]: {
+                    title: 'Meeting Adjourned',
+                    description: 'Meeting has concluded'
+                }
+            };
+
+            const info = stageInfo[stage] || stageInfo[MEETING_STAGES.NOT_STARTED];
+
+            return (
+                <div className="meeting-stage">
+                    <h2>{info.title}</h2>
+                    <p className="stage-description">{info.description}</p>
+                </div>
+            );
+        }
+
+        function ActionButtons({ 
+            meetingState, 
+            currentUser, 
+            isChair,
+            onCallToOrder,
+            onRollCall,
+            onApproveMinutes,
+            onNewMotion,
+            onSecondMotion,
+            onRequestToSpeak,
+            onRecognizeSpeaker,
+            onFinishSpeaking,
+            onCallVote,
+            onAdjourn,
+            onAmendMotion,
+            onSecondAmendment,
+            onRecognizeAmendment,
+            onDismissAmendment,
+            onPointOfOrder,
+            onRuleOnPointOfOrder,
+            onIncidentalMainMotion,
+            onIncidentalMotions
+        }) {
+            const { stage, currentMotion, speakingQueue, currentSpeaker, rollCallStatus, pendingAmendments } = meetingState;
+            
+            const membersToCall = meetingState.participants.filter(p => 
+                p.role !== ROLES.PRESIDENT && 
+                p.role !== ROLES.VICE_PRESIDENT && 
+                p.role !== ROLES.SECRETARY
+            );
+            const allResponded = (rollCallStatus && membersToCall.length > 0 &&
+                membersToCall.every(p => rollCallStatus[p.name] === 'present')) ||
+                (membersToCall.length === 0);
+            
+            const userHasPendingAmendment = pendingAmendments && 
+                pendingAmendments.some(a => a.proposer === currentUser.name);
+
+            return (
+                <div className="action-buttons">
+                    {isChair && stage === MEETING_STAGES.CALL_TO_ORDER && (
+                        <button onClick={onCallToOrder}>Call Meeting to Order</button>
+                    )}
+
+                    {(currentUser.role === ROLES.SECRETARY || isChair) && stage === MEETING_STAGES.ROLL_CALL && allResponded && (
+                        <button onClick={onRollCall}>Complete Roll Call</button>
+                    )}
+
+                    {isChair && stage === MEETING_STAGES.APPROVE_MINUTES && (
+                        <button onClick={onApproveMinutes}>Approve Minutes</button>
+                    )}
+
+                    {isChair && stage === MEETING_STAGES.MOTION_DISCUSSION && speakingQueue.length > 0 && !currentSpeaker && 
+                     !(pendingAmendments && pendingAmendments.length > 0) && (
+                        <button onClick={onRecognizeSpeaker}>
+                            Recognize Next Speaker
+                        </button>
+                    )}
+
+                    {currentSpeaker && currentSpeaker.participant === currentUser.name && (
+                        <button onClick={onFinishSpeaking} style={{background: 'linear-gradient(135deg, #ffc107 0%, #ff9800 100%)', color: '#1a1a2e', fontWeight: '700'}}>
+                            Yield Floor
+                        </button>
+                    )}
+
+                    {isChair && currentSpeaker && currentSpeaker.participant !== currentUser.name && (
+                        <button onClick={onFinishSpeaking} className="secondary">
+                            Speaker Yields Floor
+                        </button>
+                    )}
+
+                    {isChair && stage === MEETING_STAGES.MOTION_DISCUSSION && 
+                     !(pendingAmendments && pendingAmendments.length > 0) && (
+                        <button onClick={onCallVote}>Call the Question (Vote)</button>
+                    )}
+
+                    {isChair && stage === MEETING_STAGES.NEW_BUSINESS && !currentMotion && (
+                        <button onClick={onAdjourn} className="danger">Adjourn Meeting</button>
+                    )}
+
+                    {stage === MEETING_STAGES.NEW_BUSINESS && !currentMotion && (
+                        <div style={{display: 'flex', gap: '0.75rem', width: '100%'}}>
+                            <button onClick={onNewMotion} style={{flex: 1}}>Original Motion</button>
+                            <button onClick={onIncidentalMainMotion} className="secondary" style={{flex: 1}}>Incidental</button>
+                        </div>
+                    )}
+
+                    {stage === MEETING_STAGES.NEW_BUSINESS && currentMotion?.needsSecond && 
+             currentUser.name !== currentMotion.mover && (
+                        <button onClick={onSecondMotion}>Second the Motion</button>
+                    )}
+
+                    {stage === MEETING_STAGES.MOTION_DISCUSSION && 
+                     currentMotion?.amendment?.needsSecond && 
+                     currentUser.name !== currentMotion.amendment.mover && (
+                        <button onClick={onSecondAmendment}>Second the Amendment</button>
+                    )}
+
+                    {stage === MEETING_STAGES.MOTION_DISCUSSION && !speakingQueue.find(s => s.participant === currentUser.name) && (
+                        <>
+                            <button onClick={() => onRequestToSpeak('pro')} style={{background: 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)', color: 'white'}}>
+                                Speak in Favor
+                            </button>
+                            <button onClick={() => onRequestToSpeak('con')} style={{background: 'linear-gradient(135deg, #f44336 0%, #c62828 100%)', color: 'white'}}>
+                                Speak Against
+                            </button>
+                        </>
+                    )}
+
+                    {stage === MEETING_STAGES.MOTION_DISCUSSION && !currentMotion?.amendment && (
+                        <button 
+                            onClick={onAmendMotion} 
+                            className="secondary"
+                            disabled={userHasPendingAmendment}
+                            title={userHasPendingAmendment ? "You already have a pending amendment" : ""}
+                        >
+                            {userHasPendingAmendment ? "Amendment Pending..." : "Propose Amendment"}
+                        </button>
+                    )}
+
+                    {stage !== MEETING_STAGES.ADJOURNED && (
+                        <div style={{display: 'flex', gap: '0.75rem', width: '100%'}}>
+                            <button onClick={onPointOfOrder} className="secondary" style={{flex: 1}}>
+                                Point of Order
+                            </button>
+                            <button onClick={onIncidentalMotions} className="secondary" style={{flex: 1}}>
+                                Other Incidental Motions
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function ChairGuidance({ meetingState, currentUser, isChair, onAcknowledgeAnnouncement }) {
+            if (!isChair) return null;
+
+            const { stage, currentMotion, speakingQueue, currentSpeaker, pendingAmendments } = meetingState;
+
+            let guidance = null;
+
+            if (stage === MEETING_STAGES.CALL_TO_ORDER) {
+                guidance = {
+                    title: "Call to Order",
+                    phrase: "The meeting will come to order.",
+                    action: "Click 'Call Meeting to Order' when ready."
+                };
+            } else if (stage === MEETING_STAGES.ROLL_CALL) {
+                guidance = {
+                    title: "Roll Call",
+                    phrase: "The Secretary will call the roll.",
+                    action: currentUser.role === ROLES.SECRETARY 
+                        ? "Call each member's name. They will respond 'Present.'"
+                        : "The Secretary is conducting roll call."
+                };
+            } else if (stage === MEETING_STAGES.APPROVE_MINUTES) {
+                if (meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0) {
+                    guidance = {
+                        title: "Minutes Corrections",
+                        phrase: "A correction to the minutes has been proposed. Is there any objection?",
+                        action: "If no objection, minutes are corrected by consent. If objection, debate and vote on the correction."
+                    };
+                } else {
+                    guidance = {
+                        title: "Approval of Minutes",
+                        phrase: "Are there any corrections to the minutes?",
+                        action: "[Pause for corrections] If none: 'Hearing none, the minutes stand approved as distributed.'"
+                    };
+                }
+            } else if (stage === MEETING_STAGES.NEW_BUSINESS) {
+
+if (meetingState.pendingAnnouncement) {
+    const { motionText, aye, nay, result } = meetingState.pendingAnnouncement;
+    guidance = {
+        title: "Announce the Result",
+        phrase: `The vote is ${aye} ayes, ${nay} nays. The motion ${result}.`,
+        action: "Announce the result to the assembly, then click 'Proceed to New Business'.",
+        buttonLabel: "Proceed to New Business"
+    };
+} else 
+
+                if (currentMotion && currentMotion.needsSecond) {
+                    guidance = {
+                        title: "Motion Awaiting Second",
+                        phrase: `It has been moved that ${currentMotion.text}. Is there a second?`,
+                        action: "Wait for a member to second the motion."
+                    };
+                } else if (!currentMotion) {
+                    guidance = {
+                        title: "New Business",
+                        phrase: "Is there any new business?",
+                        action: "Wait for members to make motions, or adjourn if business is complete."
+                    };
+                }
+            } else if (stage === MEETING_STAGES.MOTION_DISCUSSION) {
+                if (currentMotion?.amendment?.needsSecond) {
+                    guidance = {
+                        title: "Amendment Awaiting Second",
+                        phrase: `It has been moved to amend by ${currentMotion.amendment.text}. Is there a second?`,
+                        action: "Wait for a member to second the amendment."
+                    };
+                } else if (pendingAmendments && pendingAmendments.length > 0) {
+                    guidance = {
+                        title: "Pending Amendment",
+                        phrase: `The chair recognizes ${pendingAmendments[0].proposer} to propose an amendment.`,
+                        action: "Click 'Recognize Amendment' to hear the amendment, or 'Decline' to proceed with debate."
+                    };
+                } else if (currentSpeaker) {
+                    guidance = {
+                        title: "Member Speaking",
+                        phrase: `The chair has recognized ${currentSpeaker.participant}.`,
+                        action: "Allow the member to speak. When finished, they will yield the floor."
+                    };
+                } else if (speakingQueue.length > 0) {
+                    guidance = {
+                        title: "Recognize Next Speaker",
+                        phrase: `The chair recognizes ${speakingQueue[0].participant}.`,
+                        action: "Click 'Recognize Next Speaker' to give them the floor."
+                    };
+                } else if (!currentMotion?.amendment) {
+                    guidance = {
+                        title: "Ready for the Question",
+                        phrase: "Are there any further speakers? [Pause] Hearing none, are you ready for the question?",
+                        action: "If no one requests to speak, click 'Call the Question (Vote)' to proceed to voting."
+                    };
+                } else {
+                    guidance = {
+                        title: "No Speakers in Queue",
+                        phrase: "Are there any further speakers on the amendment?",
+                        action: "[Pause] If none: 'Hearing none, are you ready for the question on the amendment?'"
+                    };
+                }
+            } else if (stage === MEETING_STAGES.VOTING) {
+                const isAmendment = currentMotion?.amendment !== undefined;
+                const motionText = isAmendment ? currentMotion.amendment.text : currentMotion.text;
+                const totalVotes = (meetingState.votes.aye || 0) + (meetingState.votes.nay || 0) + (meetingState.votes.abstain || 0);
+                const allVoted = totalVotes >= meetingState.participants.length;
+                
+                if (!allVoted) {
+                    guidance = {
+                        title: isAmendment ? "Vote on Amendment" : "Vote on Motion",
+                        phrase: `The question is on ${isAmendment ? 'the amendment' : 'the motion'}: ${motionText}. All in favor, say aye. [Pause] All opposed, say no.`,
+                        action: "Wait for all members to vote, then click 'Announce Result'."
+                    };
+                } else {
+                    guidance = {
+                        title: "Announce Result",
+                        phrase: "All votes have been cast.",
+                        action: "Click 'Announce Result' to declare the outcome."
+                    };
+                }
+            } else if (stage === MEETING_STAGES.ADJOURNED) {
+                guidance = {
+                    title: "Meeting Adjourned",
+                    phrase: "The meeting is adjourned.",
+                    action: "The meeting has concluded."
+                };
+            }
+
+            if (!guidance) return null;
+
+            return (
+                <div className="info-box" style={{
+                    marginBottom: '2rem', 
+                    background: 'rgba(212, 175, 55, 0.15)',
+                    borderLeft: '4px solid #d4af37'
+                }}>
+                    <h4 style={{color: '#d4af37', marginBottom: '0.75rem', fontSize: '1.1rem'}}>
+                        📋 Chair Guidance: {guidance.title}
+                    </h4>
+                    <p style={{
+                        fontSize: '1.05rem', 
+                        fontStyle: 'italic', 
+                        marginBottom: '0.75rem',
+                        padding: '0.75rem',
+                        background: 'rgba(212, 175, 55, 0.1)',
+                        borderRadius: '4px'
+                    }}>
+                        "{guidance.phrase}"
+                    </p>
+                    <p style={{fontSize: '0.9rem', color: '#c8c8c8'}}>
+                        {guidance.action}
+                    </p>
+                    {guidance.buttonLabel && onAcknowledgeAnnouncement && (
+                        <button onClick={onAcknowledgeAnnouncement} style={{marginTop: '1rem', width: '100%'}}>
+                            {guidance.buttonLabel}
+                        </button>
+                    )}
+                </div>
+            );
+        }
+
+        function MinutesApprovalSection({ currentUser, isChair, meetingState, onRequestReadMinutes, onRequestCorrection, onObjectToCorrection, onAcceptByConsent, onCallVoteOnCorrection }) {
+            const hasCorrections = meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0;
+            const currentCorrection = hasCorrections ? meetingState.minutesCorrections[0] : null;
+
+            return (
+                <div style={{background: 'rgba(255, 255, 255, 0.08)', padding: '2rem', borderRadius: '8px', marginBottom: '2rem'}}>
+                    <h3 style={{marginBottom: '1.5rem', color: '#d4af37'}}>Approval of Minutes</h3>
+                    
+{meetingState.minutesCorrectionDebate && (
+    <div style={{marginBottom: '1.5rem'}}>
+        <div className="warning-box" style={{marginBottom: '1rem'}}>
+            <p style={{marginBottom: '0.5rem'}}><strong>Correction Before the Assembly (Objection Raised):</strong></p>
+            <p style={{fontStyle: 'italic'}}>{meetingState.minutesCorrectionDebate.text}</p>
+            <p style={{marginTop: '0.5rem', fontSize: '0.9rem', color: '#a8a8a8'}}>
+                — Proposed by {meetingState.minutesCorrectionDebate.proposedBy}
+            </p>
+        </div>
+
+        {isChair ? (
+            <button onClick={onCallVoteOnCorrection} style={{width: '100%'}}>
+                Call Vote on Correction
+            </button>
+        ) : (
+            <div style={{textAlign: 'center', color: '#a8a8a8'}}>
+                Debate the correction, then the chair may put it to a vote.
+            </div>
+        )}
+    </div>
+)}
+
+{currentCorrection ? (
+                        <div>
+                            <div className="warning-box" style={{marginBottom: '1.5rem'}}>
+                                <p style={{marginBottom: '0.5rem'}}><strong>Proposed Correction:</strong></p>
+                                <p style={{fontStyle: 'italic'}}>{currentCorrection.text}</p>
+                                <p style={{marginTop: '0.5rem', fontSize: '0.9rem', color: '#a8a8a8'}}>
+                                    — Proposed by {currentCorrection.proposedBy}
+                                </p>
+                            </div>
+                            
+                            {isChair && (
+                                <div style={{display: 'flex', gap: '1rem', marginBottom: '1rem'}}>
+                                    <button onClick={onAcceptByConsent} style={{flex: 1}}>
+                                        Accept by Consent (No Objection)
+                                    </button>
+                                    <button onClick={onObjectToCorrection} className="secondary" style={{flex: 1}}>
+                                        Objection Raised
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {!isChair && (
+                                <button onClick={onObjectToCorrection} className="secondary" style={{width: '100%', marginBottom: '1rem'}}>
+                                    I Object
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <div>
+                            <p style={{marginBottom: '1.5rem', color: '#c8c8c8'}}>
+                                The minutes from the previous meeting are before the assembly for approval.
+                            </p>
+                        </div>
+                    )}
+                    
+                    <div style={{display: 'flex', gap: '1rem'}}>
+                        <button onClick={onRequestReadMinutes} className="secondary" style={{flex: 1}}>
+                            Request Minutes Be Read
+                        </button>
+                        <button onClick={onRequestCorrection} className="secondary" style={{flex: 1}}>
+                            Propose Correction
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function RollCallSection({ participants, rollCallStatus, currentUser, isChair, onCallMember, onRespondToRollCall }) {
+            const myStatus = rollCallStatus[currentUser.name];
+            const wasICalled = myStatus === 'called' || myStatus === 'present';
+            
+            const membersToCall = participants.filter(p => 
+                p.role !== ROLES.PRESIDENT && 
+                p.role !== ROLES.VICE_PRESIDENT && 
+                p.role !== ROLES.SECRETARY
+            );
+            
+            const canConductRollCall = currentUser.role === ROLES.SECRETARY || isChair;
+
+            return (
+                <div style={{background: 'rgba(255, 255, 255, 0.08)', padding: '2rem', borderRadius: '8px', marginBottom: '2rem'}}>
+                    <h3 style={{marginBottom: '1.5rem', color: '#d4af37'}}>Roll Call</h3>
+                    
+                    {canConductRollCall ? (
+                        <div>
+                            <div className="info-box" style={{marginBottom: '1.5rem'}}>
+                                <strong>Note:</strong> President, Vice President, and Secretary are automatically present (officers conducting the meeting).
+                            </div>
+                            {membersToCall.length === 0 ? (
+                                <div>
+                                    <p style={{marginBottom: '1.5rem', color: '#c8c8c8'}}>
+                                        All officers are present. No members to call.
+                                    </p>
+                                    <p style={{fontSize: '0.9rem', color: '#a8a8a8'}}>
+                                        Click "Complete Roll Call" to proceed.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div>
+                                    <p style={{marginBottom: '1.5rem', color: '#c8c8c8'}}>
+                                        Call each member. Click "Complete Roll Call" when all have responded.
+                                    </p>
+                                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem'}}>
+                                        {membersToCall.map((p, idx) => {
+                                            const status = rollCallStatus[p.name];
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => onCallMember(p.name)}
+                                                    disabled={status === 'present'}
+                                                    style={{
+                                                        padding: '1rem',
+                                                        background: status === 'present' 
+                                                            ? 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)'
+                                                            : status === 'called'
+                                                            ? 'rgba(255, 193, 7, 0.2)'
+                                                            : 'rgba(255, 255, 255, 0.1)',
+                                                        border: status === 'present' ? 'none' : '1px solid rgba(212, 175, 55, 0.3)',
+                                                        color: status === 'present' ? 'white' : '#e8e8e8'
+                                                    }}
+                                                >
+                                                    <div style={{fontWeight: '600'}}>{p.name}</div>
+                                                    <div style={{fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.7}}>
+                                                        {p.role}
+                                                    </div>
+                                                    <div style={{fontSize: '0.85rem', marginTop: '0.25rem', opacity: 0.8}}>
+                                                        {status === 'present' ? '✓ Present' : status === 'called' ? 'Awaiting...' : 'Click to call'}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div style={{textAlign: 'center'}}>
+                            {currentUser.role === ROLES.PRESIDENT || currentUser.role === ROLES.VICE_PRESIDENT ? (
+                                <div className="info-box">
+                                    <strong>As {currentUser.role}, you are automatically present (presiding officer).</strong>
+                                    <p style={{marginTop: '0.5rem'}}>The Secretary is conducting roll call.</p>
+                                </div>
+                            ) : currentUser.role === ROLES.SECRETARY ? (
+                                <div className="info-box">
+                                    <strong>As Secretary, you are automatically present (conducting roll call).</strong>
+                                </div>
+                            ) : !wasICalled ? (
+                                <p style={{color: '#a8a8a8'}}>Waiting for your name to be called...</p>
+                            ) : myStatus === 'present' ? (
+                                <div className="info-box">
+                                    <strong>✓ You have responded to roll call.</strong>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div className="warning-box" style={{marginBottom: '1.5rem'}}>
+                                        <strong>Your name has been called!</strong>
+                                    </div>
+                                    <button onClick={onRespondToRollCall} style={{fontSize: '1.2rem', padding: '1rem 2rem'}}>
+                                        Respond: Present
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function VotingSection({ votes, isChair, onVote, onAnnounceResult, currentUser, votedBy }) {
+            const hasVoted = votedBy && votedBy.includes(currentUser.name);
+            const totalVoted = votedBy ? votedBy.length : 0;
+
+            return (
+                <div className="vote-section">
+                    <h3>Cast Your Vote</h3>
+                    {!hasVoted ? (
+                        <div className="vote-buttons">
+                            <button className="aye" onClick={() => onVote('aye')}>
+                                Aye
+                            </button>
+                            <button className="nay" onClick={() => onVote('nay')}>
+                                Nay
+                            </button>
+                            <button className="secondary" onClick={() => onVote('abstain')}>
+                                Abstain
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="info-box">
+                            Your vote has been recorded.
+                        </div>
+                    )}
+
+                    {isChair ? (
+                        <>
+                            <div className="vote-tally">
+                                <div className="vote-count">
+                                    <div className="number">{votes.aye}</div>
+                                    <div className="label">Ayes</div>
+                                </div>
+                                <div className="vote-count">
+                                    <div className="number">{votes.nay}</div>
+                                    <div className="label">Nays</div>
+                                </div>
+                                <div className="vote-count">
+                                    <div className="number">{votes.abstain}</div>
+                                    <div className="label">Abstentions</div>
+                                </div>
+                            </div>
+                            <button onClick={onAnnounceResult} style={{ marginTop: '2rem' }}>
+                                Announce Result
+                            </button>
+                        </>
+                    ) : (
+                        <div style={{marginTop: '2rem', textAlign: 'center', color: '#a8a8a8'}}>
+                            <p>Votes cast: {totalVoted}</p>
+                            <p style={{fontSize: '0.9rem', marginTop: '0.5rem'}}>Results will be announced by the chair.</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function IncidentalMainModal({ onSelectTemplate, onClose }) {
+            const incidentalMainOptions = [
+                {
+                    label: 'Create a Committee',
+                    heading: 'Introduce an Incidental Main Motion',
+                    template: 'to create a committee to ...'
+                },
+                {
+                    label: 'Give Instructions to a Committee',
+                    heading: 'Introduce an Incidental Main Motion',
+                    template: 'to instruct the committee to ...'
+                },
+                {
+                    label: 'Adopt an Agenda/Program',
+                    heading: 'Introduce an Incidental Main Motion',
+                    template: 'to adopt the agenda/program as follows: ...'
+                },
+                {
+                    label: 'Authorize an Act Related to Pending Business',
+                    heading: 'Introduce an Incidental Main Motion',
+                    template: 'to authorize ... (related to the pending business)'
+                },
+                {
+                    label: 'Other Incidental Main Motion',
+                    heading: 'Introduce an Incidental Main Motion',
+                    template: 'to ...'
+                }
+            ];
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Incidental Main Motions</h3>
+                        <p style={{color: '#c8c8c8', marginBottom: '1rem'}}>
+                            Choose an incidental main motion template. You can edit the text before introducing it.
+                        </p>
+                        <div style={{display: 'grid', gap: '0.75rem'}}>
+                            {incidentalMainOptions.map((opt) => (
+                                <button
+                                    key={opt.label}
+                                    className="secondary"
+                                    onClick={() => onSelectTemplate(opt.template, opt.heading)}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="modal-buttons" style={{marginTop: '1.25rem'}}>
+                            <button type="button" className="secondary" onClick={onClose}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function IncidentalMotionsModal({ onSubmit, onClose }) {
+            const incidentalOptions = [
+                'Point of Order',
+                'Appeal the Decision of the Chair',
+                'Parliamentary Inquiry',
+                'Request for Information',
+                'Division of the Assembly',
+                'Suspend the Rules'
+            ];
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Incidental Motions</h3>
+                        <p style={{color: '#c8c8c8', marginBottom: '1rem'}}>
+                            Choose an incidental motion to bring before the chair.
+                        </p>
+                        <div style={{display: 'grid', gap: '0.75rem'}}>
+                            {incidentalOptions.map((opt) => (
+                                <button key={opt} className="secondary" onClick={() => onSubmit(opt)}>
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="modal-buttons" style={{marginTop: '1.25rem'}}>
+                            <button type="button" className="secondary" onClick={onClose}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function MotionModal({ heading = 'Introduce a Motion', initialText = '', showSpecialOptions = true, onSubmit, onClose }) {
+            const [motionText, setMotionText] = useState(initialText || '');
+
+            useEffect(() => {
+                setMotionText(initialText || '');
+            }, [initialText]);
+
+            const specialOriginalOptions = [
+                {
+                    label: 'Adopt/Amend By-laws',
+                    template: 'to adopt/amend the by-laws as follows: ...'
+                },
+                {
+                    label: 'Adopt/Amend Standing Rules',
+                    template: 'to adopt/amend the standing rules as follows: ...'
+                },
+                {
+                    label: 'Rescind / Repeal / Annul',
+                    template: 'to rescind/repeal/annul the motion adopted on ...'
+                },
+                {
+                    label: 'Disciplinary Motion',
+                    template: 'to censure/remove/expel ...'
+                }
+            ];
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!motionText.trim()) return;
+                onSubmit(motionText);
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>{heading || 'Introduce a Motion'}</h3>
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label>Motion Text</label>
+                                <textarea
+                                    value={motionText}
+                                    onChange={(e) => setMotionText(e.target.value)}
+                                    placeholder="I move that..."
+                                    autoFocus
+                                />
+                            </div>
+
+                            {showSpecialOptions && (
+                                <>
+                                    <div style={{ textAlign: 'center', marginTop: '0.25rem', marginBottom: '0.75rem', color: '#c8c8c8', fontSize: '0.95rem' }}>
+                                        Special types of original main motions
+                                    </div>
+                                    <div style={{display: 'grid', gap: '0.75rem', marginBottom: '1rem'}}>
+                                        {specialOriginalOptions.map((opt) => (
+                                            <button
+                                                key={opt.label}
+                                                type="button"
+                                                className="secondary"
+                                                onClick={() => setMotionText(opt.template)}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="modal-buttons">
+                                <button type="button" className="secondary" onClick={onClose}>
+                                    Cancel
+                                </button>
+                                <button type="submit">
+                                    Introduce Motion
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        function AmendmentModal({ originalMotion, onSubmit, onClose }) {
+            const [amendmentText, setAmendmentText] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!amendmentText.trim()) return;
+                onSubmit(amendmentText);
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Amend the Motion</h3>
+                        <div className="info-box" style={{marginBottom: '1.5rem'}}>
+                            <strong>Original Motion:</strong><br />
+                            {originalMotion}
+                        </div>
+                        <form handleSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label>Amendment Text</label>
+                                <textarea
+                                    value={amendmentText}
+                                    onChange={(e) => setAmendmentText(e.target.value)}
+                                    placeholder="I move to amend by..."
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="modal-buttons">
+                                <button type="button" className="secondary" onClick={onClose}>
+                                    Cancel
+                                </button>
+                                <button type="submit">
+                                    Propose Amendment
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        function PointOfOrderModal({ onSubmit, onClose }) {
+            const [concern, setConcern] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!concern.trim()) return;
+                onSubmit(concern);
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Point of Order</h3>
+                        <div className="info-box" style={{marginBottom: '1.5rem'}}>
+                            A Point of Order calls attention to a breach of rules or procedural error.
+                            The chair will rule on your concern.
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label>State Your Concern</label>
+                                <textarea
+                                    value={concern}
+                                    onChange={(e) => setConcern(e.target.value)}
+                                    placeholder="Point of order: ..."
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="modal-buttons">
+                                <button type="button" className="secondary" onClick={onClose}>
+                                    Cancel
+                                </button>
+                                <button type="submit">
+                                    Raise Point of Order
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        function MinutesCorrectionModal({ onSubmit, onClose }) {
+            const [correction, setCorrection] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!correction.trim()) return;
+                onSubmit(correction);
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Propose Correction to Minutes</h3>
+                        <div className="info-box" style={{marginBottom: '1.5rem'}}>
+                            Describe the correction needed to the minutes from the previous meeting.
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label>Proposed Correction</label>
+                                <textarea
+                                    value={correction}
+                                    onChange={(e) => setCorrection(e.target.value)}
+                                    placeholder="On page X, line Y should read..."
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="modal-buttons">
+                                <button type="button" className="secondary" onClick={onClose}>
+                                    Cancel
+                                </button>
+                                <button type="submit">
+                                    Propose Correction
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
