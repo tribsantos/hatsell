@@ -3,6 +3,7 @@ import React from 'react';
 export default function MinutesApprovalSection({ currentUser, isChair, meetingState, onRequestReadMinutes, onRequestCorrection, onObjectToCorrection, onAcceptByConsent, onCallVoteOnCorrection }) {
     const hasCorrections = meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0;
     const currentCorrection = hasCorrections ? meetingState.minutesCorrections[0] : null;
+    const correctionBlocked = hasCorrections || !!meetingState.minutesCorrectionDebate;
 
     return (
         <div style={{background: '#f9f8f5', padding: '2rem', borderRadius: '8px', marginBottom: '2rem'}}>
@@ -69,7 +70,13 @@ export default function MinutesApprovalSection({ currentUser, isChair, meetingSt
                 <button onClick={onRequestReadMinutes} className="secondary" style={{flex: 1}}>
                     Request Minutes Be Read
                 </button>
-                <button onClick={onRequestCorrection} className="secondary" style={{flex: 1}}>
+                <button
+                    onClick={onRequestCorrection}
+                    className="secondary"
+                    style={{flex: 1, ...(correctionBlocked ? {opacity: 0.45} : {})}}
+                    disabled={correctionBlocked}
+                    data-tooltip={correctionBlocked ? 'OUT OF ORDER — A correction is already before the assembly' : 'Propose a correction to the minutes'}
+                >
                     Propose Correction
                 </button>
             </div>

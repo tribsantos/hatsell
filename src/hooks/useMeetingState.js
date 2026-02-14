@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MEETING_STAGES, ROLES } from '../constants';
 import { MOTION_TYPES, MOTION_STATUS, MOTION_CATEGORY } from '../constants/motionTypes';
 import * as MeetingConnection from '../services/MeetingConnection';
@@ -7,6 +7,7 @@ import { getRules, getDisplayName } from '../engine/motionRules';
 import { createRequest, acceptRequest, respondToRequest, dismissRequest, cleanupRequests } from '../engine/pendingRequests';
 import { isDebateAllowed } from '../engine/debateEngine';
 import { handleDivision } from '../engine/voteEngine';
+import { resolveQuorum, formatQuorumRule } from '../engine/quorum';
 
 const INITIAL_MEETING_STATE = {
     stage: MEETING_STAGES.NOT_STARTED,
@@ -14,6 +15,7 @@ const INITIAL_MEETING_STATE = {
     motionStack: [],
     pendingRequests: [],
     savedSpeakingState: {},
+    suspendedSpeakingState: null,
     tabledMotions: [],
     decidedMotions: [],
     speakingQueue: [],
@@ -23,8 +25,10 @@ const INITIAL_MEETING_STATE = {
     votedBy: [],
     log: [],
     quorum: 0,
+    quorumRule: null,
     rollCallStatus: {},
     pendingAmendments: [],
+    pendingMotions: [],
     minutesCorrections: [],
     lastChairRuling: null,
 
@@ -36,6 +40,37 @@ export function useMeetingState() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [meetingState, setMeetingState] = useState(INITIAL_MEETING_STATE);
+    const hasAttemptedReconnect = useRef(false);
+    const pendingRecognitionLock = useRef(false);
+
+    // === SESSION PERSISTENCE: auto-reconnect on mount ===
+    useEffect(() => {
+        if (hasAttemptedReconnect.current) return;
+        hasAttemptedReconnect.current = true;
+
+        try {
+            const saved = sessionStorage.getItem('hatsell_session');
+            if (!saved) return;
+            const session = JSON.parse(saved);
+            if (!session.name || !session.role || !session.meetingCode) return;
+
+            // Reconnect
+            MeetingConnection.connect(session.meetingCode);
+            MeetingConnection.getState().then(existingState => {
+                if (existingState && existingState.stage !== MEETING_STAGES.ADJOURNED) {
+                    const migratedState = migrateState(existingState);
+                    setCurrentUser({ name: session.name, role: session.role, meetingCode: session.meetingCode });
+                    setIsLoggedIn(true);
+                    setMeetingState(migratedState);
+                } else {
+                    sessionStorage.removeItem('hatsell_session');
+                    MeetingConnection.disconnect();
+                }
+            });
+        } catch {
+            sessionStorage.removeItem('hatsell_session');
+        }
+    }, []);
 
     const addToLog = (message) => {
         const timestamp = new Date().toLocaleTimeString();
@@ -51,11 +86,19 @@ export function useMeetingState() {
 
     // ========== LOGIN / MEETING SETUP ==========
 
-    const handleLogin = (userData) => {
+    const handleLogin = async (userData) => {
         setCurrentUser(userData);
         setIsLoggedIn(true);
 
-        const existingState = MeetingConnection.getState();
+        // Persist session for reconnection on refresh
+        sessionStorage.setItem('hatsell_session', JSON.stringify({
+            name: userData.name,
+            role: userData.role,
+            meetingCode: userData.meetingCode
+        }));
+
+        MeetingConnection.connect(userData.meetingCode);
+        const existingState = await MeetingConnection.getState();
 
         if (userData.role === ROLES.PRESIDENT) {
             if (existingState && existingState.stage !== MEETING_STAGES.ADJOURNED) {
@@ -66,7 +109,8 @@ export function useMeetingState() {
                 });
 
                 if (hasActivePresident) {
-                    alert('A meeting is already in progress with an active President. Please join as a participant or wait for it to end.');
+                    alert('A meeting is already in progress with an active Chair. Please join as a participant or wait for it to end.');
+                    MeetingConnection.disconnect();
                     setIsLoggedIn(false);
                     setCurrentUser(null);
                     return;
@@ -85,10 +129,11 @@ export function useMeetingState() {
                 meetingCode: userData.meetingCode
             };
             setMeetingState(initialState);
-            MeetingConnection.broadcast(initialState);
+            await MeetingConnection.broadcast(initialState);
         } else {
             if (!existingState) {
-                alert('No active meeting found. Please wait for the President to start the meeting.');
+                alert('No active meeting found. Please wait for the Chair to start the meeting.');
+                MeetingConnection.disconnect();
                 setIsLoggedIn(false);
                 setCurrentUser(null);
                 return;
@@ -115,7 +160,7 @@ export function useMeetingState() {
                     log: newLog
                 };
                 setMeetingState(newState);
-                MeetingConnection.broadcast(newState);
+                await MeetingConnection.broadcast(newState);
             }
         }
     };
@@ -132,6 +177,18 @@ export function useMeetingState() {
         });
     };
 
+    const handleSetQuorum = (rule) => {
+        const resolved = resolveQuorum(rule, meetingState.participants.length);
+        updateMeetingState({
+            quorumRule: rule,
+            quorum: resolved,
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: `Quorum set to ${formatQuorumRule(rule)} (${resolved} members required).`
+            }]
+        });
+    };
+
     const handleRollCall = () => {
         const officers = meetingState.participants.filter(p =>
             p.role === ROLES.PRESIDENT ||
@@ -144,17 +201,41 @@ export function useMeetingState() {
         ).length;
 
         const totalPresent = officers + responded;
-        const quorum = meetingState.participants.length;
+        const totalMembers = meetingState.participants.length;
 
-        const newLog = [...meetingState.log, {
-            timestamp: new Date().toLocaleTimeString(),
-            message: `Roll call complete. ${totalPresent} of ${quorum} members present. Quorum established.`
-        }];
+        // Resolve quorum from rule if set, otherwise use total participant count
+        const quorumRule = meetingState.quorumRule;
+        const quorum = quorumRule
+            ? resolveQuorum(quorumRule, totalMembers)
+            : totalMembers;
+
+        const quorumMet = totalPresent >= quorum;
+        const quorumMsg = quorumRule
+            ? `Roll call complete. ${totalPresent} of ${totalMembers} members present. Quorum requirement: ${quorum}. ${quorumMet ? 'Quorum established.' : 'QUORUM NOT MET.'}`
+            : `Roll call complete. ${totalPresent} of ${totalMembers} members present. Quorum established.`;
+
+        if (!quorumMet && quorumRule) {
+            updateMeetingState({
+                quorum,
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: quorumMsg
+                }, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: 'Meeting cannot proceed without a quorum. Meeting adjourned.'
+                }],
+                stage: MEETING_STAGES.ADJOURNED
+            });
+            return;
+        }
 
         updateMeetingState({
             stage: MEETING_STAGES.APPROVE_MINUTES,
             quorum,
-            log: newLog
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: quorumMsg
+            }]
         });
     };
 
@@ -218,7 +299,12 @@ export function useMeetingState() {
 
         const { newStack, error } = pushMotion(meetingState.motionStack, entry);
         if (error) {
-            console.error(error);
+            updateMeetingState({
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Motion not in order: ${error}`
+                }]
+            });
             return;
         }
 
@@ -229,6 +315,58 @@ export function useMeetingState() {
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: `${mover} moved: "${motionText}"`
+            }]
+        });
+    };
+
+    const handleChairAcceptMotion = () => {
+        const top = getCurrentPendingQuestion(meetingState.motionStack);
+        if (!top || top.status !== MOTION_STATUS.PENDING_CHAIR) return;
+
+        const newStack = updateTopMotion(meetingState.motionStack, {
+            status: MOTION_STATUS.PENDING_SECOND
+        });
+
+        updateMeetingState({
+            motionStack: newStack,
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: `The chair recognizes the motion: "${top.displayName}". Is there a second?`
+            }]
+        });
+    };
+
+    const handleChairRejectMotion = () => {
+        const top = getCurrentPendingQuestion(meetingState.motionStack);
+        if (!top || top.status !== MOTION_STATUS.PENDING_CHAIR) return;
+
+        const { newStack } = popMotion(meetingState.motionStack);
+
+        // Restore speaking state if returning to a motion below
+        const savedSpeakingState = { ...meetingState.savedSpeakingState };
+        let restoredSpeaking = { speakingQueue: [], speakingHistory: [], currentSpeaker: null };
+        const below = getCurrentPendingQuestion(newStack);
+        if (below && savedSpeakingState[below.id]) {
+            restoredSpeaking = savedSpeakingState[below.id];
+            delete savedSpeakingState[below.id];
+        }
+
+        updateMeetingState({
+            motionStack: newStack,
+            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : MEETING_STAGES.NEW_BUSINESS,
+            currentMotion: below ? {
+                text: below.text,
+                mover: below.mover,
+                seconder: below.seconder,
+                needsSecond: false
+            } : null,
+            ...restoredSpeaking,
+            savedSpeakingState,
+            votes: { aye: 0, nay: 0, abstain: 0 },
+            votedBy: [],
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: `The chair rules the motion "${top.text}" out of order.`
             }]
         });
     };
@@ -308,11 +446,34 @@ export function useMeetingState() {
         const top = getCurrentPendingQuestion(meetingState.motionStack);
         if (!top) return;
 
+        const rules = getRules(motionType);
+        if (!rules) return;
+
         // For amendments, determine degree
         if (motionType === MOTION_TYPES.AMEND) {
             const currentDegree = top.motionType === MOTION_TYPES.AMEND ? top.degree : 0;
             metadata.degree = currentDegree + 1;
             metadata.appliedTo = top.id;
+        }
+
+        // If someone is speaking and this is a non-interrupting motion, queue it
+        if (meetingState.currentSpeaker && !rules.canInterrupt) {
+            const pending = {
+                motionType,
+                text,
+                metadata,
+                proposer: currentUser.name,
+                displayName: rules.displayName,
+                timestamp: Date.now()
+            };
+            updateMeetingState({
+                pendingMotions: [...(meetingState.pendingMotions || []), pending],
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `${currentUser.name} proposes: ${rules.displayName} - "${text}" (queued — speaker has the floor)`
+                }]
+            });
+            return;
         }
 
         const entry = createMotionEntry(motionType, text, currentUser.name, metadata);
@@ -327,14 +488,12 @@ export function useMeetingState() {
             return;
         }
 
-        const rules = getRules(motionType);
-
         // Save speaking state for the current motion before pushing
         const savedSpeakingState = { ...meetingState.savedSpeakingState };
         savedSpeakingState[top.id] = {
-            speakingQueue: meetingState.speakingQueue,
-            speakingHistory: meetingState.speakingHistory,
-            currentSpeaker: meetingState.currentSpeaker
+            speakingQueue: meetingState.speakingQueue || [],
+            speakingHistory: meetingState.speakingHistory || [],
+            currentSpeaker: meetingState.currentSpeaker || null
         };
 
         const updates = {
@@ -343,9 +502,7 @@ export function useMeetingState() {
             speakingQueue: [],
             speakingHistory: [],
             currentSpeaker: null,
-            pendingAmendments: motionType === MOTION_TYPES.AMEND
-                ? meetingState.pendingAmendments
-                : meetingState.pendingAmendments,
+            pendingAmendments: meetingState.pendingAmendments,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: `${currentUser.name} moves: ${rules.displayName} - "${text}"`
@@ -358,6 +515,107 @@ export function useMeetingState() {
         }
 
         updateMeetingState(updates);
+    };
+
+    const handleRecognizePendingMotion = (index) => {
+        if (pendingRecognitionLock.current) {
+            return;
+        }
+
+        // Cannot recognize a motion while a member has the floor
+        if (meetingState.currentSpeaker) {
+            console.warn('Cannot recognize a motion while a member has the floor');
+            return;
+        }
+
+        pendingRecognitionLock.current = true;
+
+        try {
+            const pendingList = meetingState.pendingMotions || [];
+            const pending = pendingList[index];
+            const baseLog = [...meetingState.log];
+            if (!pending) {
+                updateMeetingState({
+                    log: [...baseLog, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: 'No pending motion found at that index.'
+                    }]
+                });
+                return;
+            }
+
+            // Prepare metadata (amendments need degree/appliedTo at time of recognition)
+            let metadata = pending.metadata || {};
+            const top = getCurrentPendingQuestion(meetingState.motionStack);
+            if (pending.motionType === MOTION_TYPES.AMEND && top) {
+                const currentDegree = top.motionType === MOTION_TYPES.AMEND ? top.degree : 0;
+                metadata = { ...metadata, degree: currentDegree + 1, appliedTo: top.id };
+            }
+
+            // Now push to stack via the normal subsidiary flow
+            const entry = createMotionEntry(pending.motionType, pending.text, pending.proposer, metadata);
+            if (entry.error) {
+                updateMeetingState({
+                    log: [...baseLog, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `Could not create motion: ${entry.error}`
+                    }]
+                });
+                return;
+            }
+            if (entry.requiresSecond) {
+                entry.status = MOTION_STATUS.PENDING_SECOND;
+            }
+
+            const { newStack, error } = pushMotion(meetingState.motionStack, entry);
+            if (error) {
+                updateMeetingState({
+                    log: [...baseLog, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `Chair could not recognize ${pending.displayName}: ${error}`
+                    }]
+                });
+                return;
+            }
+
+            const savedSpeakingState = { ...meetingState.savedSpeakingState };
+            if (top) {
+                savedSpeakingState[top.id] = {
+                    speakingQueue: meetingState.speakingQueue || [],
+                    speakingHistory: meetingState.speakingHistory || [],
+                    currentSpeaker: meetingState.currentSpeaker || null
+                };
+            }
+
+            updateMeetingState({
+                motionStack: newStack,
+                pendingMotions: meetingState.pendingMotions.filter((_, i) => i !== index),
+                savedSpeakingState,
+                speakingQueue: [],
+                speakingHistory: [],
+                currentSpeaker: null,
+                log: [...baseLog, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Chair recognizes ${pending.displayName} by ${pending.proposer}: "${pending.text}". Is there a second?`
+                }]
+            });
+        } finally {
+            pendingRecognitionLock.current = false;
+        }
+    };
+
+    const handleDismissPendingMotion = (index) => {
+        const pending = (meetingState.pendingMotions || [])[index];
+        if (!pending) return;
+
+        const remaining = meetingState.pendingMotions.filter((_, i) => i !== index);
+        updateMeetingState({
+            pendingMotions: remaining,
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: `Chair declines ${pending.displayName} by ${pending.proposer}`
+            }]
+        });
     };
 
     const handleCallVote = () => {
@@ -996,7 +1254,7 @@ export function useMeetingState() {
     const handleRecognizeSpeaker = () => {
         if (meetingState.speakingQueue.length === 0) return;
 
-        const nextSpeaker = meetingState.speakingQueue[0];
+        const nextSpeaker = { ...meetingState.speakingQueue[0], speakingStartTime: Date.now() };
         const remainingQueue = meetingState.speakingQueue.slice(1);
 
         updateMeetingState({
@@ -1034,9 +1292,45 @@ export function useMeetingState() {
             ];
         }
 
+        const shouldResumeSuspendedList =
+            meetingState.stage === MEETING_STAGES.SUSPENDED_RULES &&
+            meetingState.suspendedSpeakingState &&
+            meetingState.speakingQueue.length === 0;
+
+        if (shouldResumeSuspendedList) {
+            const restored = meetingState.suspendedSpeakingState;
+            updateMeetingState({
+                currentSpeaker: restored.currentSpeaker || null,
+                speakingQueue: restored.speakingQueue || [],
+                speakingHistory: restored.speakingHistory || [],
+                suspendedSpeakingState: null,
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `${speakerName} yields the floor`
+                }, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: 'Temporary speaking list completed. Resuming previous list.'
+                }]
+            });
+            return;
+        }
+
+        // Re-sort remaining queue with updated history
+        const resortedQueue = meetingState.speakingQueue.map(entry => {
+            const historyEntry = updatedHistory.find(h => h.name === entry.participant);
+            return {
+                ...entry,
+                hasSpokenBefore: !!historyEntry,
+                lastSpokeTime: historyEntry?.lastSpokeTime || entry.lastSpokeTime || 0
+            };
+        });
+        const top = getCurrentPendingQuestion(meetingState.motionStack);
+        const sortedQueue = sortSpeakingQueue(resortedQueue, top?.mover);
+
         updateMeetingState({
             currentSpeaker: null,
             speakingHistory: updatedHistory,
+            speakingQueue: sortedQueue,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: `${speakerName} yields the floor`
@@ -1133,7 +1427,15 @@ export function useMeetingState() {
         if (entry.error) return;
 
         const { newStack, error } = pushMotion(meetingState.motionStack, entry);
-        if (error) return;
+        if (error) {
+            updateMeetingState({
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Chair could not recognize amendment: ${error}`
+                }]
+            });
+            return;
+        }
 
         const rules = getRules(requestType);
 
@@ -1185,6 +1487,28 @@ export function useMeetingState() {
         });
     };
 
+    const handleReformulateMotion = (newText) => {
+        const top = getCurrentPendingQuestion(meetingState.motionStack);
+        if (!top || top.status !== MOTION_STATUS.PENDING_CHAIR) return;
+
+        const { newStack } = popMotion(meetingState.motionStack);
+
+        // Create a new motion entry with the reformulated text
+        const entry = createMotionEntry(top.motionType, newText, top.mover, top.metadata || {});
+        if (entry.error) return;
+
+        const { newStack: updatedStack, error } = pushMotion(newStack, entry);
+        if (error) return;
+
+        updateMeetingState({
+            motionStack: updatedStack,
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: `${top.mover} reformulates the motion: "${newText}"`
+            }]
+        });
+    };
+
     const handleWithdrawMotion = () => {
         const top = getCurrentPendingQuestion(meetingState.motionStack);
         if (!top) return;
@@ -1230,6 +1554,7 @@ export function useMeetingState() {
             updateMeetingState({
                 stage: MEETING_STAGES.NEW_BUSINESS,
                 suspendedRulesContext: null,
+                suspendedSpeakingState: null,
                 suspendedRulesPurpose: null,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
@@ -1244,6 +1569,7 @@ export function useMeetingState() {
             stage: ctx.previousStage,
             motionStack: ctx.motionStack,
             savedSpeakingState: ctx.savedSpeakingState || {},
+            suspendedSpeakingState: null,
             suspendedRulesContext: null,
             suspendedRulesPurpose: null,
             currentMotion: top ? {
@@ -1277,13 +1603,42 @@ export function useMeetingState() {
     };
 
     const handleNewSpeakingList = () => {
+        if (meetingState.stage !== MEETING_STAGES.SUSPENDED_RULES) return;
+
+        const hasSaved = !!meetingState.suspendedSpeakingState;
+        const suspendedSpeakingState = hasSaved ? meetingState.suspendedSpeakingState : {
+            speakingQueue: meetingState.speakingQueue,
+            speakingHistory: meetingState.speakingHistory,
+            currentSpeaker: meetingState.currentSpeaker
+        };
+
         updateMeetingState({
+            suspendedSpeakingState,
             speakingQueue: [],
             speakingHistory: [],
             currentSpeaker: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'The chair opens a new speaking list.'
+                message: hasSaved
+                    ? 'The chair opens a new temporary speaking list.'
+                    : 'The chair opens a temporary speaking list (previous list paused).'
+            }]
+        });
+    };
+
+    const handleResumePreviousSpeakingList = () => {
+        if (meetingState.stage !== MEETING_STAGES.SUSPENDED_RULES) return;
+        if (!meetingState.suspendedSpeakingState) return;
+
+        const restored = meetingState.suspendedSpeakingState;
+        updateMeetingState({
+            speakingQueue: restored.speakingQueue || [],
+            speakingHistory: restored.speakingHistory || [],
+            currentSpeaker: restored.currentSpeaker || null,
+            suspendedSpeakingState: null,
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: 'The chair resumes the previous speaking list.'
             }]
         });
     };
@@ -1347,14 +1702,47 @@ export function useMeetingState() {
     };
 
     const handleRecognizeAmendment = (amendment) => {
-        // Route through the subsidiary motion system
-        handleMoveSubsidiary(MOTION_TYPES.AMEND, amendment.text, {
-            proposer: amendment.proposer
-        });
+        // Cannot recognize an amendment while a member has the floor
+        if (meetingState.currentSpeaker) {
+            console.warn('Cannot recognize a motion while a member has the floor');
+            return;
+        }
 
-        // Remove from pending amendments
+        const top = getCurrentPendingQuestion(meetingState.motionStack);
+        if (!top) return;
+
+        const metadata = { proposer: amendment.proposer };
+        const currentDegree = top.motionType === MOTION_TYPES.AMEND ? top.degree : 0;
+        metadata.degree = currentDegree + 1;
+        metadata.appliedTo = top.id;
+
+        const entry = createMotionEntry(MOTION_TYPES.AMEND, amendment.text, amendment.proposer, metadata);
+        if (entry.error) return;
+        if (entry.requiresSecond) {
+            entry.status = MOTION_STATUS.PENDING_SECOND;
+        }
+
+        const { newStack, error } = pushMotion(meetingState.motionStack, entry);
+        if (error) return;
+
+        const savedSpeakingState = { ...meetingState.savedSpeakingState };
+        savedSpeakingState[top.id] = {
+            speakingQueue: meetingState.speakingQueue,
+            speakingHistory: meetingState.speakingHistory,
+            currentSpeaker: meetingState.currentSpeaker
+        };
+
         updateMeetingState({
-            pendingAmendments: (meetingState.pendingAmendments || []).filter(a => a !== amendment)
+            motionStack: newStack,
+            pendingAmendments: (meetingState.pendingAmendments || []).filter(a => a !== amendment),
+            savedSpeakingState,
+            speakingQueue: [],
+            speakingHistory: [],
+            currentSpeaker: null,
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: `Chair recognizes amendment by ${amendment.proposer}: "${amendment.text}". Is there a second?`
+            }]
         });
     };
 
@@ -1493,40 +1881,45 @@ export function useMeetingState() {
 
     const handleLogout = () => {
         if (currentUser.role === ROLES.PRESIDENT) {
-            const vicePresident = meetingState.participants.find(p => p.role === ROLES.VICE_PRESIDENT);
+            const viceChair = meetingState.participants.find(p => p.role === ROLES.VICE_PRESIDENT);
 
-            if (vicePresident) {
+            if (viceChair) {
                 const updatedParticipants = meetingState.participants.filter(p => p.name !== currentUser.name);
-                const promotedVP = { ...vicePresident, role: ROLES.PRESIDENT };
+                const promoted = { ...viceChair, role: ROLES.PRESIDENT };
                 const finalParticipants = updatedParticipants.map(p =>
-                    p.name === vicePresident.name ? promotedVP : p
+                    p.name === viceChair.name ? promoted : p
                 );
 
                 updateMeetingState({
                     participants: finalParticipants,
                     log: [...meetingState.log, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `President ${currentUser.name} has left. Vice President ${vicePresident.name} assumes the chair.`
+                        message: `Chair ${currentUser.name} has left. Vice Chair ${viceChair.name} assumes the chair.`
                     }]
                 });
             } else {
-                const remainingMembers = meetingState.participants.filter(p => p.name !== currentUser.name).length;
+                const remaining = meetingState.participants.filter(p => p.name !== currentUser.name);
 
-                if (remainingMembers === 0) {
+                if (remaining.length === 0) {
                     updateMeetingState({
                         stage: MEETING_STAGES.ADJOURNED,
                         log: [...meetingState.log, {
                             timestamp: new Date().toLocaleTimeString(),
-                            message: `President ${currentUser.name} has left. No quorum present. Meeting automatically adjourned.`
+                            message: `Chair ${currentUser.name} has left. No members remain. Meeting automatically adjourned.`
                         }]
                     });
                 } else {
+                    // Pick a random remaining member to become Chair
+                    const newChair = remaining[Math.floor(Math.random() * remaining.length)];
+                    const finalParticipants = remaining.map(p =>
+                        p.name === newChair.name ? { ...p, role: ROLES.PRESIDENT } : p
+                    );
+
                     updateMeetingState({
-                        stage: MEETING_STAGES.ADJOURNED,
-                        participants: meetingState.participants.filter(p => p.name !== currentUser.name),
+                        participants: finalParticipants,
                         log: [...meetingState.log, {
                             timestamp: new Date().toLocaleTimeString(),
-                            message: `President ${currentUser.name} has left. No authorized person to assume the chair. Meeting automatically adjourned.`
+                            message: `Chair ${currentUser.name} has left. ${newChair.name} has been randomly selected as Chair.`
                         }]
                     });
                 }
@@ -1542,13 +1935,17 @@ export function useMeetingState() {
             });
         }
 
+        sessionStorage.removeItem('hatsell_session');
+        MeetingConnection.disconnect();
         setIsLoggedIn(false);
         setCurrentUser(null);
     };
 
-    const handleClearMeeting = () => {
+    const handleClearMeeting = async () => {
         if (confirm('Are you sure you want to clear all meeting data? This will end the meeting for all participants.')) {
-            MeetingConnection.clearState();
+            await MeetingConnection.clearState();
+            sessionStorage.removeItem('hatsell_session');
+            MeetingConnection.disconnect();
             setIsLoggedIn(false);
             setCurrentUser(null);
             setMeetingState(INITIAL_MEETING_STATE);
@@ -1609,7 +2006,14 @@ export function useMeetingState() {
         handleResumeFromSuspendedRules,
         handleSuspendedVote,
         handleNewSpeakingList,
-        handleDeclareNoSecond
+        handleResumePreviousSpeakingList,
+        handleDeclareNoSecond,
+        handleSetQuorum,
+        handleChairAcceptMotion,
+        handleChairRejectMotion,
+        handleRecognizePendingMotion,
+        handleDismissPendingMotion,
+        handleReformulateMotion
     };
 }
 

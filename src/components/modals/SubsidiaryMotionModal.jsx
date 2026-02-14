@@ -17,20 +17,20 @@ const SUBSIDIARY_FIELDS = {
     },
     [MOTION_TYPES.COMMIT]: {
         heading: 'Refer to Committee',
-        textLabel: 'Committee Details',
-        textPlaceholder: 'I move to refer this matter to...',
+        noTextInput: true,
+        fixedText: 'to refer the pending question to a committee',
         extraFields: ['committeeName', 'instructions']
     },
     [MOTION_TYPES.POSTPONE_DEFINITELY]: {
         heading: 'Postpone to a Definite Time',
-        textLabel: 'Postpone Until',
-        textPlaceholder: 'I move to postpone this matter until...',
+        noTextInput: true,
+        fixedText: 'to postpone the pending question to a definite time',
         extraFields: ['postponeTime']
     },
     [MOTION_TYPES.LIMIT_DEBATE]: {
         heading: 'Limit or Extend Debate',
-        textLabel: 'Debate Limits',
-        textPlaceholder: 'I move to limit debate to...',
+        noTextInput: true,
+        fixedText: 'to limit or extend the limits of debate',
         extraFields: ['timeLimit', 'speechLimit']
     },
     [MOTION_TYPES.PREVIOUS_QUESTION]: {
@@ -115,6 +115,14 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
                                 Requires Second
                             </span>
                         )}
+                        <span style={{
+                            fontSize: '0.75rem', padding: '0.2rem 0.5rem',
+                            background: rules.canInterrupt ? 'rgba(230, 126, 34, 0.15)' : 'rgba(39, 174, 96, 0.08)',
+                            borderRadius: '3px',
+                            color: rules.canInterrupt ? '#e67e22' : '#27ae60'
+                        }}>
+                            {rules.canInterrupt ? 'Interrupts speaker' : 'Does not interrupt'}
+                        </span>
                     </div>
                 )}
 
@@ -140,7 +148,7 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
 
                     {config.noTextInput && (
                         <div className="info-box" style={{ marginBottom: '1.5rem' }}>
-                            <p>Motion: "{config.defaultText}"</p>
+                            <p>Motion: "{config.fixedText || config.defaultText}"</p>
                         </div>
                     )}
 
