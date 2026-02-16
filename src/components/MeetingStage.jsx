@@ -30,7 +30,7 @@ export default function MeetingStage({ stage, currentMotion, motionStack, suspen
         [MEETING_STAGES.MOTION_DISCUSSION]: {
             title: top ? `Discussion: ${top.displayName}` : 'Discussion',
             description: top
-                ? `Debating: ${top.text.substring(0, 80)}${top.text.length > 80 ? '...' : ''}`
+                ? `Debating: "${top.text.substring(0, 80)}${top.text.length > 80 ? '...' : ''}"`
                 : 'Members debate the motion on the floor'
         },
         [MEETING_STAGES.VOTING]: {
@@ -54,7 +54,7 @@ export default function MeetingStage({ stage, currentMotion, motionStack, suspen
     const info = stageInfo[stage] || stageInfo[MEETING_STAGES.NOT_STARTED];
 
     return (
-        <div className="meeting-stage">
+        <div className="meeting-stage" aria-live="polite">
             <h2>{info.title}</h2>
             <p className="stage-description">{info.description}</p>
             {motionStack && motionStack.length > 1 && (

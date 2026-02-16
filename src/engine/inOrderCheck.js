@@ -54,7 +54,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
 
     // === SUBSIDIARY MOTIONS ===
     // Only available when a main motion is pending and the top question is being debated
-    if (stack.length > 0 && top && (top.status === MOTION_STATUS.DEBATING || top.status === MOTION_STATUS.PENDING_SECOND)) {
+    if (stack.length > 0 && top && (top.status === MOTION_STATUS.DEBATING || top.status === MOTION_STATUS.PENDING_SECOND || top.status === MOTION_STATUS.PENDING_CHAIR)) {
         const subsidiaryTypes = [
             MOTION_TYPES.POSTPONE_INDEFINITELY,
             MOTION_TYPES.AMEND,
@@ -107,10 +107,18 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
                 }
             }
 
-            // Only show if the top motion is actively being debated (not pending second)
-            if (top.status === MOTION_STATUS.PENDING_SECOND && motionType !== MOTION_TYPES.AMEND) {
+            // Only show if the top motion is actively being debated (not pending chair or second)
+            if ((top.status === MOTION_STATUS.PENDING_CHAIR || top.status === MOTION_STATUS.PENDING_SECOND) && motionType !== MOTION_TYPES.AMEND) {
                 enabled = false;
-                reason = 'Motion is awaiting a second';
+                reason = top.status === MOTION_STATUS.PENDING_CHAIR
+                    ? 'Motion awaiting chair recognition'
+                    : 'Motion is awaiting a second';
+            }
+
+            // Amendments also cannot be made before the chair has stated the question
+            if (motionType === MOTION_TYPES.AMEND && top.status === MOTION_STATUS.PENDING_CHAIR) {
+                enabled = false;
+                reason = 'Motion awaiting chair recognition';
             }
 
             // Lay on Table only applies to main motion
@@ -235,7 +243,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
 
         // Objection to Consideration - only against a main motion, before debate has progressed
         if (mainMotion && top === mainMotion &&
-            (top.status === MOTION_STATUS.PENDING_SECOND || top.status === MOTION_STATUS.DEBATING)) {
+            (top.status === MOTION_STATUS.PENDING_CHAIR || top.status === MOTION_STATUS.PENDING_SECOND || top.status === MOTION_STATUS.DEBATING)) {
             available.push({
                 motionType: MOTION_TYPES.OBJECTION_TO_CONSIDERATION,
                 displayName: 'Objection to Consideration',

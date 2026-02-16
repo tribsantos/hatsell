@@ -1,13 +1,15 @@
 import React from 'react';
 import { MEETING_STAGES, ROLES } from '../constants';
-import { getCurrentPendingQuestion } from '../engine/motionStack';
+import { getCurrentPendingQuestion, getMainMotion } from '../engine/motionStack';
 import { getThresholdLabel } from '../engine/voteEngine';
+import { MOTION_TYPES } from '../constants/motionTypes';
 
 export default function ChairGuidance({ meetingState, currentUser, isChair, onAcknowledgeAnnouncement }) {
     if (!isChair) return null;
 
     const { stage, currentMotion, speakingQueue, currentSpeaker, pendingAmendments, motionStack = [] } = meetingState;
     const top = getCurrentPendingQuestion(motionStack);
+    const mainMotion = getMainMotion(motionStack);
 
     let guidance = null;
 
@@ -30,35 +32,66 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
             guidance = {
                 title: "Minutes Corrections",
                 phrase: "A correction to the minutes has been proposed. Is there any objection?",
-                action: "If no objection, minutes are corrected by consent. If objection, debate and vote on the correction."
+                action: "If no objection, the minutes are corrected by unanimous consent. If a member objects, the correction is debated and put to a vote."
             };
         } else {
             guidance = {
                 title: "Approval of Minutes",
                 phrase: "Are there any corrections to the minutes?",
-                action: "[Pause for corrections] If none: 'Hearing none, the minutes stand approved as distributed.'"
+                action: "Pause for corrections. If none are offered: 'Hearing no corrections, the minutes stand approved as distributed.' If corrections are proposed, handle them before approving."
             };
         }
     } else if (stage === MEETING_STAGES.NEW_BUSINESS) {
         if (meetingState.pendingAnnouncement) {
             const { motionText, aye, nay, result, description, displayName, voteRequired } = meetingState.pendingAnnouncement;
             const thresholdLabel = voteRequired ? getThresholdLabel(voteRequired) : 'Majority';
-            guidance = {
-                title: "Announce the Result",
-                phrase: description || `The vote is ${aye} ayes, ${nay} nays. The motion ${result}.`,
-                action: `${thresholdLabel} required. Announce the result to the assembly, then click 'Proceed to New Business'.`,
-                buttonLabel: "Proceed to New Business"
-            };
+            const isAmendment = displayName && displayName.toLowerCase().includes('amend');
+
+            if (result === 'adopted') {
+                if (isAmendment) {
+                    const mainText = mainMotion?.text || motionText;
+                    guidance = {
+                        title: "Announce the Result",
+                        phrase: `The ayes have it and the amendment is adopted. Discussion continues on the main motion as amended: "${mainText}".`,
+                        action: `${thresholdLabel} was required. Click 'Proceed to New Business' to continue.`,
+                        buttonLabel: "Proceed to New Business"
+                    };
+                } else {
+                    guidance = {
+                        title: "Announce the Result",
+                        phrase: `The ayes have it and the motion is adopted: "${motionText}". Is there further business?`,
+                        action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required. Click 'Proceed to New Business' to continue.`,
+                        buttonLabel: "Proceed to New Business"
+                    };
+                }
+            } else {
+                if (isAmendment) {
+                    const mainText = mainMotion?.text || motionText;
+                    guidance = {
+                        title: "Announce the Result",
+                        phrase: `The amendment is lost. Discussion continues on the main motion: "${mainText}".`,
+                        action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required. Click 'Proceed to New Business' to continue.`,
+                        buttonLabel: "Proceed to New Business"
+                    };
+                } else {
+                    guidance = {
+                        title: "Announce the Result",
+                        phrase: `The nays have it and the motion is lost. Is there further business?`,
+                        action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required. Click 'Proceed to New Business' to continue.`,
+                        buttonLabel: "Proceed to New Business"
+                    };
+                }
+            }
         } else if (top && top.status === 'pending_second') {
             guidance = {
                 title: `${top.displayName} Awaiting Second`,
-                phrase: `It has been moved: ${top.text}. Is there a second?`,
+                phrase: `It has been moved: "${top.text}". Is there a second?`,
                 action: `Wait for a member to second. ${top.requiresSecond ? 'A second is required.' : ''}`
             };
         } else if (currentMotion && currentMotion.needsSecond) {
             guidance = {
                 title: "Motion Awaiting Second",
-                phrase: `It has been moved that ${currentMotion.text}. Is there a second?`,
+                phrase: `It has been moved that "${currentMotion.text}". Is there a second?`,
                 action: "Wait for a member to second the motion."
             };
         } else if (!currentMotion && motionStack.length === 0) {
@@ -69,7 +102,19 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
             };
         }
     } else if (stage === MEETING_STAGES.MOTION_DISCUSSION) {
-        if (top && top.status === 'pending_second') {
+        if (meetingState.ordersOfTheDayDemand) {
+            guidance = {
+                title: "Orders of the Day",
+                phrase: "A member has called for the Orders of the Day. The chair must either return to the prescribed order of business or put the question: 'Shall the assembly suspend the rules and continue with the current business?' (requires 2/3 vote)",
+                action: "Choose to comply or move to suspend the rules."
+            };
+        } else if (top && top.status === 'pending_chair') {
+            guidance = {
+                title: "Motion Pending Recognition",
+                phrase: `A motion has been made by ${top.mover}: "${top.text}". Is there a second?`,
+                action: "Decide whether to recognize this motion or rule it out of order."
+            };
+        } else if (top && top.status === 'pending_second') {
             guidance = {
                 title: `${top.displayName} Awaiting Second`,
                 phrase: `It has been moved: "${top.text}". Is there a second?`,
@@ -132,11 +177,9 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
             };
         }
     } else if (stage === MEETING_STAGES.RECESS) {
-        const recessEnd = meetingState.recessEnd;
-        const remaining = recessEnd ? Math.max(0, Math.ceil((recessEnd - Date.now()) / 60000)) : '?';
         guidance = {
             title: "Meeting in Recess",
-            phrase: `The meeting is in recess. Approximately ${remaining} minutes remaining.`,
+            phrase: "The meeting is in recess.",
             action: "Click 'Resume Meeting' when the recess period has ended."
         };
     } else if (stage === MEETING_STAGES.ADJOURNED) {
@@ -150,7 +193,7 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
     if (!guidance) return null;
 
     return (
-        <div className="info-box" style={{
+        <div className="info-box" aria-live="polite" style={{
             marginBottom: '2rem',
             background: 'rgba(192, 57, 43, 0.08)',
             borderLeft: '4px solid #c0392b'

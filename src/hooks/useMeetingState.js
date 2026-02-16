@@ -30,6 +30,7 @@ const INITIAL_MEETING_STATE = {
     pendingAmendments: [],
     pendingMotions: [],
     minutesCorrections: [],
+    notifications: [],
     lastChairRuling: null,
 
     // Legacy compat - kept for minutes correction flow
@@ -118,6 +119,31 @@ export function useMeetingState() {
             }
 
             const userWithTimestamp = { ...userData, lastSeen: Date.now() };
+
+            // Convert orgProfile quorum settings to quorumRule format
+            let quorumRule = null;
+            let quorum = 0;
+            if (userData.orgProfile) {
+                const op = userData.orgProfile;
+                if (op.quorumType === 'fixed' && op.quorumValue) {
+                    quorumRule = { type: 'fixed', value: parseInt(op.quorumValue) };
+                    quorum = parseInt(op.quorumValue);
+                } else if (op.quorumType === 'fraction' && op.quorumValue) {
+                    quorumRule = { type: 'fraction', value: parseFloat(op.quorumValue) };
+                    quorum = Math.ceil(parseFloat(op.quorumValue) * (parseInt(op.totalMembership) || 1));
+                } else if (op.quorumType === 'default') {
+                    const membership = parseInt(op.totalMembership);
+                    if (membership) {
+                        quorumRule = { type: 'fraction', value: 0.5 };
+                        quorum = Math.ceil(membership * 0.5);
+                    } else {
+                        // No total membership known — use participant count as basis
+                        quorumRule = { type: 'majority_present' };
+                        quorum = 1; // Will be recalculated at roll call
+                    }
+                }
+            }
+
             const initialState = {
                 ...INITIAL_MEETING_STATE,
                 stage: MEETING_STAGES.CALL_TO_ORDER,
@@ -126,7 +152,11 @@ export function useMeetingState() {
                     timestamp: new Date().toLocaleTimeString(),
                     message: `Meeting created by ${userData.name}`
                 }],
-                meetingCode: userData.meetingCode
+                meetingCode: userData.meetingCode,
+                orgProfile: userData.orgProfile || null,
+                meetingSettings: userData.meetingSettings || null,
+                quorumRule,
+                quorum
             };
             setMeetingState(initialState);
             await MeetingConnection.broadcast(initialState);
@@ -364,6 +394,14 @@ export function useMeetingState() {
             savedSpeakingState,
             votes: { aye: 0, nay: 0, abstain: 0 },
             votedBy: [],
+            lastChairRuling: {
+                type: 'ruled_out_of_order',
+                ruling: 'out_of_order',
+                concern: top.text,
+                raisedBy: top.mover,
+                timestamp: Date.now()
+            },
+            chairDecisionTime: Date.now(),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: `The chair rules the motion "${top.text}" out of order.`
@@ -391,7 +429,7 @@ export function useMeetingState() {
 
         const updatedTop = getCurrentPendingQuestion(newStack);
 
-        updateMeetingState({
+        const updates = {
             motionStack: newStack,
             currentMotion: {
                 text: updatedTop.text,
@@ -404,7 +442,11 @@ export function useMeetingState() {
                 timestamp: new Date().toLocaleTimeString(),
                 message: logMessage
             }]
-        });
+        };
+        if (!updatedTop.isDebatable) {
+            updates.voteStartTime = Date.now();
+        }
+        updateMeetingState(updates);
     };
 
     const handleDeclareNoSecond = () => {
@@ -435,6 +477,14 @@ export function useMeetingState() {
             savedSpeakingState,
             votes: { aye: 0, nay: 0, abstain: 0 },
             votedBy: [],
+            lastChairRuling: {
+                type: 'no_second',
+                ruling: 'no_second',
+                concern: top.text,
+                raisedBy: top.mover,
+                timestamp: Date.now()
+            },
+            chairDecisionTime: Date.now(),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: `The motion "${top.text}" falls for lack of a second.`
@@ -458,6 +508,24 @@ export function useMeetingState() {
 
         // If someone is speaking and this is a non-interrupting motion, queue it
         if (meetingState.currentSpeaker && !rules.canInterrupt) {
+            // Enforce precedence: block if a pending motion already has >= precedence
+            const pendingList = meetingState.pendingMotions || [];
+            if (pendingList.length > 0 && rules.precedence !== null) {
+                const highestPendingPrec = pendingList.reduce((max, pm) => {
+                    const pmRules = getRules(pm.motionType);
+                    return pmRules && pmRules.precedence !== null && pmRules.precedence > max ? pmRules.precedence : max;
+                }, 0);
+                if (rules.precedence <= highestPendingPrec) {
+                    updateMeetingState({
+                        log: [...meetingState.log, {
+                            timestamp: new Date().toLocaleTimeString(),
+                            message: `${rules.displayName} is out of order: a higher or equal priority motion is already pending.`
+                        }]
+                    });
+                    return;
+                }
+            }
+
             const pending = {
                 motionType,
                 text,
@@ -512,6 +580,7 @@ export function useMeetingState() {
         // Non-debatable motions that don't need a second go straight to voting
         if (!rules.requiresSecond && !rules.isDebatable) {
             updates.stage = MEETING_STAGES.VOTING;
+            updates.voteStartTime = Date.now();
         }
 
         updateMeetingState(updates);
@@ -631,6 +700,7 @@ export function useMeetingState() {
         updateMeetingState({
             motionStack: newStack,
             stage: MEETING_STAGES.VOTING,
+            voteStartTime: Date.now(),
             votes: { aye: 0, nay: 0, abstain: 0 },
             votedBy: [],
             log: [...meetingState.log, {
@@ -720,13 +790,34 @@ export function useMeetingState() {
         const top = getCurrentPendingQuestion(meetingState.motionStack);
         if (!top) return;
 
+        // After 60 seconds, count non-voters as abstentions
+        let votesForResult = meetingState.votes;
+        if (meetingState.voteStartTime && (Date.now() - meetingState.voteStartTime >= 60000)) {
+            const nonVoterCount = meetingState.participants.length - (meetingState.votedBy || []).length;
+            if (nonVoterCount > 0) {
+                votesForResult = {
+                    ...meetingState.votes,
+                    abstain: (meetingState.votes.abstain || 0) + nonVoterCount
+                };
+            }
+        }
+
+        // Build voting context from org profile for basis-aware vote determination
+        const orgProfile = meetingState.orgProfile;
+        const votingContext = orgProfile ? {
+            majorityBasis: orgProfile.majorityBasis || 'votes_cast',
+            twoThirdsBasis: orgProfile.twoThirdsBasis || 'votes_cast',
+            membersPresent: meetingState.participants.length,
+            entireMembership: parseInt(orgProfile.totalMembership) || meetingState.participants.length
+        } : null;
+
         // Use the stack's votes for the result determination
-        const entryForResult = { ...top, votes: meetingState.votes, voteRequired: top.voteRequired };
-        const { result, description } = determineVoteResult(entryForResult);
+        const entryForResult = { ...top, votes: votesForResult, voteRequired: top.voteRequired };
+        const { result, description } = determineVoteResult(entryForResult, votingContext);
 
         const newLog = [...meetingState.log, {
             timestamp: new Date().toLocaleTimeString(),
-            message: `Vote on ${top.displayName}: ${description}`
+            message: `Vote on ${top.displayName}: ${description}: "${top.text}"`
         }];
 
         // Handle the effect of adoption/defeat
@@ -736,6 +827,27 @@ export function useMeetingState() {
     const handleMotionDisposition = (motion, result, description, newLog) => {
         const { newStack, poppedMotion } = popMotion(meetingState.motionStack);
         const finalStatus = result === 'adopted' ? MOTION_STATUS.ADOPTED : MOTION_STATUS.DEFEATED;
+
+        // Auto-dismiss moot pending motions when the stack is cleared
+        // (e.g., Lay on Table adopted, Postpone Indefinitely adopted, Adjourn adopted)
+        const motionsClearingStack = [
+            MOTION_TYPES.LAY_ON_TABLE,
+            MOTION_TYPES.POSTPONE_INDEFINITELY,
+            MOTION_TYPES.POSTPONE_DEFINITELY,
+            MOTION_TYPES.COMMIT,
+            MOTION_TYPES.ADJOURN
+        ];
+        if (result === 'adopted' && motionsClearingStack.includes(motion.motionType)) {
+            const pending = meetingState.pendingMotions || [];
+            if (pending.length > 0) {
+                const dismissedNames = pending.map(pm => pm.displayName).join(', ');
+                newLog = [...newLog, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Pending motions auto-dismissed (object no longer exists): ${dismissedNames}`
+                }];
+                // We'll clear pendingMotions in the update below
+            }
+        }
 
         // Record in decided motions history
         const decidedEntry = {
@@ -819,11 +931,23 @@ export function useMeetingState() {
     const handleEffectOfAdoption = (motion, currentStack, currentLog, savedSpeakingState, decidedMotions, restoredSpeaking) => {
         switch (motion.motionType) {
             case MOTION_TYPES.AMEND: {
-                // Amend adopted: modify text of the motion it was applied to
+                // Amend adopted: store amendment history and replace text with latest form
                 if (motion.metadata?.appliedTo) {
                     const targetId = motion.metadata.appliedTo;
+                    const target = getMotionById(currentStack, targetId);
+                    const existingHistory = target?.metadata?.amendmentHistory || [];
+                    const newHistory = [...existingHistory, {
+                        amendmentText: motion.text,
+                        previousText: target?.text,
+                        adoptedAt: Date.now()
+                    }];
                     const newStack = updateMotionById(currentStack, targetId, {
-                        text: `${getMotionById(currentStack, targetId)?.text} [as amended: ${motion.text}]`
+                        text: motion.text,
+                        metadata: {
+                            ...(target?.metadata || {}),
+                            amendmentHistory: newHistory,
+                            originalText: target?.metadata?.originalText || target?.text
+                        }
                     });
                     const nextTop = getCurrentPendingQuestion(newStack);
 
@@ -864,6 +988,7 @@ export function useMeetingState() {
                     updateMeetingState({
                         motionStack: votingStack,
                         stage: MEETING_STAGES.VOTING,
+                        voteStartTime: Date.now(),
                         currentMotion: nextTop ? {
                             text: nextTop.text,
                             mover: nextTop.mover,
@@ -910,6 +1035,7 @@ export function useMeetingState() {
                     currentSpeaker: null,
                     savedSpeakingState: {},
                     pendingAmendments: [],
+                    pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
                         message: `Motion laid on the table: "${mainMotion?.text}"`
@@ -942,6 +1068,7 @@ export function useMeetingState() {
                     currentSpeaker: null,
                     savedSpeakingState: {},
                     pendingAmendments: [],
+                    pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
                         message: `Motion postponed until ${motion.metadata?.postponeTime || 'a later time'}: "${mainMotion?.text}"`
@@ -966,6 +1093,7 @@ export function useMeetingState() {
                     currentSpeaker: null,
                     savedSpeakingState: {},
                     pendingAmendments: [],
+                    pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
                         message: `Motion referred to ${motion.metadata?.committeeName || 'committee'}: "${mainMotion?.text}"`
@@ -988,6 +1116,7 @@ export function useMeetingState() {
                     currentSpeaker: null,
                     savedSpeakingState: {},
                     pendingAmendments: [],
+                    pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
                         message: 'Motion postponed indefinitely (killed).'
@@ -1044,6 +1173,7 @@ export function useMeetingState() {
                     speakingHistory: [],
                     currentSpeaker: null,
                     savedSpeakingState: {},
+                    pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
                         message: 'Motion to adjourn adopted. Meeting adjourned.'
@@ -1414,6 +1544,7 @@ export function useMeetingState() {
                 raisedBy: request.raisedBy,
                 timestamp: Date.now()
             },
+            chairDecisionTime: Date.now(),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: `Chair rules: ${ruling}. Point of order by ${request.raisedBy} ${ruling === 'sustained' ? 'SUSTAINED' : 'NOT SUSTAINED'}.`
@@ -1422,7 +1553,29 @@ export function useMeetingState() {
     };
 
     const handleConvertRequestToMotion = (requestType, text, metadata = {}) => {
-        // Used for Appeal and Suspend Rules - converts to a stack motion
+        const rules = getRules(requestType);
+        if (!rules) return;
+
+        // If a speaker has the floor and this motion cannot interrupt, queue as pending
+        if (meetingState.currentSpeaker && !rules.canInterrupt) {
+            const pendingMotions = [...(meetingState.pendingMotions || []), {
+                motionType: requestType,
+                text,
+                proposer: currentUser.name,
+                displayName: rules.displayName,
+                metadata
+            }];
+            updateMeetingState({
+                pendingMotions,
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `${currentUser.name} moves: ${rules.displayName} - "${text}" (queued — a member has the floor)`
+                }]
+            });
+            return;
+        }
+
+        // Otherwise, push directly onto the stack
         const entry = createMotionEntry(requestType, text, currentUser.name, metadata);
         if (entry.error) return;
 
@@ -1431,13 +1584,11 @@ export function useMeetingState() {
             updateMeetingState({
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Chair could not recognize amendment: ${error}`
+                    message: `Motion could not be recognized: ${error}`
                 }]
             });
             return;
         }
-
-        const rules = getRules(requestType);
 
         // Save speaking state
         const top = getCurrentPendingQuestion(meetingState.motionStack);
@@ -1458,7 +1609,7 @@ export function useMeetingState() {
             currentSpeaker: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name} moves: ${rules?.displayName || requestType} - "${text}"`
+                message: `${currentUser.name} moves: ${rules.displayName} - "${text}"`
             }]
         });
     };
@@ -1592,6 +1743,7 @@ export function useMeetingState() {
         // Standalone vote in suspended mode — enter voting stage with chosen threshold
         updateMeetingState({
             stage: MEETING_STAGES.VOTING,
+            voteStartTime: Date.now(),
             votes: { aye: 0, nay: 0, abstain: 0 },
             votedBy: [],
             suspendedVoteThreshold: threshold,
@@ -1824,6 +1976,7 @@ export function useMeetingState() {
                     raisedBy: point.raisedBy,
                     timestamp: Date.now()
                 },
+                chairDecisionTime: Date.now(),
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
                     message: `Chair rules: ${ruling}. Point of order by ${point.raisedBy} ${ruling === 'sustained' ? 'SUSTAINED' : 'NOT SUSTAINED'}.`
@@ -1838,6 +1991,7 @@ export function useMeetingState() {
 
         updateMeetingState({
             stage: MEETING_STAGES.VOTING,
+            voteStartTime: Date.now(),
             currentMotion: {
                 text: `to approve the proposed correction to the minutes: "${correction.text}"`,
                 mover: currentUser.name,
@@ -1941,6 +2095,66 @@ export function useMeetingState() {
         setCurrentUser(null);
     };
 
+    // ========== ORDERS OF THE DAY ==========
+
+    const handleOrdersOfTheDay = () => {
+        updateMeetingState({
+            ordersOfTheDayDemand: { demandedBy: currentUser.name, timestamp: Date.now() },
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: `${currentUser.name} calls for the Orders of the Day`
+            }]
+        });
+    };
+
+    const handleOrdersOfTheDayResponse = (comply) => {
+        if (comply) {
+            // Return to agenda-appropriate stage (new business)
+            updateMeetingState({
+                ordersOfTheDayDemand: null,
+                stage: MEETING_STAGES.NEW_BUSINESS,
+                currentSpeaker: null,
+                speakingQueue: [],
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: 'Chair returns to the Orders of the Day'
+                }]
+            });
+        } else {
+            // Initiate "Suspend the Rules" vote (2/3 required) to continue current business
+            const entry = createMotionEntry(
+                MOTION_TYPES.SUSPEND_RULES,
+                'Suspend the rules to continue with the current business',
+                currentUser.name,
+                { suspendedRulesPurpose: 'Continue with current business out of agenda order' }
+            );
+
+            if (!entry.error) {
+                // Skip second requirement for this procedural motion
+                entry.status = MOTION_STATUS.PENDING_SECOND;
+                const { newStack } = pushMotion(meetingState.motionStack, entry);
+
+                updateMeetingState({
+                    ordersOfTheDayDemand: null,
+                    motionStack: newStack || meetingState.motionStack,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: 'Chair moves to suspend the rules to continue with current business (requires 2/3 vote). Is there a second?'
+                    }]
+                });
+            } else {
+                updateMeetingState({
+                    ordersOfTheDayDemand: null,
+                    stage: MEETING_STAGES.NEW_BUSINESS,
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: 'Chair returns to the Orders of the Day (unable to initiate suspend the rules)'
+                    }]
+                });
+            }
+        }
+    };
+
     const handleClearMeeting = async () => {
         if (confirm('Are you sure you want to clear all meeting data? This will end the meeting for all participants.')) {
             await MeetingConnection.clearState();
@@ -2013,7 +2227,9 @@ export function useMeetingState() {
         handleChairRejectMotion,
         handleRecognizePendingMotion,
         handleDismissPendingMotion,
-        handleReformulateMotion
+        handleReformulateMotion,
+        handleOrdersOfTheDay,
+        handleOrdersOfTheDayResponse
     };
 }
 

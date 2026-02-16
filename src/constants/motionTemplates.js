@@ -1,7 +1,8 @@
 export const specialOriginalOptions = [
     {
         label: 'Adopt/Amend By-laws',
-        template: 'to adopt/amend the by-laws as follows: ...'
+        template: 'to adopt/amend the by-laws as follows: ...',
+        requiresNotice: 'bylawAmendments'
     },
     {
         label: 'Adopt/Amend Standing Rules',
@@ -9,7 +10,13 @@ export const specialOriginalOptions = [
     },
     {
         label: 'Rescind / Repeal / Annul',
-        template: 'to rescind/repeal/annul the motion adopted on ...'
+        template: 'to rescind/repeal/annul the motion adopted on ...',
+        requiresNotice: 'rescind'
+    },
+    {
+        label: 'Discharge a Committee',
+        template: 'to discharge the committee on ... from further consideration of ...',
+        requiresNotice: 'dischargeCommittee'
     },
     {
         label: 'Disciplinary Motion',

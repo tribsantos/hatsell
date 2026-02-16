@@ -1,0 +1,27 @@
+• Started. Full replication pilot is now running in background.
+
+  - PID: 1788
+  - Launch record: C:\Documents\replication\artifacts\outputs\replication\run_replication.launch.txt
+
+  Check progress:
+
+  Get-Content C:\Documents\replication\artifacts\outputs\replication\batch_replication.log -Tail 40
+
+  Confirm process alive:
+
+  Get-Process -Id 1788
+
+  Stop if needed:
+
+  Stop-Process -Id 1788
+
+
+
+
+1. Reinicie o PC.
+  2. Feche apps pesados (Docker, navegadores com muitas abas, IDEs extras).
+  3. Verifique espaço livre no C: (ideal > 10–15 GB).
+  4. Deixe a Memória virtual como “Gerenciada pelo sistema” (ou aumente manualmente).
+  5. Se for em build/dev server, reduza watchers e processos paralelos.
+
+  Se você me mandar qual comando/programa gerou o erro, eu te passo a correção exata para esse caso.

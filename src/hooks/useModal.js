@@ -71,6 +71,11 @@ export function useModal() {
         setModalData({});
     };
 
+    const openPreChairWithdrawModal = () => {
+        setShowModal('preChairWithdraw');
+        setModalData({});
+    };
+
     const closeModal = () => {
         setShowModal(null);
     };
@@ -92,6 +97,7 @@ export function useModal() {
         openAppealModal,
         openSuspendRulesModal,
         openWithdrawMotionModal,
+        openPreChairWithdrawModal,
         closeModal
     };
 }

@@ -20,7 +20,7 @@ export function createMotionEntry(motionType, text, mover, metadata = {}) {
         text,
         mover,
         seconder: null,
-        status: rules.requiresSecond ? MOTION_STATUS.PENDING_SECOND : MOTION_STATUS.DEBATING,
+        status: rules.requiresSecond ? MOTION_STATUS.PENDING_CHAIR : MOTION_STATUS.DEBATING,
         degree,
         appliedTo: metadata.appliedTo || null,
         votes: { aye: 0, nay: 0, abstain: 0 },
@@ -125,8 +125,11 @@ export function getMainMotion(stack) {
 /**
  * Determine the vote result based on the motion's vote threshold
  * Returns { result: 'adopted'|'defeated', description }
+ *
+ * votingContext (optional): { majorityBasis, twoThirdsBasis, membersPresent, entireMembership }
+ *   basis values: 'votes_cast' (default RONR) | 'members_present' | 'entire_membership'
  */
-export function determineVoteResult(entry) {
+export function determineVoteResult(entry, votingContext) {
     const { votes, voteRequired } = entry;
     const aye = votes.aye || 0;
     const nay = votes.nay || 0;
@@ -137,20 +140,47 @@ export function determineVoteResult(entry) {
         return { result: 'defeated', description: 'No votes cast. Motion fails.' };
     }
 
-    switch (voteRequired) {
-        case VOTE_THRESHOLDS.MAJORITY:
-            // Majority = more than half of votes cast
-            if (aye > totalCast / 2) {
-                return { result: 'adopted', description: `${aye} ayes, ${nay} nays. Majority required. Motion adopted.` };
-            }
-            return { result: 'defeated', description: `${aye} ayes, ${nay} nays. Majority required. Motion defeated.` };
+    // Helper to get the denominator based on voting basis
+    const getDenominator = (basis) => {
+        if (!votingContext) return totalCast;
+        switch (basis) {
+            case 'members_present':
+                return votingContext.membersPresent || totalCast;
+            case 'entire_membership':
+                return votingContext.entireMembership || totalCast;
+            default:
+                return totalCast;
+        }
+    };
 
-        case VOTE_THRESHOLDS.TWO_THIRDS:
-            // Two-thirds = at least 2/3 of votes cast
-            if (aye >= totalCast * 2 / 3) {
-                return { result: 'adopted', description: `${aye} ayes, ${nay} nays. Two-thirds required. Motion adopted.` };
+    const getBasisLabel = (basis) => {
+        switch (basis) {
+            case 'members_present': return ' of members present';
+            case 'entire_membership': return ' of entire membership';
+            default: return '';
+        }
+    };
+
+    switch (voteRequired) {
+        case VOTE_THRESHOLDS.MAJORITY: {
+            const basis = votingContext?.majorityBasis || 'votes_cast';
+            const denom = getDenominator(basis);
+            const basisLabel = getBasisLabel(basis);
+            if (aye > denom / 2) {
+                return { result: 'adopted', description: `${aye} ayes, ${nay} nays. Majority${basisLabel} required. Motion adopted.` };
             }
-            return { result: 'defeated', description: `${aye} ayes, ${nay} nays. Two-thirds required. Motion defeated.` };
+            return { result: 'defeated', description: `${aye} ayes, ${nay} nays. Majority${basisLabel} required. Motion defeated.` };
+        }
+
+        case VOTE_THRESHOLDS.TWO_THIRDS: {
+            const basis = votingContext?.twoThirdsBasis || 'votes_cast';
+            const denom = getDenominator(basis);
+            const basisLabel = getBasisLabel(basis);
+            if (aye >= denom * 2 / 3) {
+                return { result: 'adopted', description: `${aye} ayes, ${nay} nays. Two-thirds${basisLabel} required. Motion adopted.` };
+            }
+            return { result: 'defeated', description: `${aye} ayes, ${nay} nays. Two-thirds${basisLabel} required. Motion defeated.` };
+        }
 
         case VOTE_THRESHOLDS.TIE_SUSTAINS:
             // For Appeal: tie sustains the chair's ruling

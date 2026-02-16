@@ -1,0 +1,13 @@
+- update "about" page on how app use works to reflect recent changes
+
+- Scrolling and button visibility: On the General Settings page, after clicking Confirm, the meeting code modal appears at the top. The user must manually scroll back to the top to see it; there is no automatic scroll or anchor. Adding automatic scrolling or a progress indicator would prevent confusion.
+
+- Confirm/Cancel button placement: While configuring the organization profile, the Confirm and Cancel buttons appear near the bottom but can be missed due to the long form. Sticky buttons or a floating toolbar could keep these actions accessible.
+
+- Field Validation: There is little feedback on optional fields (e.g., total membership, debate limits). While optional fields should not impede meeting creation, some explanatory tooltips or default labels (e.g., No limit) might clarify expectations.
+
+- Accessibility: The color contrast between red text and beige background meets readability standards but might still challenge visually impaired users. Ensure that interactive elements have proper ARIA labels and that all text is readable through screen readers.
+
+- Mobile support: The test was conducted on a desktop browser. On smaller screens, the three‑column layout may become cramped. Ensuring responsive collapsible panels or a stacked layout would improve mobile usability.
+
+- Privacy & persistence: Hatsell appears to run entirely client‑side, but it is unclear where meeting data is stored or how long it persists. Providing privacy statements in the disclaimer and clarifying data retention policies would build user trust.

@@ -15,8 +15,9 @@ export function isDebateAllowed(stack) {
 /**
  * Get debate constraints for the currently pending question.
  * Returns any time limits or speech count limits imposed by Limit Debate motions.
+ * orgProfile (optional): org settings with timePerSpeech, speechesPerMember, totalDebateTime
  */
-export function getDebateConstraints(stack) {
+export function getDebateConstraints(stack, orgProfile) {
     const constraints = {
         isDebatable: false,
         maxSpeechesPerMember: 2,     // RONR default: 2 speeches per member per question
@@ -25,12 +26,19 @@ export function getDebateConstraints(stack) {
         closedByPreviousQuestion: false
     };
 
+    // Apply org profile defaults first (overridden by motion-specific limits)
+    if (orgProfile) {
+        if (orgProfile.timePerSpeech) constraints.maxSpeechDuration = parseInt(orgProfile.timePerSpeech) || null;
+        if (orgProfile.speechesPerMember) constraints.maxSpeechesPerMember = parseInt(orgProfile.speechesPerMember) || 2;
+        if (orgProfile.totalDebateTime) constraints.totalTimeLimit = parseInt(orgProfile.totalDebateTime) || null;
+    }
+
     const top = getCurrentPendingQuestion(stack);
     if (!top) return constraints;
 
     constraints.isDebatable = top.isDebatable && top.status === MOTION_STATUS.DEBATING;
 
-    // Check if the top motion has debate limits from a Limit Debate motion
+    // Check if the top motion has debate limits from a Limit Debate motion (overrides org defaults)
     if (top.metadata?.debateLimits) {
         const limits = top.metadata.debateLimits;
         if (limits.maxSpeechDuration) constraints.maxSpeechDuration = limits.maxSpeechDuration;

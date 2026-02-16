@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { specialOriginalOptions } from '../../constants';
 
-export default function MotionModal({ heading = 'Introduce a Motion', initialText = '', showSpecialOptions = true, onSubmit, onClose }) {
+export default function MotionModal({ heading = 'Introduce a Motion', initialText = '', showSpecialOptions = true, previousNotice, onSubmit, onClose }) {
     const [motionText, setMotionText] = useState(initialText || '');
 
     useEffect(() => {
@@ -35,16 +35,34 @@ export default function MotionModal({ heading = 'Introduce a Motion', initialTex
                                 Special types of original main motions
                             </div>
                             <div style={{display: 'grid', gap: '0.75rem', marginBottom: '1rem'}}>
-                                {specialOriginalOptions.map((opt) => (
-                                    <button
-                                        key={opt.label}
-                                        type="button"
-                                        className="secondary"
-                                        onClick={() => setMotionText(opt.template)}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
+                                {specialOriginalOptions.map((opt) => {
+                                    const needsNotice = opt.requiresNotice && (!previousNotice || !previousNotice[opt.requiresNotice]);
+                                    return (
+                                        <button
+                                            key={opt.label}
+                                            type="button"
+                                            className="secondary"
+                                            onClick={() => !needsNotice && setMotionText(opt.template)}
+                                            disabled={needsNotice}
+                                            style={needsNotice ? { opacity: 0.45 } : {}}
+                                            data-tooltip={needsNotice ? 'Requires previous notice' : ''}
+                                            title={needsNotice ? 'Requires previous notice' : ''}
+                                        >
+                                            {opt.label}
+                                            {needsNotice && (
+                                                <span style={{
+                                                    display: 'block',
+                                                    fontSize: '0.75rem',
+                                                    fontStyle: 'italic',
+                                                    color: '#c0392b',
+                                                    marginTop: '0.15rem'
+                                                }}>
+                                                    (requires previous notice)
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </>
                     )}

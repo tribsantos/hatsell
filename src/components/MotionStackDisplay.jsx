@@ -72,6 +72,30 @@ export default function MotionStackDisplay({ motionStack, isChair }) {
                             {motion.text}
                         </div>
 
+                        {/* Amendment history trail */}
+                        {motion.metadata?.amendmentHistory && motion.metadata.amendmentHistory.length > 0 && (
+                            <div style={{
+                                marginTop: '0.5rem',
+                                padding: '0.5rem 0.75rem',
+                                background: 'rgba(0,0,0,0.03)',
+                                borderRadius: '3px',
+                                fontSize: '0.8rem',
+                                color: '#666'
+                            }}>
+                                <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: '#888', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.03em' }}>
+                                    Amendment History
+                                </div>
+                                <div style={{ marginBottom: '0.15rem' }}>
+                                    Original: "{motion.metadata.originalText}"
+                                </div>
+                                {motion.metadata.amendmentHistory.map((ah, ahIdx) => (
+                                    <div key={ahIdx} style={{ marginBottom: '0.15rem' }}>
+                                        Amendment {ahIdx + 1}: "{ah.amendmentText}"
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="motion-meta" style={{ marginTop: '0.5rem' }}>
                             <div>Moved by: {motion.mover}</div>
                             {motion.seconder && <div>Seconded by: {motion.seconder}</div>}

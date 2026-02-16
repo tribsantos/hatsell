@@ -1,0 +1,149 @@
+
+GOAL
+Add a new section called “Settings for this meeting” on the General Settings page.
+Place it below the Organization Profile options and above the Confirm/Cancel buttons.
+Move (or duplicate) the existing “Previous Notice Information” into this new meeting section,
+and extend it with “Agenda items” plus a few other meeting-specific settings.
+
+UI STRUCTURE (HIGH LEVEL)
+1) Keep “Organization Profile” as the place for standing/default rules:
+   - Total membership
+   - Quorum
+   - Voting basis for majority / two-thirds
+   - Default debate limits
+   - Default meeting format capabilities (if you want these as org-level defaults)
+
+2) Create a new panel/section below it:
+   Title: “Settings for this meeting”
+   Description: “Items here are meeting-specific. Some may require adoption at the start of the meeting.”
+
+3) Inside “Settings for this meeting”, include subsections in this order:
+   A) Agenda items
+   B) Previous notice (meeting notice flags)
+   C) Meeting type constraints (Regular vs Special meeting)
+   D) Electronic meeting procedures (only shown if meeting format is hybrid/electronic)
+   E) Proposed opening package (optional but recommended)
+
+
+
+AGENDA ITEMS 
+Establishing an agenda is optional, but if the user decides to have one, each agenda item MUST have a category that determines the meeting flow and the rule set that applies.
+Implement the agenda item category dropdown with (at minimum) these options:
+
+- Informational / Report
+  (Officer report, committee report, presentation, announcements; usually no immediate decision unless a motion is later made.) should allow debate later, but with a few differences. Instead of "Speak in Favor" and "Speak Against" it would say "Speak" for all. Priority rules still apply, though some will be moot.
+
+- General business (Main motion)
+  (Normal decisions; supports motion + debate + amendment + vote.)
+
+- Rescind / Amend Something Previously Adopted
+  (Used to change or undo something already adopted; thresholds depend on whether previous notice was given and other conditions.)
+
+- Bylaw amendments
+  (Distinct class; often has special notice and voting requirements.)
+
+- Election
+  (Distinct workflow: nominations, ballot rules, counting, majority/plurality per the org’s rules.)
+
+- Formal disciplinary procedure
+  (Distinct workflow; often stricter procedural safeguards and notice considerations.)
+
+- Financial matters (Budget / Dues / Assessments)
+  (Often governed by special org rules; benefits from being flagged distinctly so participants know expectations.)
+
+Suggested AgendaItem fields:
+- Title (required)
+- Category (required, from the list above)
+- Owner/Sponsor (optional; e.g., “Treasurer”, “Board Chair”)
+- Optional time target (minutes) and notes
+
+AGENDA STATUS (BINDING VS GUIDANCE)
+Add an “Agenda status” control in the Agenda items subsection:
+- “Agenda is guidance only”
+- “Agenda will be adopted as Orders of the Day (binding)”
+
+If the agenda is adopted as Orders of the Day, the app should enforce strict adherence.
+
+
+PREVIOUS NOTICE UI (MOVE/DUPLICATE EXISTING)
+1) Move the existing “Previous Notice Information” panel into “Settings for this meeting”.
+2) Keep these checkboxes exactly:
+   - Rescind / Amend Something Previously Adopted
+   - Bylaw Amendments
+   - Discharge a Committee
+   - Formal disciplinary procedure
+3) Store these values per meeting (not in org defaults).
+
+Behavior note:
+- These checkboxes are inputs to the app’s motion-validity / threshold logic.
+- If a user initiates a notice-sensitive action but the notice flag is not set, the app should follow the stricter/no-notice path.
+
+MEETING TYPE CONSTRAINTS
+1) Add a subsection: “Meeting type”
+2) Provide radio:
+   - Regular meeting
+   - Special meeting
+3) If Special meeting selected:
+   - Show a checkbox “Restrict business to items listed in the call/agenda”
+   - Default this checkbox to ON
+
+Behavior note:
+- If Special + restriction is ON, limit available business to the agenda/call items.
+
+ELECTRONIC MEETING RULES (CONDITIONAL)
+1) Only render this subsection if meeting format is Hybrid or Electronic.
+2) Fields:
+   - Recognition method: Queue only / Chair / Hybrid
+   - Chat policy: Informational only / Motions allowed
+   - Raise hand mechanism: Button / Chat keyword
+3) Persist these per meeting.
+
+PROPOSED OPENING PACKAGE
+Purpose: keep correctness by treating certain meeting-specific rules as proposed until adopted.
+1) Add a subsection: “Proposed opening package (requires adoption)”
+2) Checkbox: “Enable opening package”
+3) If enabled, include checklist items:
+   - Adopt agenda as Orders of the Day
+   - Adopt electronic meeting rules (if applicable)
+   - Adopt consent agenda (only if you implement it)
+   - Adopt special debate limits (only if you implement per-item debate limits)
+
+Behavior note:
+- These settings should not be active until the meeting adopts them at the start.
+
+MIGRATION / BACKWARD COMPATIBILITY
+- For meetings without MeetingSettings:
+  - Default agenda status to “guidance only”
+  - Default previousNotice flags to false
+  - Default meetingType to Regular
+
+COPY / LABELS 
+Section title: “Settings for this meeting”
+Agenda subsection: “Agenda items”
+Agenda status options:
+  - “Agenda is guidance only”
+  - “Agenda will be adopted as Orders of the Day (binding)”
+Previous notice subsection title: “Previous notice”
+Checkboxes:
+  - “Rescind / Amend Something Previously Adopted”
+  - “Bylaw Amendments”
+  - “Discharge a Committee”
+  - "Formal disciplinary procedure"
+Meeting type subsection title: “Meeting type”
+Options:
+  - “Regular meeting”
+  - “Special meeting”
+Special option checkbox:
+  - “Restrict business to items listed in the call/agenda”
+Opening package title: “Proposed opening package (requires adoption)”
+Toggle:
+  - “Enable opening package”
+
+DONE CRITERIA
+- The page displays Organization Profile first, then “Settings for this meeting”, then Confirm/Cancel.
+- Meeting-level settings persist per meeting and are retrievable by meeting code.
+- Agenda items can be added/edited/reordered/deleted and each item requires a category from the approved list.
+- Previous notice checkboxes are stored per meeting and affect the app’s rule/threshold paths.
+- Special meeting restriction changes what business the app allows.
+- If the agenda is adopted as Orders of the Day, the app enforces strict adherence to the adopted agenda.
+```

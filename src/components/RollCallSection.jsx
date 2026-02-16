@@ -20,7 +20,7 @@ export default function RollCallSection({ participants, rollCallStatus, currentU
             {canConductRollCall ? (
                 <div>
                     <div className="info-box" style={{marginBottom: '1.5rem'}}>
-                        <strong>Note:</strong> President, Vice President, and Secretary are automatically present (officers conducting the meeting).
+                        <strong>Note:</strong> Chair, Vice Chair, and Secretary are automatically present (officers conducting the meeting).
                     </div>
                     {membersToCall.length === 0 ? (
                         <div>

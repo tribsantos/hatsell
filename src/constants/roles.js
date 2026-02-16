@@ -1,6 +1,6 @@
 export const ROLES = {
-    PRESIDENT: 'President',
-    VICE_PRESIDENT: 'Vice President',
+    PRESIDENT: 'Chair',
+    VICE_PRESIDENT: 'Vice Chair',
     SECRETARY: 'Secretary',
     MEMBER: 'Member'
 };

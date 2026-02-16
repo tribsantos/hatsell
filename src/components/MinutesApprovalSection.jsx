@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function MinutesApprovalSection({ currentUser, isChair, meetingState, onRequestReadMinutes, onRequestCorrection, onObjectToCorrection, onAcceptByConsent, onCallVoteOnCorrection }) {
+export default function MinutesApprovalSection({ currentUser, isChair, meetingState, onRequestReadMinutes, onRequestCorrection, onObjectToCorrection, onAcceptByConsent, onCallVoteOnCorrection, onReadMinutesResponse }) {
     const hasCorrections = meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0;
     const currentCorrection = hasCorrections ? meetingState.minutesCorrections[0] : null;
     const correctionBlocked = hasCorrections || !!meetingState.minutesCorrectionDebate;
@@ -8,6 +8,37 @@ export default function MinutesApprovalSection({ currentUser, isChair, meetingSt
     return (
         <div style={{background: '#f9f8f5', padding: '2rem', borderRadius: '8px', marginBottom: '2rem'}}>
             <h3 style={{marginBottom: '1.5rem', color: '#7b2d3b'}}>Approval of Minutes</h3>
+
+            {/* Minutes Read Request Banner — prominent for chair */}
+            {meetingState.minutesReadRequest && isChair && (
+                <div style={{
+                    marginBottom: '1.5rem',
+                    padding: '1.25rem',
+                    background: 'rgba(52, 152, 219, 0.1)',
+                    border: '2px solid #2980b9',
+                    borderRadius: '4px',
+                    textAlign: 'center'
+                }}>
+                    <p style={{ fontWeight: '700', color: '#2980b9', marginBottom: '0.75rem', fontSize: '1rem' }}>
+                        {meetingState.minutesReadRequest.requestedBy} requested the minutes to be read
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                        <button
+                            onClick={() => onReadMinutesResponse && onReadMinutesResponse(true)}
+                            style={{ padding: '0.6rem 1.25rem' }}
+                        >
+                            Read the Minutes
+                        </button>
+                        <button
+                            onClick={() => onReadMinutesResponse && onReadMinutesResponse(false)}
+                            className="secondary"
+                            style={{ padding: '0.6rem 1.25rem' }}
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {meetingState.minutesCorrectionDebate && (
                 <div style={{marginBottom: '1.5rem'}}>
@@ -76,6 +107,7 @@ export default function MinutesApprovalSection({ currentUser, isChair, meetingSt
                     style={{flex: 1, ...(correctionBlocked ? {opacity: 0.45} : {})}}
                     disabled={correctionBlocked}
                     data-tooltip={correctionBlocked ? 'OUT OF ORDER — A correction is already before the assembly' : 'Propose a correction to the minutes'}
+                    title={correctionBlocked ? 'OUT OF ORDER — A correction is already before the assembly' : 'Propose a correction to the minutes'}
                 >
                     Propose Correction
                 </button>

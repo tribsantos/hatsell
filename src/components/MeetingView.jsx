@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MEETING_STAGES, ROLES } from '../constants';
 import MeetingStage from './MeetingStage';
 import ChairGuidance from './ChairGuidance';
 import RollCallSection from './RollCallSection';
 import MinutesApprovalSection from './MinutesApprovalSection';
 import VotingSection from './VotingSection';
-import ActionButtons from './ActionButtons';
+import { ChairActions, MemberActions } from './ActionButtons';
 import MotionStackDisplay from './MotionStackDisplay';
 import PendingRequestsPanel from './PendingRequestsPanel';
 import TabledMotionsList from './TabledMotionsList';
@@ -16,6 +16,111 @@ import SpeakingTimer from './SpeakingTimer';
 import { formatQuorumRule } from '../engine/quorum';
 import { getDebateConstraints } from '../engine/debateEngine';
 import { REQUEST_FLOWS } from '../engine/pendingRequests';
+import { getRules } from '../engine/motionRules';
+
+function FloatingNotifications({ notifications, onDismiss }) {
+    useEffect(() => {
+        if (!notifications || notifications.length === 0) return;
+        const timers = notifications.map((n, i) => {
+            const age = Date.now() - n.timestamp;
+            const remaining = Math.max(0, 4000 - age);
+            return setTimeout(() => onDismiss(n.timestamp), remaining);
+        });
+        return () => timers.forEach(clearTimeout);
+    }, [notifications, onDismiss]);
+
+    if (!notifications || notifications.length === 0) return null;
+
+    return (
+        <div style={{
+            position: 'fixed', top: '1rem', left: '50%', transform: 'translateX(-50%)',
+            zIndex: 2000, display: 'flex', flexDirection: 'column', gap: '0.5rem',
+            pointerEvents: 'none', maxWidth: '400px', width: '90%'
+        }}>
+            {notifications.map((n, i) => (
+                <div key={n.timestamp + n.name} style={{
+                    padding: '0.6rem 1rem',
+                    borderRadius: '4px',
+                    background: n.type === 'join'
+                        ? 'rgba(39, 174, 96, 0.9)'
+                        : 'rgba(230, 126, 34, 0.9)',
+                    color: 'white',
+                    fontWeight: '600',
+                    fontSize: '0.9rem',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                    animation: 'fadeIn 0.3s ease'
+                }}>
+                    {n.type === 'join' ? `${n.name} has joined` : `${n.name} has left`}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function RecessTimer({ recessEnd }) {
+    const [now, setNow] = useState(Date.now());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    if (!recessEnd) return null;
+
+    const remaining = Math.floor((recessEnd - now) / 1000);
+    const isOvertime = remaining <= 0;
+    const abs = Math.abs(remaining);
+    const m = Math.floor(abs / 60);
+    const s = abs % 60;
+    const display = `${isOvertime ? '-' : ''}${m}:${s.toString().padStart(2, '0')}`;
+
+    return (
+        <div style={{
+            background: isOvertime ? 'rgba(192, 57, 43, 0.08)' : 'rgba(52, 152, 219, 0.08)',
+            border: `2px solid ${isOvertime ? '#c0392b' : '#2980b9'}`,
+            borderRadius: '4px',
+            padding: '1rem',
+            marginBottom: '1rem',
+            textAlign: 'center'
+        }}>
+            <div style={{
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#666',
+                marginBottom: '0.25rem'
+            }}>
+                Recess
+            </div>
+            {isOvertime && (
+                <div style={{
+                    fontSize: '0.85rem',
+                    fontWeight: '700',
+                    color: '#c0392b',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: '0.25rem',
+                    animation: 'pulse 2s ease-in-out infinite'
+                }}>
+                    Recess time elapsed
+                </div>
+            )}
+            <div style={{
+                fontSize: '2rem',
+                fontWeight: '900',
+                fontFamily: "'Impact', 'Arial Black', monospace",
+                letterSpacing: '0.05em',
+                color: isOvertime ? '#c0392b' : '#1a1a1a'
+            }}>
+                {display}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>
+                {isOvertime ? 'over scheduled recess' : 'remaining'}
+            </div>
+        </div>
+    );
+}
 
 export default function MeetingView({
     meetingState,
@@ -75,15 +180,28 @@ export default function MeetingView({
     onChairRejectMotion,
     onRecognizePendingMotion,
     onDismissPendingMotion,
-    onPreChairWithdraw
+    onPreChairWithdraw,
+    onOrdersOfTheDay,
+    onOrdersOfTheDayResponse
 }) {
     const isChair = currentUser.role === ROLES.PRESIDENT || currentUser.role === ROLES.VICE_PRESIDENT;
     const motionStack = meetingState.motionStack || [];
     const pendingRequests = meetingState.pendingRequests || [];
 
+    const dismissNotification = useCallback((timestamp) => {
+        if (updateMeetingState) {
+            const filtered = (meetingState.notifications || []).filter(n => n.timestamp !== timestamp);
+            updateMeetingState({ notifications: filtered });
+        }
+    }, [meetingState.notifications, updateMeetingState]);
+
     return (
         <div className="meeting-container">
-            <aside className="panel">
+            <FloatingNotifications
+                notifications={meetingState.notifications || []}
+                onDismiss={dismissNotification}
+            />
+            <aside className="panel" role="complementary" aria-label="Participants and meeting information">
                 <h3>Participants ({meetingState.participants.length})</h3>
                 <ul className="participants-list">
                     {meetingState.participants.map((p, idx) => (
@@ -141,7 +259,7 @@ export default function MeetingView({
                 <DecidedMotionsList decidedMotions={meetingState.decidedMotions} />
             </aside>
 
-            <main className="panel">
+            <main className="panel" id="main-content">
                 <MeetingStage
                     stage={meetingState.stage}
                     currentMotion={meetingState.currentMotion}
@@ -155,6 +273,34 @@ export default function MeetingView({
                     isChair={isChair}
                     onAcknowledgeAnnouncement={onAcknowledgeAnnouncement}
                 />
+
+                {/* Chair Actions — immediately below guidance for quick access */}
+                {isChair && (
+                    <ChairActions
+                        meetingState={meetingState}
+                        currentUser={currentUser}
+                        onCallToOrder={onCallToOrder}
+                        onRollCall={onRollCall}
+                        onApproveMinutes={onApproveMinutes}
+                        onRecognizeSpeaker={onRecognizeSpeaker}
+                        onFinishSpeaking={onFinishSpeaking}
+                        onCallVote={onCallVote}
+                        onAdjourn={onAdjourn}
+                        onRecognizeAmendment={onRecognizeAmendment}
+                        onDismissAmendment={onDismissAmendment}
+                        onAcknowledgeAnnouncement={onAcknowledgeAnnouncement}
+                        onResumeFromRecess={onResumeFromRecess}
+                        onNewSpeakingList={onNewSpeakingList}
+                        onResumePreviousSpeakingList={onResumePreviousSpeakingList}
+                        onResumeFromSuspendedRules={onResumeFromSuspendedRules}
+                        onSuspendedVote={onSuspendedVote}
+                        onDeclareNoSecond={onDeclareNoSecond}
+                        onChairAcceptMotion={onChairAcceptMotion}
+                        onChairRejectMotion={onChairRejectMotion}
+                        onSecondMotion={onSecondMotion}
+                        onOrdersOfTheDayResponse={onOrdersOfTheDayResponse}
+                    />
+                )}
 
                 {/* Interrupting Motion Banner */}
                 {pendingRequests.filter(r => {
@@ -228,12 +374,21 @@ export default function MeetingView({
                     </div>
                 )}
 
-                {meetingState.pendingAmendments && meetingState.pendingAmendments.length > 0 && isChair && (
+                {meetingState.pendingAmendments && meetingState.pendingAmendments.length > 0 && isChair && (() => {
+                    const isVoting = meetingState.stage === MEETING_STAGES.VOTING;
+                    const hasSpeaker = !!meetingState.currentSpeaker;
+                    const amendBlocked = hasSpeaker || isVoting;
+
+                    return (
                     <div className="info-box" style={{marginBottom: '2rem', background: 'rgba(230, 126, 34, 0.08)'}}>
                         <h4 style={{color: '#e67e22', marginBottom: '1rem'}}>Pending Amendments ({meetingState.pendingAmendments.length})</h4>
-                        {meetingState.currentSpeaker ? (
+                        {hasSpeaker ? (
                             <p style={{marginBottom: '1rem', color: '#999', fontWeight: '600', fontStyle: 'italic'}}>
                                 A member has the floor — wait for them to yield before recognizing amendments.
+                            </p>
+                        ) : isVoting ? (
+                            <p style={{marginBottom: '1rem', color: '#999', fontWeight: '600', fontStyle: 'italic'}}>
+                                A vote is in progress — announce the result before recognizing amendments.
                             </p>
                         ) : (
                             <p style={{marginBottom: '1rem', color: '#e67e22', fontWeight: '600'}}>You must recognize or decline pending amendments before proceeding.</p>
@@ -244,22 +399,24 @@ export default function MeetingView({
                                 padding: '1rem',
                                 marginBottom: idx < meetingState.pendingAmendments.length - 1 ? '0.75rem' : '0',
                                 borderRadius: '4px',
-                                borderLeft: '3px solid #e67e22'
+                                borderLeft: '3px solid #e67e22',
+                                opacity: amendBlocked ? 0.7 : 1
                             }}>
                                 <p style={{marginBottom: '0.5rem'}}><strong>{amendment.proposer}</strong> wishes to propose:</p>
                                 <p style={{fontStyle: 'italic', marginBottom: '1rem', fontSize: '0.95rem'}}>"{amendment.text}"</p>
                                 <div style={{display: 'flex', gap: '0.5rem'}}>
                                     <button
-                                        onClick={() => onRecognizeAmendment(amendment)}
-                                        style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(meetingState.currentSpeaker ? {opacity: 0.45} : {})}}
-                                        disabled={!!meetingState.currentSpeaker}
+                                        onClick={() => !amendBlocked && onRecognizeAmendment(amendment)}
+                                        style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(amendBlocked ? {opacity: 0.45} : {})}}
+                                        disabled={amendBlocked}
                                     >
                                         Recognize Amendment
                                     </button>
                                     <button
-                                        onClick={() => onDismissAmendment(amendment)}
+                                        onClick={() => !amendBlocked && onDismissAmendment(amendment)}
                                         className="secondary"
-                                        style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem'}}
+                                        disabled={amendBlocked}
+                                        style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(amendBlocked ? {opacity: 0.45} : {})}}
                                     >
                                         Decline
                                     </button>
@@ -267,28 +424,53 @@ export default function MeetingView({
                             </div>
                         ))}
                     </div>
-                )}
+                    );
+                })()}
 
                 {/* Pending Motions (non-interrupting motions queued while speaker had the floor) */}
-                {(meetingState.pendingMotions || []).length > 0 && isChair && (
+                {(meetingState.pendingMotions || []).length > 0 && isChair && (() => {
+                    // Sort by precedence descending (highest first) and track original indices
+                    const indexed = (meetingState.pendingMotions || []).map((pm, idx) => ({ pm, originalIndex: idx }));
+                    indexed.sort((a, b) => {
+                        const aPrec = getRules(a.pm.motionType)?.precedence ?? 0;
+                        const bPrec = getRules(b.pm.motionType)?.precedence ?? 0;
+                        return bPrec - aPrec;
+                    });
+                    const highestPrec = getRules(indexed[0]?.pm.motionType)?.precedence ?? 0;
+
+                    // Block all pending motion actions if a motion is awaiting a second on the stack
+                    const topOfStack = motionStack.length > 0 ? motionStack[motionStack.length - 1] : null;
+                    const awaitingSecond = topOfStack?.status === 'pending_second';
+
+                    return (
                     <div className="info-box" style={{marginBottom: '2rem', background: 'rgba(52, 152, 219, 0.08)'}}>
                         <h4 style={{color: '#2980b9', marginBottom: '1rem'}}>Pending Motions ({meetingState.pendingMotions.length})</h4>
                         {meetingState.currentSpeaker ? (
                             <p style={{marginBottom: '1rem', color: '#999', fontWeight: '600', fontSize: '0.85rem', fontStyle: 'italic'}}>
                                 A member has the floor — wait for them to yield before recognizing motions.
                             </p>
+                        ) : awaitingSecond ? (
+                            <p style={{marginBottom: '1rem', color: '#e67e22', fontWeight: '600', fontSize: '0.85rem', fontStyle: 'italic'}}>
+                                Awaiting a second on the current motion before recognizing others.
+                            </p>
                         ) : (
                             <p style={{marginBottom: '1rem', color: '#2980b9', fontWeight: '600', fontSize: '0.85rem'}}>
-                                These motions were proposed while a speaker had the floor. Recognize or dismiss them.
+                                These motions were proposed while a speaker had the floor. Resolve highest-priority first.
                             </p>
                         )}
-                        {meetingState.pendingMotions.map((pm, idx) => (
-                            <div key={idx} style={{
+                        {indexed.map(({ pm, originalIndex }, displayIdx) => {
+                            const pmPrec = getRules(pm.motionType)?.precedence ?? 0;
+                            const isHighest = pmPrec === highestPrec;
+                            const blocked = !isHighest || !!meetingState.currentSpeaker || awaitingSecond;
+
+                            return (
+                            <div key={originalIndex} style={{
                                 background: 'rgba(0, 0, 0, 0.04)',
                                 padding: '1rem',
-                                marginBottom: idx < meetingState.pendingMotions.length - 1 ? '0.75rem' : '0',
+                                marginBottom: displayIdx < indexed.length - 1 ? '0.75rem' : '0',
                                 borderRadius: '4px',
-                                borderLeft: '3px solid #2980b9'
+                                borderLeft: `3px solid ${isHighest ? '#2980b9' : 'rgba(102,102,102,0.3)'}`,
+                                opacity: isHighest ? 1 : 0.7
                             }}>
                                 <p style={{marginBottom: '0.25rem', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.03em'}}>
                                     {pm.displayName}
@@ -297,6 +479,7 @@ export default function MeetingView({
                                 <div style={{display: 'flex', gap: '0.5rem'}}>
                                     <button
                                         onClick={() => {
+                                            if (blocked) return;
                                             if (typeof onRecognizePendingMotion !== 'function') {
                                                 updateMeetingState({
                                                     log: [...meetingState.log, {
@@ -306,25 +489,35 @@ export default function MeetingView({
                                                 });
                                                 return;
                                             }
-                                            onRecognizePendingMotion(idx);
+                                            onRecognizePendingMotion(originalIndex);
                                         }}
-                                        style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(meetingState.currentSpeaker ? {opacity: 0.45} : {})}}
-                                        disabled={!!meetingState.currentSpeaker}
+                                        style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(blocked ? {opacity: 0.45} : {})}}
+                                        disabled={blocked}
+                                        data-tooltip={!isHighest ? 'Resolve higher-priority motions first' : (meetingState.currentSpeaker ? 'Wait for speaker to yield' : 'Recognize this motion')}
+                                        title={!isHighest ? 'Resolve higher-priority motions first' : (meetingState.currentSpeaker ? 'Wait for speaker to yield' : 'Recognize this motion')}
                                     >
                                         Recognize
                                     </button>
                                     <button
-                                        onClick={() => onDismissPendingMotion(idx)}
+                                        onClick={() => {
+                                            if (blocked) return;
+                                            onDismissPendingMotion(originalIndex);
+                                        }}
                                         className="secondary"
-                                        style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem'}}
+                                        disabled={blocked}
+                                        style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(blocked ? {opacity: 0.45} : {})}}
+                                        data-tooltip={!isHighest ? 'Resolve higher-priority motions first' : awaitingSecond ? 'Awaiting second on current motion' : 'Dismiss this motion'}
+                                        title={!isHighest ? 'Resolve higher-priority motions first' : awaitingSecond ? 'Awaiting second on current motion' : 'Dismiss this motion'}
                                     >
                                         Dismiss
                                     </button>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
-                )}
+                    );
+                })()}
 
                 {meetingState.stage === MEETING_STAGES.ROLL_CALL && (
                     <RollCallSection
@@ -345,6 +538,7 @@ export default function MeetingView({
                         meetingState={meetingState}
                         onRequestReadMinutes={() => {
                             updateMeetingState({
+                                minutesReadRequest: { requestedBy: currentUser.name, timestamp: Date.now() },
                                 log: [...meetingState.log, {
                                     timestamp: new Date().toLocaleTimeString(),
                                     message: `${currentUser.name} requests that the minutes be read`
@@ -357,6 +551,25 @@ export default function MeetingView({
                         onObjectToCorrection={handleObjectToCorrection}
                         onAcceptByConsent={handleAcceptCorrectionByConsent}
                         onCallVoteOnCorrection={onCallVoteOnMinutesCorrection}
+                        onReadMinutesResponse={(doRead) => {
+                            if (doRead) {
+                                updateMeetingState({
+                                    minutesReadRequest: null,
+                                    log: [...meetingState.log, {
+                                        timestamp: new Date().toLocaleTimeString(),
+                                        message: 'Chair directed the minutes to be read'
+                                    }]
+                                });
+                            } else {
+                                updateMeetingState({
+                                    minutesReadRequest: null,
+                                    log: [...meetingState.log, {
+                                        timestamp: new Date().toLocaleTimeString(),
+                                        message: 'Chair dismissed request to read minutes'
+                                    }]
+                                });
+                            }
+                        }}
                     />
                 )}
 
@@ -387,6 +600,8 @@ export default function MeetingView({
                         votedBy={meetingState.votedBy || []}
                         motionStack={motionStack}
                         onDivision={onDivision}
+                        voteStartTime={meetingState.voteStartTime}
+                        participants={meetingState.participants}
                     />
                 )}
 
@@ -415,54 +630,94 @@ export default function MeetingView({
                 {meetingState.currentSpeaker && (
                     <SpeakingTimer
                         currentSpeaker={meetingState.currentSpeaker}
-                        maxDurationMinutes={getDebateConstraints(motionStack).maxSpeechDuration || null}
+                        maxDurationMinutes={getDebateConstraints(motionStack, meetingState.orgProfile).maxSpeechDuration || null}
                     />
                 )}
 
-                <ActionButtons
-                    meetingState={meetingState}
-                    currentUser={currentUser}
-                    isChair={isChair}
-                    onCallToOrder={onCallToOrder}
-                    onRollCall={onRollCall}
-                    onApproveMinutes={onApproveMinutes}
-                    onNewMotion={onNewMotion}
-                    onSecondMotion={onSecondMotion}
-                    onRequestToSpeak={onRequestToSpeak}
-                    onRecognizeSpeaker={onRecognizeSpeaker}
-                    onFinishSpeaking={onFinishSpeaking}
-                    onCallVote={onCallVote}
-                    onAdjourn={onAdjourn}
-                    onAmendMotion={onAmendMotion}
-                    onSecondAmendment={onSecondAmendment}
-                    onRecognizeAmendment={onRecognizeAmendment}
-                    onDismissAmendment={onDismissAmendment}
-                    onPointOfOrder={onPointOfOrder}
-                    onRuleOnPointOfOrder={onRuleOnPointOfOrder}
-                    onIncidentalMainMotion={onIncidentalMainMotion}
-                    onIncidentalMotions={onIncidentalMotions}
-                    onSubsidiaryMotion={onSubsidiaryMotion}
-                    onPrivilegedMotion={onPrivilegedMotion}
-                    onBringBackMotion={onBringBackMotion}
-                    onParliamentaryInquiry={onParliamentaryInquiry}
-                    onRequestForInfo={onRequestForInfo}
-                    onAppeal={onAppeal}
-                    onSuspendRules={onSuspendRules}
-                    onWithdrawMotion={onWithdrawMotion}
-                    onDivision={onDivision}
-                    onResumeFromRecess={onResumeFromRecess}
-                    onNewSpeakingList={onNewSpeakingList}
-                    onResumePreviousSpeakingList={onResumePreviousSpeakingList}
-                    onResumeFromSuspendedRules={onResumeFromSuspendedRules}
-                    onSuspendedVote={onSuspendedVote}
-                    onDeclareNoSecond={onDeclareNoSecond}
-                    onChairAcceptMotion={onChairAcceptMotion}
-                    onChairRejectMotion={onChairRejectMotion}
-                    onPreChairWithdraw={onPreChairWithdraw}
-                />
+                {/* Recess Timer — visible to all participants */}
+                {meetingState.stage === MEETING_STAGES.RECESS && (
+                    <RecessTimer recessEnd={meetingState.recessEnd} />
+                )}
+
+                {/* Member Actions — for chair, wrapped in collapsible "use sparingly" section */}
+                {isChair ? (
+                    <details style={{
+                        marginTop: '1rem',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        background: 'rgba(0,0,0,0.02)'
+                    }}>
+                        <summary style={{
+                            padding: '0.75rem 1rem',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            fontSize: '0.9rem',
+                            color: '#888',
+                            userSelect: 'none'
+                        }}>
+                            Member tools - use sparingly
+                        </summary>
+                        <div style={{
+                            padding: '0.5rem 1rem 0.75rem',
+                            fontSize: '0.8rem',
+                            color: '#999',
+                            fontStyle: 'italic',
+                            marginBottom: '0.5rem'
+                        }}>
+                            The chair should remain impartial. Use these tools only when necessary, such as when the chair wishes to make a motion (after passing the gavel to the vice-chair).
+                        </div>
+                        <MemberActions
+                            meetingState={meetingState}
+                            currentUser={currentUser}
+                            isChair={isChair}
+                            onNewMotion={onNewMotion}
+                            onSecondMotion={onSecondMotion}
+                            onRequestToSpeak={onRequestToSpeak}
+                            onFinishSpeaking={onFinishSpeaking}
+                            onAmendMotion={onAmendMotion}
+                            onPointOfOrder={onPointOfOrder}
+                            onIncidentalMainMotion={onIncidentalMainMotion}
+                            onSubsidiaryMotion={onSubsidiaryMotion}
+                            onPrivilegedMotion={onPrivilegedMotion}
+                            onBringBackMotion={onBringBackMotion}
+                            onParliamentaryInquiry={onParliamentaryInquiry}
+                            onRequestForInfo={onRequestForInfo}
+                            onAppeal={onAppeal}
+                            onSuspendRules={onSuspendRules}
+                            onWithdrawMotion={onWithdrawMotion}
+                            onDivision={onDivision}
+                            onPreChairWithdraw={onPreChairWithdraw}
+                            onOrdersOfTheDay={onOrdersOfTheDay}
+                        />
+                    </details>
+                ) : (
+                    <MemberActions
+                        meetingState={meetingState}
+                        currentUser={currentUser}
+                        isChair={isChair}
+                        onNewMotion={onNewMotion}
+                        onSecondMotion={onSecondMotion}
+                        onRequestToSpeak={onRequestToSpeak}
+                        onFinishSpeaking={onFinishSpeaking}
+                        onAmendMotion={onAmendMotion}
+                        onPointOfOrder={onPointOfOrder}
+                        onIncidentalMainMotion={onIncidentalMainMotion}
+                        onSubsidiaryMotion={onSubsidiaryMotion}
+                        onPrivilegedMotion={onPrivilegedMotion}
+                        onBringBackMotion={onBringBackMotion}
+                        onParliamentaryInquiry={onParliamentaryInquiry}
+                        onRequestForInfo={onRequestForInfo}
+                        onAppeal={onAppeal}
+                        onSuspendRules={onSuspendRules}
+                        onWithdrawMotion={onWithdrawMotion}
+                        onDivision={onDivision}
+                        onPreChairWithdraw={onPreChairWithdraw}
+                        onOrdersOfTheDay={onOrdersOfTheDay}
+                    />
+                )}
             </main>
 
-            <aside className="panel">
+            <aside className="panel" role="complementary" aria-label="Speaking queue and meeting log">
                 <h3>Speaking Queue</h3>
                 {meetingState.currentSpeaker && (
                     <div className="info-box">
@@ -494,14 +749,16 @@ export default function MeetingView({
 
                 <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ margin: 0 }}>Meeting Log</h3>
-                    <button
-                        onClick={() => exportMinutes(meetingState)}
-                        className="secondary"
-                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-                        data-tooltip="Download formal minutes as an editable Word document"
-                    >
-                        Export Minutes (.docx)
-                    </button>
+                    {meetingState.stage === MEETING_STAGES.ADJOURNED && (
+                        <button
+                            onClick={() => exportMinutes(meetingState)}
+                            className="secondary"
+                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                            data-tooltip="Download formal minutes as an editable Word document" title="Download formal minutes as an editable Word document"
+                        >
+                            Export Minutes (.docx)
+                        </button>
+                    )}
                 </div>
                 <div className="meeting-log">
                     {meetingState.log.slice().reverse().map((entry, idx) => (

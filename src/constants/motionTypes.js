@@ -55,6 +55,7 @@ export const VOTE_THRESHOLDS = {
 
 // Motion status values
 export const MOTION_STATUS = {
+    PENDING_CHAIR: 'pending_chair',
     PENDING_SECOND: 'pending_second',
     DEBATING: 'debating',
     VOTING: 'voting',

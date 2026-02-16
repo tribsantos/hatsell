@@ -1,65 +1,100 @@
 import React, { useState } from 'react';
-import { ROLES, MEETING_STAGES } from '../constants';
+import { ROLES } from '../constants';
 import * as MeetingConnection from '../services/MeetingConnection';
 
-export default function LoginScreen({ onLogin }) {
+export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
     const [name, setName] = useState('');
-    const [role, setRole] = useState(ROLES.PRESIDENT);
     const [meetingCode, setMeetingCode] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    const handleSubmit = (e) => {
+    const handleJoin = async (e) => {
         e.preventDefault();
         if (!name) return;
 
-        onLogin({
-            name,
-            role,
-            meetingCode: meetingCode.trim() || (role === ROLES.PRESIDENT ? Math.random().toString(36).substring(7).toUpperCase() : null)
-        });
-    };
+        const code = meetingCode.trim();
+        if (!code) {
+            setError('Meeting code is required to join a meeting.');
+            return;
+        }
 
-    const handleClearMeeting = () => {
-        if (confirm('Clear the existing meeting data and start fresh?')) {
-            MeetingConnection.clearState();
-            window.location.reload();
+        setError(null);
+        setLoading(true);
+
+        try {
+            let role = ROLES.MEMBER;
+            let actualCode = code;
+
+            // First, try Firebase role code lookup
+            const lookup = await MeetingConnection.lookupCode(code);
+            if (lookup) {
+                // Found a role-specific code in Firebase
+                actualCode = lookup.meetingCode;
+                // Map role string to ROLES constant
+                if (lookup.role === 'Chair') role = ROLES.PRESIDENT;
+                else if (lookup.role === 'Vice Chair') role = ROLES.VICE_PRESIDENT;
+                else if (lookup.role === 'Secretary') role = ROLES.SECRETARY;
+                else role = ROLES.MEMBER;
+            } else {
+                // Fall back to session/local storage code mappings
+                const codeMappings = JSON.parse(sessionStorage.getItem('hatsell_code_mappings') || '{}');
+                if (codeMappings[code]) {
+                    if (codeMappings[code].role === 'Chair') role = ROLES.PRESIDENT;
+                    else if (codeMappings[code].role === 'Vice Chair') role = ROLES.VICE_PRESIDENT;
+                    else if (codeMappings[code].role === 'Secretary') role = ROLES.SECRETARY;
+                    else role = ROLES.MEMBER;
+                    actualCode = codeMappings[code].baseCode;
+                } else {
+                    // Check saved profiles in localStorage
+                    const profiles = JSON.parse(localStorage.getItem('hatsell_org_profiles') || '{}');
+                    const allMeetings = Object.values(profiles).flatMap(p => p.meetingCodes ? [p.meetingCodes] : []);
+                    for (const codes of allMeetings) {
+                        if (codes.chair === code) { role = ROLES.PRESIDENT; actualCode = codes.base; break; }
+                        if (codes.viceChair === code) { role = ROLES.VICE_PRESIDENT; actualCode = codes.base; break; }
+                        if (codes.secretary === code) { role = ROLES.SECRETARY; actualCode = codes.base; break; }
+                        if (codes.member === code) { role = ROLES.MEMBER; actualCode = codes.base; break; }
+                    }
+                }
+            }
+
+            // Verify the meeting exists with the resolved base code
+            const exists = await MeetingConnection.checkMeetingExists(actualCode);
+            if (!exists) {
+                setError('No meeting found with that code. Check the code and try again.');
+                setLoading(false);
+                return;
+            }
+
+            await onLogin({ name, role, meetingCode: actualCode });
+        } catch (err) {
+            setError('Failed to join meeting. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
-
-    const existingMeeting = MeetingConnection.getState();
-    const hasPresident = existingMeeting?.participants?.some(p => p.role === ROLES.PRESIDENT);
-    const isStale = existingMeeting && !hasPresident;
 
     return (
         <div className="app-container">
             <header className="header">
-                <h1>Hatsell</h1>
+                <img src="/hatselllogo.png" alt="Hatsell" style={{ maxWidth: '420px', width: '100%' }} />
                 <p className="subtitle">Based on Robert's Rules of Order</p>
-            </header>
-
-            <div className="login-container">
-                <h2>{existingMeeting && existingMeeting.stage !== MEETING_STAGES.ADJOURNED ? 'Join Meeting' : 'Start Meeting'}</h2>
-
-                {isStale && (
-                    <div className="warning-box" style={{marginBottom: '1.5rem'}}>
-                        <strong>Stale Meeting Detected</strong><br />
-                        The President has left and there is no quorum. The meeting has been automatically adjourned.
-                        <button
-                            onClick={handleClearMeeting}
-                            style={{marginTop: '1rem', width: '100%'}}
-                            className="danger"
-                        >
-                            Clear Meeting Data
+                {onAbout && (
+                    <div style={{ marginTop: '1rem' }}>
+                        <button onClick={onAbout} className="secondary" style={{ padding: '0.5rem 1rem' }}>
+                            About
                         </button>
                     </div>
                 )}
+            </header>
 
-                {existingMeeting && existingMeeting.stage !== MEETING_STAGES.ADJOURNED && hasPresident && (
-                    <div className="info-box" style={{marginBottom: '1.5rem'}}>
-                        A meeting is currently in progress with {existingMeeting.participants.length} participant(s).
+            <div className="login-container">
+                {error && (
+                    <div className="warning-box" style={{marginBottom: '1.5rem'}}>
+                        {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleJoin}>
                     <div className="form-group">
                         <label>Your Name</label>
                         <input
@@ -68,49 +103,57 @@ export default function LoginScreen({ onLogin }) {
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Enter your name"
                             required
+                            disabled={loading}
                         />
                     </div>
 
                     <div className="form-group">
-                        <label>Your Role</label>
-                        <select value={role} onChange={(e) => setRole(e.target.value)}>
-                            {Object.values(ROLES).map(r => (
-                                <option key={r} value={r}>{r}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="form-group">
-                        <label>Meeting Code {role === ROLES.PRESIDENT ? '(optional - auto-generated if blank)' : '(optional)'}</label>
-                        <input
-                            type="text"
-                            value={meetingCode}
-                            onChange={(e) => setMeetingCode(e.target.value.toUpperCase())}
-                            placeholder="Enter meeting code"
-                        />
-                    </div>
-
-                    {role === ROLES.PRESIDENT && existingMeeting && existingMeeting.stage !== MEETING_STAGES.ADJOURNED && hasPresident && (
-                        <div className="warning-box">
-                            Warning: Starting as President will create a new meeting and clear the existing one.
+                        <label>Meeting Code</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input
+                                type="text"
+                                value={meetingCode}
+                                onChange={(e) => setMeetingCode(e.target.value.toUpperCase())}
+                                placeholder="Enter meeting code"
+                                disabled={loading}
+                                style={{ flex: 1 }}
+                            />
+                            <button
+                                type="submit"
+                                disabled={loading || !name || !meetingCode.trim()}
+                                style={{ padding: '0.5rem 1.25rem', whiteSpace: 'nowrap' }}
+                            >
+                                {loading ? 'Joining...' : 'Join Meeting'}
+                            </button>
                         </div>
-                    )}
-
-                    <button type="submit" disabled={isStale && role !== ROLES.PRESIDENT}>
-                        {role === ROLES.PRESIDENT ? 'Start Meeting' : 'Join Meeting'}
-                    </button>
-
-                    {!isStale && existingMeeting && existingMeeting.stage !== MEETING_STAGES.ADJOURNED && (
-                        <button
-                            type="button"
-                            onClick={handleClearMeeting}
-                            style={{marginTop: '1rem', width: '100%'}}
-                            className="secondary"
-                        >
-                            Clear Meeting Data
-                        </button>
-                    )}
+                    </div>
                 </form>
+
+                <div style={{
+                    marginTop: '2rem',
+                    paddingTop: '1.5rem',
+                    borderTop: '1px solid #e0ddd5',
+                    textAlign: 'center'
+                }}>
+                    <button
+                        onClick={() => {
+                            if (!name) {
+                                setError('Please enter your name first.');
+                                return;
+                            }
+                            onCreateMeeting(name);
+                        }}
+                        className="secondary"
+                        style={{
+                            padding: '0.75rem 1.5rem',
+                            fontSize: '1rem',
+                            width: '100%'
+                        }}
+                        disabled={loading}
+                    >
+                        Create a New Meeting
+                    </button>
+                </div>
             </div>
         </div>
     );

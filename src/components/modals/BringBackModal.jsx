@@ -75,6 +75,14 @@ export default function BringBackModal({ motionType, tabledMotions, decidedMotio
                     }}>
                         {rules.voteRequired === 'two_thirds' ? '2/3 Vote Required' : 'Majority Vote'}
                     </span>
+                    <span style={{
+                        fontSize: '0.75rem', padding: '0.2rem 0.5rem',
+                        background: rules.canInterrupt ? 'rgba(230, 126, 34, 0.15)' : 'rgba(39, 174, 96, 0.08)',
+                        borderRadius: '3px',
+                        color: rules.canInterrupt ? '#e67e22' : '#27ae60'
+                    }}>
+                        {rules.canInterrupt ? 'Interrupts speaker' : 'Does not interrupt'}
+                    </span>
                 </div>
 
                 {items.length === 0 ? (

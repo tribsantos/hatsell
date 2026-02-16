@@ -1,55 +1,152 @@
-const STORAGE_KEY = 'parliamentary_meeting_state';
-const STATE_VERSION = 2; // v2: motionStack replaces currentMotion
+import { ref, set, get, onValue, off, remove } from 'firebase/database';
+import { database } from './firebaseConfig';
+
+const STATE_VERSION = 2;
+
+// Array fields that Firebase will drop when empty (serializes [] as null)
+const ARRAY_FIELDS = [
+    'participants', 'motionStack', 'pendingRequests', 'tabledMotions',
+    'decidedMotions', 'speakingQueue', 'speakingHistory', 'votedBy',
+    'log', 'pendingAmendments', 'minutesCorrections', 'notifications'
+];
+
+let meetingRef = null;
+let cachedState = null;
+let activeListener = null;
+
+function sanitizeForFirebase(value) {
+    if (value === undefined) return null;
+    if (value === null) return null;
+    if (Array.isArray(value)) {
+        return value.map(sanitizeForFirebase);
+    }
+    if (typeof value === 'object') {
+        const out = {};
+        for (const [key, val] of Object.entries(value)) {
+            out[key] = sanitizeForFirebase(val);
+        }
+        return out;
+    }
+    return value;
+}
+
+function sanitizeState(state) {
+    if (!state) return null;
+    const sanitized = { ...state };
+    for (const field of ARRAY_FIELDS) {
+        if (sanitized[field] === null || sanitized[field] === undefined) {
+            sanitized[field] = [];
+        }
+    }
+    // Restore object fields that Firebase may nullify
+    if (!sanitized.savedSpeakingState) sanitized.savedSpeakingState = {};
+    if (!sanitized.votes) sanitized.votes = { aye: 0, nay: 0, abstain: 0 };
+    if (!sanitized.rollCallStatus) sanitized.rollCallStatus = {};
+    return sanitized;
+}
+
+export function connect(meetingCode) {
+    if (meetingRef) {
+        disconnect();
+    }
+    meetingRef = ref(database, `meetings/${meetingCode}`);
+    cachedState = null;
+}
+
+export function disconnect() {
+    if (meetingRef && activeListener) {
+        off(meetingRef, 'value', activeListener);
+        activeListener = null;
+    }
+    meetingRef = null;
+    cachedState = null;
+}
 
 export function broadcast(newState) {
+    if (!meetingRef) return Promise.resolve();
     const versionedState = { ...newState, stateVersion: STATE_VERSION };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(versionedState));
-    window.dispatchEvent(new StorageEvent('storage', {
-        key: STORAGE_KEY,
-        newValue: JSON.stringify(versionedState)
-    }));
+    const cleanedState = sanitizeForFirebase(versionedState);
+    return set(meetingRef, cleanedState);
 }
 
 export function subscribe(callback) {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-        try {
-            callback(JSON.parse(stored));
-        } catch (e) {
-            console.error('Error parsing stored state:', e);
-        }
-    }
+    if (!meetingRef) return () => {};
 
-    const handler = (e) => {
-        if (e.key === STORAGE_KEY && e.newValue) {
-            try {
-                callback(JSON.parse(e.newValue));
-            } catch (err) {
-                console.error('Error parsing state update:', err);
-            }
+    const handler = (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            const sanitized = sanitizeState(data);
+            cachedState = sanitized;
+            callback(sanitized);
         }
     };
 
-    window.addEventListener('storage', handler);
+    activeListener = handler;
+    onValue(meetingRef, handler);
 
     return () => {
-        window.removeEventListener('storage', handler);
+        if (meetingRef) {
+            off(meetingRef, 'value', handler);
+        }
+        if (activeListener === handler) {
+            activeListener = null;
+        }
     };
 }
 
-export function getState() {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-        try {
-            return JSON.parse(stored);
-        } catch (e) {
-            console.error('Error parsing stored state:', e);
-            return null;
-        }
+export async function getState() {
+    if (!meetingRef) return null;
+    const snapshot = await get(meetingRef);
+    if (snapshot.exists()) {
+        return sanitizeState(snapshot.val());
     }
     return null;
 }
 
-export function clearState() {
-    localStorage.removeItem(STORAGE_KEY);
+export async function clearState() {
+    if (!meetingRef) return;
+    await remove(meetingRef);
+}
+
+export function getCachedState() {
+    return cachedState;
+}
+
+export async function checkMeetingExists(meetingCode) {
+    const meetingSnapshot = await get(ref(database, `meetings/${meetingCode}`));
+    return meetingSnapshot.exists();
+}
+
+/**
+ * Register role-based codes for a meeting.
+ * Creates lookup entries at code_lookups/{code} → { meetingCode, role }
+ */
+export async function registerRoleCodes(meetingCode, roleCodes) {
+    const promises = Object.entries(roleCodes).map(([role, code]) =>
+        set(ref(database, `code_lookups/${code}`), { meetingCode, role })
+    );
+    await Promise.all(promises);
+}
+
+/**
+ * Look up a code to find which meeting it belongs to and what role it assigns.
+ * Returns { meetingCode, role } or null.
+ */
+export async function lookupCode(code) {
+    const snapshot = await get(ref(database, `code_lookups/${code}`));
+    if (snapshot.exists()) {
+        return snapshot.val();
+    }
+    return null;
+}
+
+/**
+ * Clean up code lookups for a meeting.
+ */
+export async function clearRoleCodes(roleCodes) {
+    if (!roleCodes) return;
+    const promises = Object.values(roleCodes).map(code =>
+        remove(ref(database, `code_lookups/${code}`))
+    );
+    await Promise.all(promises);
 }

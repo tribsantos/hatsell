@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ROLES } from './constants';
 import { MOTION_TYPES } from './constants/motionTypes';
 import { useMeetingState } from './hooks/useMeetingState';
@@ -7,6 +7,8 @@ import { useHeartbeat } from './hooks/useHeartbeat';
 import { getCurrentPendingQuestion } from './engine/motionStack';
 import LoginScreen from './components/LoginScreen';
 import MeetingView from './components/MeetingView';
+import AboutPage from './components/AboutPage';
+import GeneralSettings from './components/GeneralSettings';
 import MotionModal from './components/modals/MotionModal';
 import AmendmentModal from './components/modals/AmendmentModal';
 import PointOfOrderModal from './components/modals/PointOfOrderModal';
@@ -21,8 +23,16 @@ import RequestForInfoModal from './components/modals/RequestForInfoModal';
 import AppealModal from './components/modals/AppealModal';
 import SuspendRulesModal from './components/modals/SuspendRulesModal';
 import WithdrawMotionModal from './components/modals/WithdrawMotionModal';
+import PreChairWithdrawModal from './components/modals/PreChairWithdrawModal';
 
 export default function App() {
+    const [activePage, setActivePage] = useState('meeting');
+    const [settingsUserName, setSettingsUserName] = useState('');
+    const [disclaimerAccepted, setDisclaimerAccepted] = useState(
+        () => sessionStorage.getItem('hatsell_disclaimer') === 'true'
+    );
+    const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+
     const {
         isLoggedIn,
         currentUser,
@@ -76,7 +86,16 @@ export default function App() {
         handleResumeFromSuspendedRules,
         handleSuspendedVote,
         handleNewSpeakingList,
-        handleDeclareNoSecond
+        handleResumePreviousSpeakingList,
+        handleDeclareNoSecond,
+        handleSetQuorum,
+        handleChairAcceptMotion,
+        handleChairRejectMotion,
+        handleRecognizePendingMotion,
+        handleDismissPendingMotion,
+        handleReformulateMotion,
+        handleOrdersOfTheDay,
+        handleOrdersOfTheDayResponse
     } = useMeetingState();
 
     const {
@@ -95,14 +114,114 @@ export default function App() {
         openAppealModal,
         openSuspendRulesModal,
         openWithdrawMotionModal,
+        openPreChairWithdrawModal,
         closeModal,
         modalData
     } = useModal();
 
     useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingState, updateMeetingState);
 
+    if (activePage === 'about') {
+        return <AboutPage onBack={() => setActivePage('meeting')} />;
+    }
+
+    if (activePage === 'generalSettings') {
+        return (
+            <GeneralSettings
+                userName={settingsUserName}
+                onConfirm={({ profile, meetingSettings, codes, userName }) => {
+                    // Login as Chair with the generated base code + org profile
+                    handleLogin({
+                        name: userName,
+                        role: ROLES.PRESIDENT,
+                        meetingCode: codes.base,
+                        orgProfile: profile,
+                        meetingSettings: meetingSettings
+                    });
+                    setActivePage('meeting');
+                }}
+                onCancel={() => setActivePage('meeting')}
+            />
+        );
+    }
+
     if (!isLoggedIn) {
-        return <LoginScreen onLogin={handleLogin} />;
+        return (
+            <LoginScreen
+                onLogin={handleLogin}
+                onAbout={() => setActivePage('about')}
+                onCreateMeeting={(name) => {
+                    setSettingsUserName(name);
+                    setActivePage('generalSettings');
+                }}
+            />
+        );
+    }
+
+    if (!disclaimerAccepted) {
+        return (
+            <div className="app-container">
+                <header className="header">
+                    <img src="/hatselllogo.png" alt="Hatsell" style={{ maxWidth: '420px', width: '100%' }} />
+                    <p className="subtitle">Based on Robert's Rules of Order</p>
+                </header>
+                <div className="modal-overlay" style={{ position: 'relative', background: 'none', minHeight: '300px' }}>
+                    <div className="modal" style={{ maxWidth: '550px' }}>
+                        <h3>Disclaimer</h3>
+                        <p style={{ lineHeight: '1.7', marginBottom: '1.5rem', color: '#333' }}>
+                            Hatsell is a tool to help meetings using a parliamentary authority. It is
+                            not supposed to replace them. Any conflict between Hatsell and the chosen
+                            parliamentary authority should be decided in favor of the official text.
+                        </p>
+                        <div style={{
+                            border: '1px solid #2980b9',
+                            borderRadius: '4px',
+                            padding: '1rem 1.25rem',
+                            marginBottom: '1.5rem',
+                            background: 'rgba(52, 152, 219, 0.06)',
+                            fontSize: '0.88rem',
+                            color: '#333',
+                            lineHeight: '1.6'
+                        }}>
+                            <strong style={{ color: '#2980b9' }}>Data & Privacy</strong>
+                            <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem' }}>
+                                <li>Meeting data is transmitted via Firebase for real-time sync</li>
+                                <li>Organization profiles are stored locally in your browser (not sent to any server)</li>
+                                <li>Session data is cleared when the browser tab closes</li>
+                                <li>No personal data is collected or shared with third parties</li>
+                                <li>Meeting data in Firebase is temporary</li>
+                            </ul>
+                        </div>
+
+                        <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            cursor: 'pointer',
+                            fontSize: '0.95rem',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <input
+                                type="checkbox"
+                                checked={disclaimerChecked}
+                                onChange={(e) => setDisclaimerChecked(e.target.checked)}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                            />
+                            I agree
+                        </label>
+                        <button
+                            onClick={() => {
+                                setDisclaimerAccepted(true);
+                                sessionStorage.setItem('hatsell_disclaimer', 'true');
+                            }}
+                            disabled={!disclaimerChecked}
+                        >
+                            Continue to Meeting
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     const motionStack = meetingState.motionStack || [];
@@ -110,14 +229,18 @@ export default function App() {
 
     return (
         <div className="app-container">
+            <a href="#main-content" className="skip-to-content">Skip to main content</a>
             <header className="header">
-                <h1>Hatsell</h1>
+                <img src="/hatselllogo.png" alt="Hatsell" style={{ maxWidth: '420px', width: '100%' }} />
                 <p className="subtitle">Based on Robert's Rules of Order</p>
-                <div style={{marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center'}}>
+                <div style={{marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
                     <span style={{color: '#666'}}>Logged in as: {currentUser.name} ({currentUser.role})</span>
                     {meetingState.meetingCode && (
                         <span style={{color: '#c0392b'}}>Meeting Code: <strong>{meetingState.meetingCode}</strong></span>
                     )}
+                    <button onClick={() => setActivePage('about')} className="secondary" style={{padding: '0.5rem 1rem'}}>
+                        About
+                    </button>
                     <button onClick={handleLogout} className="secondary" style={{padding: '0.5rem 1rem'}}>
                         Logout
                     </button>
@@ -178,9 +301,18 @@ export default function App() {
                 onRuleOnPointOfOrderRequest={handleRuleOnPointOfOrderRequest}
                 onResumeFromRecess={handleResumeFromRecess}
                 onNewSpeakingList={handleNewSpeakingList}
+                onResumePreviousSpeakingList={handleResumePreviousSpeakingList}
                 onResumeFromSuspendedRules={handleResumeFromSuspendedRules}
                 onSuspendedVote={handleSuspendedVote}
                 onDeclareNoSecond={handleDeclareNoSecond}
+                onSetQuorum={handleSetQuorum}
+                onChairAcceptMotion={handleChairAcceptMotion}
+                onChairRejectMotion={handleChairRejectMotion}
+                onRecognizePendingMotion={handleRecognizePendingMotion}
+                onDismissPendingMotion={handleDismissPendingMotion}
+                onPreChairWithdraw={openPreChairWithdrawModal}
+                onOrdersOfTheDay={handleOrdersOfTheDay}
+                onOrdersOfTheDayResponse={handleOrdersOfTheDayResponse}
             />
 
             {/* === MODALS === */}
@@ -190,6 +322,7 @@ export default function App() {
                     heading={modalData.heading}
                     initialText={modalData.motionText}
                     showSpecialOptions={modalData.showSpecialOptions}
+                    previousNotice={meetingState.meetingSettings?.previousNotice || meetingState.orgProfile?.previousNotice}
                     onSubmit={(text) => {
                         handleNewMotion(text, currentUser.name);
                         closeModal();
@@ -368,6 +501,21 @@ export default function App() {
                     currentUser={currentUser?.name}
                     onSubmit={() => {
                         handleWithdrawMotion();
+                        closeModal();
+                    }}
+                    onClose={closeModal}
+                />
+            )}
+
+            {showModal === 'preChairWithdraw' && (
+                <PreChairWithdrawModal
+                    motionText={top?.text}
+                    onWithdraw={() => {
+                        handleWithdrawMotion();
+                        closeModal();
+                    }}
+                    onReformulate={(newText) => {
+                        handleReformulateMotion(newText);
                         closeModal();
                     }}
                     onClose={closeModal}

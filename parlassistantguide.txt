@@ -1,0 +1,7 @@
+We were building a parliamentary procedure software. 
+
+I had written the following: I was testing the app. It works very well, but still needs some work. I raised a point of inquired, it appeared in the meeting log, but nothing happened in the chair window. I believe it should have told the chair "D raised a point of inquirty, do you accept?". If yes, then in D's window it should read "Please state your point of inquiry. You may also do it in written form" (written form would be clickalbe, opening a text box). My idea with this app is to cover all possibilities of the Robert's rules algorithm, making sure that all applicable rules are automatically applied by the software. That is, a person would only be able to click on a type of motion if it was in order. The necessary majority would be automatic from the type of motion. It would allow debate or not depending on wheher the motion provides for debate or not, etc, etc.
+
+You answered that this loooked good, but that we needed to go back to planning. When you started planning, you looked for online resources on RONR. I then provided a copy of the book in the working directory. 
+
+Can we pick up from here?
