@@ -31,32 +31,26 @@ export default function MotionModal({ heading = 'Introduce a Motion', initialTex
 
                     {showSpecialOptions && (
                         <>
-                            <div style={{ textAlign: 'center', marginTop: '0.25rem', marginBottom: '0.75rem', color: '#666', fontSize: '0.95rem' }}>
+                            <p className="modal-intro" style={{ textAlign: 'center', marginTop: '0.25rem' }}>
                                 Special types of original main motions
-                            </div>
-                            <div style={{display: 'grid', gap: '0.75rem', marginBottom: '1rem'}}>
+                            </p>
+                            <div className="modal-template-list">
                                 {specialOriginalOptions.map((opt) => {
                                     const needsNotice = opt.requiresNotice && (!previousNotice || !previousNotice[opt.requiresNotice]);
                                     return (
                                         <button
                                             key={opt.label}
                                             type="button"
-                                            className="secondary"
+                                            className="secondary modal-template-button"
                                             onClick={() => !needsNotice && setMotionText(opt.template)}
                                             disabled={needsNotice}
                                             style={needsNotice ? { opacity: 0.45 } : {}}
                                             data-tooltip={needsNotice ? 'Requires previous notice' : ''}
                                             title={needsNotice ? 'Requires previous notice' : ''}
                                         >
-                                            {opt.label}
+                                            <span>{opt.label}</span>
                                             {needsNotice && (
-                                                <span style={{
-                                                    display: 'block',
-                                                    fontSize: '0.75rem',
-                                                    fontStyle: 'italic',
-                                                    color: '#c0392b',
-                                                    marginTop: '0.15rem'
-                                                }}>
+                                                <span className="modal-choice-meta" style={{ color: 'var(--h-red)', fontStyle: 'italic' }}>
                                                     (requires previous notice)
                                                 </span>
                                             )}
@@ -68,15 +62,12 @@ export default function MotionModal({ heading = 'Introduce a Motion', initialTex
                     )}
 
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>
-                            Cancel
-                        </button>
-                        <button type="submit">
-                            Introduce Motion
-                        </button>
+                        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
+                        <button type="submit">Introduce Motion</button>
                     </div>
                 </form>
             </div>
         </div>
     );
 }
+

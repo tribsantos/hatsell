@@ -7,7 +7,8 @@ const STATE_VERSION = 2;
 const ARRAY_FIELDS = [
     'participants', 'motionStack', 'pendingRequests', 'tabledMotions',
     'decidedMotions', 'speakingQueue', 'speakingHistory', 'votedBy',
-    'log', 'pendingAmendments', 'minutesCorrections', 'notifications'
+    'log', 'pendingAmendments', 'minutesCorrections', 'notifications',
+    'voteDetails', 'pendingMotions'
 ];
 
 let meetingRef = null;

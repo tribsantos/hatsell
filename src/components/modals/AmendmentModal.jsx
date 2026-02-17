@@ -13,7 +13,7 @@ export default function AmendmentModal({ originalMotion, onSubmit, onClose }) {
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Amend the Motion</h3>
-                <div className="info-box" style={{marginBottom: '1.5rem'}}>
+                <div className="info-box">
                     <strong>Original Motion:</strong><br />
                     {originalMotion}
                 </div>
@@ -40,3 +40,4 @@ export default function AmendmentModal({ originalMotion, onSubmit, onClose }) {
         </div>
     );
 }
+

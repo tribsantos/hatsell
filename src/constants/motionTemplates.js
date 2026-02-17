@@ -20,7 +20,8 @@ export const specialOriginalOptions = [
     },
     {
         label: 'Disciplinary Motion',
-        template: 'to censure/remove/expel ...'
+        template: 'to censure/remove/expel ...',
+        requiresNotice: 'disciplinary'
     }
 ];
 

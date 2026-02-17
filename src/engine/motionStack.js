@@ -1,7 +1,7 @@
 import { MOTION_TYPES, MOTION_STATUS, VOTE_THRESHOLDS, MOTION_CATEGORY } from '../constants/motionTypes';
 import { MOTION_RULES, getRules } from './motionRules';
 
-let nextMotionId = 1;
+let nextMotionId = Date.now();
 
 /**
  * Create a new motion entry with rules auto-populated from the rules database

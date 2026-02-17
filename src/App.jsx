@@ -4,11 +4,13 @@ import { MOTION_TYPES } from './constants/motionTypes';
 import { useMeetingState } from './hooks/useMeetingState';
 import { useModal } from './hooks/useModal';
 import { useHeartbeat } from './hooks/useHeartbeat';
+import { useAudioCues } from './hooks/useAudioCues';
 import { getCurrentPendingQuestion } from './engine/motionStack';
 import LoginScreen from './components/LoginScreen';
 import MeetingView from './components/MeetingView';
 import AboutPage from './components/AboutPage';
 import GeneralSettings from './components/GeneralSettings';
+import HatsellLogo from './components/HatsellLogo';
 import MotionModal from './components/modals/MotionModal';
 import AmendmentModal from './components/modals/AmendmentModal';
 import PointOfOrderModal from './components/modals/PointOfOrderModal';
@@ -120,6 +122,7 @@ export default function App() {
     } = useModal();
 
     useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingState, updateMeetingState);
+    useAudioCues(meetingState);
 
     if (activePage === 'about') {
         return <AboutPage onBack={() => setActivePage('meeting')} />;
@@ -162,29 +165,23 @@ export default function App() {
         return (
             <div className="app-container">
                 <header className="header">
-                    <img src="/hatselllogo.png" alt="Hatsell" style={{ maxWidth: '420px', width: '100%' }} />
+                    <div className="logo-container">
+                        <HatsellLogo />
+                        <h1>Hatsell</h1>
+                    </div>
                     <p className="subtitle">Based on Robert's Rules of Order</p>
                 </header>
-                <div className="modal-overlay" style={{ position: 'relative', background: 'none', minHeight: '300px' }}>
-                    <div className="modal" style={{ maxWidth: '550px' }}>
+                <div className="disclaimer-wrap">
+                    <div className="modal disclaimer-modal">
                         <h3>Disclaimer</h3>
-                        <p style={{ lineHeight: '1.7', marginBottom: '1.5rem', color: '#333' }}>
+                        <p className="modal-intro" style={{ marginBottom: '1rem' }}>
                             Hatsell is a tool to help meetings using a parliamentary authority. It is
                             not supposed to replace them. Any conflict between Hatsell and the chosen
                             parliamentary authority should be decided in favor of the official text.
                         </p>
-                        <div style={{
-                            border: '1px solid #2980b9',
-                            borderRadius: '4px',
-                            padding: '1rem 1.25rem',
-                            marginBottom: '1.5rem',
-                            background: 'rgba(52, 152, 219, 0.06)',
-                            fontSize: '0.88rem',
-                            color: '#333',
-                            lineHeight: '1.6'
-                        }}>
-                            <strong style={{ color: '#2980b9' }}>Data & Privacy</strong>
-                            <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem' }}>
+                        <div className="info-box">
+                            <strong>Data & Privacy</strong>
+                            <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem', lineHeight: 1.6 }}>
                                 <li>Meeting data is transmitted via Firebase for real-time sync</li>
                                 <li>Organization profiles are stored locally in your browser (not sent to any server)</li>
                                 <li>Session data is cleared when the browser tab closes</li>
@@ -193,19 +190,11 @@ export default function App() {
                             </ul>
                         </div>
 
-                        <label style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            cursor: 'pointer',
-                            fontSize: '0.95rem',
-                            marginBottom: '1.5rem'
-                        }}>
+                        <label className="disclaimer-check">
                             <input
                                 type="checkbox"
                                 checked={disclaimerChecked}
                                 onChange={(e) => setDisclaimerChecked(e.target.checked)}
-                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                             />
                             I agree
                         </label>
@@ -231,21 +220,26 @@ export default function App() {
         <div className="app-container">
             <a href="#main-content" className="skip-to-content">Skip to main content</a>
             <header className="header">
-                <img src="/hatselllogo.png" alt="Hatsell" style={{ maxWidth: '420px', width: '100%' }} />
+                <div className="logo-container">
+                    <HatsellLogo />
+                    <h1>Hatsell</h1>
+                </div>
                 <p className="subtitle">Based on Robert's Rules of Order</p>
-                <div style={{marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
-                    <span style={{color: '#666'}}>Logged in as: {currentUser.name} ({currentUser.role})</span>
+                <div className="top-bar-info">
+                    <span>Logged in as: {currentUser.name} ({currentUser.role})</span>
                     {meetingState.meetingCode && (
-                        <span style={{color: '#c0392b'}}>Meeting Code: <strong>{meetingState.meetingCode}</strong></span>
+                        <span>
+                            Meeting Code: <strong className="meeting-code-display">{meetingState.meetingCode}</strong>
+                        </span>
                     )}
-                    <button onClick={() => setActivePage('about')} className="secondary" style={{padding: '0.5rem 1rem'}}>
+                    <button onClick={() => setActivePage('about')} className="secondary">
                         About
                     </button>
-                    <button onClick={handleLogout} className="secondary" style={{padding: '0.5rem 1rem'}}>
+                    <button onClick={handleLogout} className="secondary">
                         Logout
                     </button>
                     {currentUser.role === ROLES.PRESIDENT && (
-                        <button onClick={handleClearMeeting} className="danger" style={{padding: '0.5rem 1rem'}}>
+                        <button onClick={handleClearMeeting} className="danger">
                             Clear Meeting
                         </button>
                     )}

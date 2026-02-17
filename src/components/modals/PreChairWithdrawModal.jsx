@@ -8,16 +8,12 @@ export default function PreChairWithdrawModal({ motionText, onWithdraw, onReform
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Withdraw or Reformulate</h3>
 
-                <div className="info-box" style={{ marginBottom: '1.5rem' }}>
+                <div className="info-box">
                     <p>The chair has not recognized your motion yet. You may unilaterally
                         withdraw or reformulate it.</p>
                 </div>
 
-                <div style={{
-                    padding: '0.75rem', marginBottom: '1.5rem',
-                    background: '#f9f8f5', borderRadius: '4px',
-                    borderLeft: '3px solid #c0392b'
-                }}>
+                <div className="modal-inline-note">
                     <strong>Your motion:</strong> {motionText}
                 </div>
 
@@ -27,38 +23,27 @@ export default function PreChairWithdrawModal({ motionText, onWithdraw, onReform
                         value={newText}
                         onChange={(e) => setNewText(e.target.value)}
                         placeholder="Enter revised motion text..."
-                        style={{ minHeight: '80px' }}
+                        className="prechair-textarea"
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div className="modal-buttons">
+                    <button type="button" onClick={onWithdraw} className="danger">Withdraw</button>
                     <button
-                        onClick={onWithdraw}
-                        className="danger"
-                        style={{ flex: 1 }}
-                    >
-                        Withdraw
-                    </button>
-                    <button
+                        type="button"
                         onClick={() => {
                             if (newText.trim() && newText.trim() !== motionText) {
                                 onReformulate(newText.trim());
                             }
                         }}
                         disabled={!newText.trim() || newText.trim() === motionText}
-                        style={{ flex: 1 }}
                     >
                         Reformulate
                     </button>
-                    <button
-                        onClick={onClose}
-                        className="secondary"
-                        style={{ flex: 1 }}
-                    >
-                        Go Back
-                    </button>
+                    <button type="button" onClick={onClose} className="secondary">Go Back</button>
                 </div>
             </div>
         </div>
     );
 }
+

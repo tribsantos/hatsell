@@ -56,35 +56,11 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>{getHeading()}</h3>
 
-                <div style={{
-                    display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap'
-                }}>
-                    <span style={{
-                        fontSize: '0.75rem', padding: '0.2rem 0.5rem',
-                        background: 'rgba(192, 57, 43, 0.08)', borderRadius: '3px', color: '#c0392b'
-                    }}>
-                        Not Debatable
-                    </span>
-                    <span style={{
-                        fontSize: '0.75rem', padding: '0.2rem 0.5rem',
-                        background: 'rgba(192, 57, 43, 0.08)', borderRadius: '3px', color: '#c0392b'
-                    }}>
-                        {rules.requiresSecond ? 'Requires Second' : 'No Second Needed'}
-                    </span>
-                    {rules.voteRequired !== 'none' && (
-                        <span style={{
-                            fontSize: '0.75rem', padding: '0.2rem 0.5rem',
-                            background: 'rgba(192, 57, 43, 0.08)', borderRadius: '3px', color: '#c0392b'
-                        }}>
-                            Majority Vote
-                        </span>
-                    )}
-                    <span style={{
-                        fontSize: '0.75rem', padding: '0.2rem 0.5rem',
-                        background: rules.canInterrupt ? 'rgba(230, 126, 34, 0.15)' : 'rgba(39, 174, 96, 0.08)',
-                        borderRadius: '3px',
-                        color: rules.canInterrupt ? '#e67e22' : '#27ae60'
-                    }}>
+                <div className="modal-pills">
+                    <span className="modal-pill default">Not Debatable</span>
+                    <span className="modal-pill default">{rules.requiresSecond ? 'Requires Second' : 'No Second Needed'}</span>
+                    {rules.voteRequired !== 'none' && <span className="modal-pill default">Majority Vote</span>}
+                    <span className={`modal-pill ${rules.canInterrupt ? 'warn' : 'ok'}`}>
                         {rules.canInterrupt ? 'Interrupts speaker' : 'Does not interrupt'}
                     </span>
                 </div>
@@ -100,11 +76,6 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
                                 placeholder="10"
                                 min="1"
                                 autoFocus
-                                style={{
-                                    width: '100%', padding: '0.5rem',
-                                    background: '#f9f8f5', border: '2px solid #ddd',
-                                    borderRadius: '3px', color: '#1a1a1a'
-                                }}
                             />
                         </div>
                     )}
@@ -118,11 +89,6 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
                                 onChange={(e) => setFixedTime(e.target.value)}
                                 placeholder="e.g., Thursday at 7:00 PM"
                                 autoFocus
-                                style={{
-                                    width: '100%', padding: '0.5rem',
-                                    background: '#f9f8f5', border: '2px solid #ddd',
-                                    borderRadius: '3px', color: '#1a1a1a'
-                                }}
                             />
                         </div>
                     )}
@@ -140,7 +106,7 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
                     )}
 
                     {(motionType === MOTION_TYPES.ADJOURN || motionType === MOTION_TYPES.ORDERS_OF_DAY) && (
-                        <div className="info-box" style={{ marginBottom: '1.5rem' }}>
+                        <div className="info-box">
                             {motionType === MOTION_TYPES.ADJOURN
                                 ? 'This motion, if adopted, will immediately adjourn the meeting.'
                                 : 'This demand requires the assembly to conform to the agenda.'}
@@ -158,3 +124,4 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
         </div>
     );
 }
+

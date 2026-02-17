@@ -24,28 +24,24 @@ export default function SuspendRulesModal({ onSubmit, onClose }) {
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Suspend the Rules</h3>
-                <div className="info-box" style={{ marginBottom: '1.5rem' }}>
+                <div className="info-box">
                     <p>Suspend the Rules allows the assembly to do something that would
                         otherwise be out of order under the standing rules.</p>
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                    <p className="modal-intro" style={{ marginBottom: '0' }}>
                         Requires a second. Not debatable. Two-thirds vote required.
                     </p>
                 </div>
 
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{
-                        display: 'block', marginBottom: '0.75rem', fontWeight: 600,
-                        fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.03em', color: '#333'
-                    }}>
+                <div className="suspend-section">
+                    <label className="suspend-label">
                         Common Purposes
                     </label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div className="modal-template-list">
                         {TEMPLATES.map((t, i) => (
                             <button
                                 key={i}
                                 type="button"
-                                className="secondary"
-                                style={{ textAlign: 'left', padding: '0.75rem 1rem', fontSize: '0.9rem' }}
+                                className="secondary modal-template-button"
                                 onClick={() => handleTemplate(t)}
                             >
                                 {t}
@@ -72,3 +68,4 @@ export default function SuspendRulesModal({ onSubmit, onClose }) {
         </div>
     );
 }
+

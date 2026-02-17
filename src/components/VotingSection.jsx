@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { ROLES } from '../constants';
 import { describeThreshold, getThresholdLabel } from '../engine/voteEngine';
 
@@ -11,7 +11,6 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
     const thresholdLabel = getThresholdLabel(voteRequired);
     const thresholdDesc = describeThreshold(voteRequired);
 
-    // Vote timing state — use ref to prevent double-countdown from broadcast re-triggers
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const trackedStartTime = useRef(null);
 
@@ -21,7 +20,6 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
             setElapsedSeconds(0);
             return;
         }
-        // Only restart the timer on voting start transition, not on every broadcast
         if (trackedStartTime.current === voteStartTime) return;
         trackedStartTime.current = voteStartTime;
 
@@ -31,8 +29,7 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
         return () => clearInterval(interval);
     }, [!!voteStartTime]);
 
-    // Compute announce-result availability
-    const strictMemberCount = (participants || []).filter(p => p.role === ROLES.MEMBER).length;
+    const strictMemberCount = (participants || []).filter((p) => p.role === ROLES.MEMBER).length;
     const aye = votes.aye || 0;
     const nay = votes.nay || 0;
     const totalCast = aye + nay;
@@ -40,15 +37,13 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
     const computeMajorityAchieved = () => {
         if (totalCast === 0) return false;
         if (voteRequired === 'two_thirds') {
-            return aye >= totalCast * 2 / 3 || nay > totalCast * 1 / 3;
+            return aye >= (totalCast * 2) / 3 || nay > totalCast / 3;
         }
-        // majority or tie_sustains
         return aye > totalCast / 2 || nay >= totalCast / 2;
     };
 
     const majorityAchieved = computeMajorityAchieved();
 
-    // Check if all participants have voted
     const totalParticipants = (participants || []).length;
     const allVoted = totalParticipants > 0 && totalVoted >= totalParticipants;
 
@@ -56,7 +51,6 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
     let announceReason = '';
     if (voteStartTime) {
         if (allVoted) {
-            // Everyone has voted — allow immediate announcement
             announceDisabled = false;
             announceReason = 'All participants have voted';
         } else if (elapsedSeconds < 30) {
@@ -65,7 +59,7 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
         } else if (elapsedSeconds < 60) {
             if (strictMemberCount > 10 && majorityAchieved) {
                 announceDisabled = false;
-                announceReason = 'Threshold achieved — may announce';
+                announceReason = 'Threshold achieved - may announce';
             } else {
                 announceDisabled = true;
                 announceReason = strictMemberCount > 10
@@ -74,7 +68,7 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
             }
         } else {
             announceDisabled = false;
-            announceReason = 'Voting period complete — non-voters counted as abstentions';
+            announceReason = 'Voting period complete - non-voters counted as abstentions';
         }
     }
 
@@ -83,14 +77,8 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
             <h3>Cast Your Vote</h3>
 
             {top && (
-                <div style={{
-                    marginBottom: '1rem',
-                    padding: '0.5rem 0.75rem',
-                    background: 'rgba(230, 126, 34, 0.08)',
-                    borderRadius: '4px',
-                    fontSize: '0.85rem'
-                }}>
-                    <div style={{ color: '#e67e22', fontWeight: '600' }}>
+                <div className="info-box" style={{ marginBottom: '1rem' }}>
+                    <div style={{ color: '#e67e22', fontWeight: 600 }}>
                         {top.displayName}: "{top.text}"
                     </div>
                     {top.metadata?.amendmentHistory && top.metadata.amendmentHistory.length > 0 && (
@@ -101,28 +89,18 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
                             ))}
                         </div>
                     )}
-                    <div style={{ color: '#666', marginTop: '0.25rem' }}>
-                        {thresholdDesc}
-                    </div>
+                    <div style={{ color: '#666', marginTop: '0.25rem' }}>{thresholdDesc}</div>
                 </div>
             )}
 
             {!hasVoted ? (
                 <div className="vote-buttons">
-                    <button className="aye" onClick={() => onVote('aye')}>
-                        Aye
-                    </button>
-                    <button className="nay" onClick={() => onVote('nay')}>
-                        Nay
-                    </button>
-                    <button className="secondary" onClick={() => onVote('abstain')}>
-                        Abstain
-                    </button>
+                    <button className="aye" onClick={() => onVote('aye')}>Aye</button>
+                    <button className="nay" onClick={() => onVote('nay')}>Nay</button>
+                    <button className="abstain" onClick={() => onVote('abstain')}>Abstain</button>
                 </div>
             ) : (
-                <div className="info-box">
-                    Your vote has been recorded.
-                </div>
+                <div className="info-box">Your vote has been recorded.</div>
             )}
 
             {isChair ? (
@@ -142,20 +120,12 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
                         </div>
                     </div>
 
-                    <div style={{
-                        textAlign: 'center', marginTop: '0.5rem',
-                        fontSize: '0.8rem', color: '#666'
-                    }}>
+                    <div className="vote-threshold">
                         Threshold: {thresholdLabel} | Abstentions do not count as votes cast
                     </div>
 
                     {announceReason && (
-                        <div style={{
-                            textAlign: 'center', marginTop: '0.75rem',
-                            fontSize: '0.8rem',
-                            color: announceDisabled ? '#e67e22' : '#27ae60',
-                            fontWeight: '600'
-                        }}>
+                        <div style={{ textAlign: 'center', marginTop: '0.75rem', fontSize: '0.8rem', color: announceDisabled ? '#e67e22' : '#27ae60', fontWeight: 600 }}>
                             {announceReason}
                         </div>
                     )}
@@ -176,9 +146,9 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
                     </div>
                 </>
             ) : (
-                <div style={{marginTop: '2rem', textAlign: 'center', color: '#666'}}>
+                <div style={{ marginTop: '1.5rem', textAlign: 'center', color: '#666' }}>
                     <p>Votes cast: {totalVoted}</p>
-                    <p style={{fontSize: '0.9rem', marginTop: '0.5rem'}}>
+                    <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
                         {thresholdLabel} required. Results will be announced by the chair.
                     </p>
                 </div>

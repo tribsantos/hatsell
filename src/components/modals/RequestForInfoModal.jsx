@@ -13,7 +13,7 @@ export default function RequestForInfoModal({ onSubmit, onClose }) {
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Request for Information</h3>
-                <div className="info-box" style={{ marginBottom: '1.5rem' }}>
+                <div className="info-box">
                     A Request for Information (Point of Information) asks a factual question
                     about the business at hand. The chair or a designated member will respond.
                 </div>
@@ -36,3 +36,4 @@ export default function RequestForInfoModal({ onSubmit, onClose }) {
         </div>
     );
 }
+

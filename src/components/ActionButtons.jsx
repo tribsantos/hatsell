@@ -28,15 +28,7 @@ const InterruptBadge = ({ motionType }) => {
     const rules = getRules(motionType);
     if (!rules) return null;
     if (!rules.canInterrupt) return null;
-    return (
-        <span style={{
-            fontSize: '0.6rem', padding: '0.1rem 0.3rem', marginLeft: '0.25rem',
-            background: 'rgba(230, 126, 34, 0.2)', borderRadius: '2px',
-            color: '#e67e22', fontWeight: '700', whiteSpace: 'nowrap', verticalAlign: 'middle'
-        }}>
-            Interrupts
-        </span>
-    );
+    return <span className="interrupts-badge">Interrupts</span>;
 };
 
 /**
@@ -274,7 +266,7 @@ export function ChairActions({
             </button>
         );
         buttons.push(
-            <button key="no-second" onClick={onDeclareNoSecond} className="danger" data-tooltip="Declare no one seconded — the motion dies" title="Declare no one seconded — the motion dies" style={{ fontSize: '0.85rem' }}>
+            <button key="no-second" onClick={onDeclareNoSecond} className="danger" data-tooltip="Declare no one seconded — the motion dies" title="Declare no one seconded — the motion dies">
                 No Second — Motion Falls
             </button>
         );
@@ -331,7 +323,7 @@ export function ChairActions({
     // Adjourn (no business pending)
     if (stage === MEETING_STAGES.NEW_BUSINESS && motionStack.length === 0 && !currentMotion) {
         buttons.push(
-            <button key="adjourn" onClick={onAdjourn} className="danger" data-tooltip="End the meeting" title="End the meeting">Adjourn Meeting</button>
+            <button key="adjourn" onClick={() => { if (window.confirm('Are you sure you want to adjourn the meeting?')) onAdjourn(); }} className="danger" data-tooltip="End the meeting" title="End the meeting">Adjourn Meeting</button>
         );
     }
 
@@ -387,7 +379,8 @@ export function MemberActions({
         tabledMotions,
         decidedMotions,
         isChair,
-        lastChairRuling
+        lastChairRuling,
+        speakingHistory: meetingState.speakingHistory || []
     });
 
     const pendingMotionsList = meetingState.pendingMotions || [];
@@ -429,16 +422,16 @@ export function MemberActions({
             <div className="action-buttons">
                 {!speakingQueue.find(s => s.participant === currentUser.name) && (
                     <>
-                        <button onClick={() => onRequestToSpeak('pro')} data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support" style={{background: 'linear-gradient(135deg, #27ae60 0%, #1e8449 100%)', color: 'white'}}>
+                        <button onClick={() => onRequestToSpeak('pro')} className="success" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support">
                             Speak in Favor
                         </button>
-                        <button onClick={() => onRequestToSpeak('con')} data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition" style={{background: 'linear-gradient(135deg, #c0392b 0%, #96281b 100%)', color: 'white'}}>
+                        <button onClick={() => onRequestToSpeak('con')} data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition">
                             Speak Against
                         </button>
                     </>
                 )}
                 {currentSpeaker && currentSpeaker.participant === currentUser.name && (
-                    <button onClick={onFinishSpeaking} data-tooltip="Finish speaking and return the floor to the chair" title="Finish speaking and return the floor to the chair" style={{background: 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)', color: '#ffffff', fontWeight: '700'}}>
+                    <button onClick={onFinishSpeaking} className="secondary" data-tooltip="Finish speaking and return the floor to the chair" title="Finish speaking and return the floor to the chair">
                         Yield Floor
                     </button>
                 )}
@@ -450,7 +443,7 @@ export function MemberActions({
         <div className="action-buttons">
             {/* Yield Floor (speaker) */}
             {currentSpeaker && currentSpeaker.participant === currentUser.name && (
-                <button onClick={onFinishSpeaking} data-tooltip="Finish speaking and return the floor to the chair" title="Finish speaking and return the floor to the chair" style={{background: 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)', color: '#ffffff', fontWeight: '700'}}>
+                <button onClick={onFinishSpeaking} className="secondary" data-tooltip="Finish speaking and return the floor to the chair" title="Finish speaking and return the floor to the chair">
                     Yield Floor
                 </button>
             )}
@@ -501,10 +494,10 @@ export function MemberActions({
             {stage === MEETING_STAGES.MOTION_DISCUSSION && debateAllowed && !hasPendingPointOfOrder &&
              !speakingQueue.find(s => s.participant === currentUser.name) && (
                 <>
-                    <button onClick={() => onRequestToSpeak('pro')} data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support" style={{background: 'linear-gradient(135deg, #27ae60 0%, #1e8449 100%)', color: 'white'}}>
+                    <button onClick={() => onRequestToSpeak('pro')} className="success" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support">
                         Speak in Favor
                     </button>
-                    <button onClick={() => onRequestToSpeak('con')} data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition" style={{background: 'linear-gradient(135deg, #c0392b 0%, #96281b 100%)', color: 'white'}}>
+                    <button onClick={() => onRequestToSpeak('con')} data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition">
                         Speak Against
                     </button>
                 </>

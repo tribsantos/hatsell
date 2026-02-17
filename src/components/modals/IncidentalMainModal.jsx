@@ -6,21 +6,21 @@ export default function IncidentalMainModal({ onSelectTemplate, onClose }) {
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Incidental Main Motions</h3>
-                <p style={{color: '#666', marginBottom: '1rem'}}>
+                <p className="modal-intro">
                     Choose an incidental main motion template. You can edit the text before introducing it.
                 </p>
-                <div style={{display: 'grid', gap: '0.75rem'}}>
+                <div className="modal-template-list">
                     {incidentalMainOptions.map((opt) => (
                         <button
                             key={opt.label}
-                            className="secondary"
+                            className="secondary modal-template-button"
                             onClick={() => onSelectTemplate(opt.template, opt.heading)}
                         >
                             {opt.label}
                         </button>
                     ))}
                 </div>
-                <div className="modal-buttons" style={{marginTop: '1.25rem'}}>
+                <div className="modal-buttons">
                     <button type="button" className="secondary" onClick={onClose}>
                         Close
                     </button>
@@ -29,3 +29,4 @@ export default function IncidentalMainModal({ onSelectTemplate, onClose }) {
         </div>
     );
 }
+

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as MeetingConnection from '../services/MeetingConnection';
+import HatsellLogo from './HatsellLogo';
 
 const STORAGE_KEY = 'hatsell_org_profiles';
 
@@ -37,7 +38,10 @@ const DEFAULT_MEETING_SETTINGS = {
         enabled: false,
         adoptAgenda: true,
         adoptElectronicRules: true
-    }
+    },
+    autoYieldOnTimeExpired: false,
+    audioCues: false,
+    showVoteDetails: false
 };
 
 const AGENDA_CATEGORIES = [
@@ -250,7 +254,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
     const handleSave = () => {
         if (!savedProfileName.trim()) return;
         const profiles = getSavedProfiles();
-        profiles[savedProfileName.trim()] = { ...profile, savedAt: Date.now() };
+        profiles[savedProfileName.trim()] = { ...profile, meetingSettings, savedAt: Date.now() };
         saveProfiles(profiles);
         setSavedNames(Object.keys(profiles));
         setIsDirty(false);
@@ -262,9 +266,12 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
         const profiles = getSavedProfiles();
         const loaded = profiles[loadProfileName];
         if (loaded) {
-            const { savedAt, meetingCodes, previousNotice, ...rest } = loaded;
+            const { savedAt, meetingCodes, previousNotice, meetingSettings: savedMeetingSettings, ...rest } = loaded;
             setProfile({ ...DEFAULT_PROFILE, ...rest });
-            if (previousNotice) {
+            if (savedMeetingSettings) {
+                setMeetingSettings({ ...DEFAULT_MEETING_SETTINGS, ...savedMeetingSettings });
+            } else if (previousNotice) {
+                // Backward compat: migrate old profiles with previousNotice in profile
                 setMeetingSettings(prev => ({
                     ...prev,
                     previousNotice: { ...prev.previousNotice, ...previousNotice }
@@ -355,10 +362,12 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
 
     const sectionStyle = {
         marginBottom: '2rem',
-        padding: '1.25rem',
-        background: 'rgba(0,0,0,0.02)',
+        padding: '1.25rem 1.25rem 1rem',
+        background: 'var(--h-bg-card)',
+        border: '2px solid var(--h-border)',
+        boxShadow: 'var(--h-shadow)',
         borderRadius: '4px',
-        borderLeft: '4px solid #c0392b'
+        borderLeft: '4px solid var(--h-red)'
     };
 
     const labelStyle = {
@@ -366,16 +375,17 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
         marginBottom: '0.35rem',
         fontWeight: '600',
         fontSize: '0.9rem',
-        color: '#333'
+        color: 'var(--h-fg)'
     };
 
     const inputStyle = {
         width: '100%',
         padding: '0.5rem',
-        border: '2px solid #ddd',
+        border: '2px solid var(--h-border-soft)',
         borderRadius: '3px',
         fontSize: '0.9rem',
-        background: '#f9f8f5'
+        background: 'var(--h-bg-warm)',
+        color: 'var(--h-fg)'
     };
 
     const radioGroupStyle = {
@@ -387,7 +397,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
 
     const hintStyle = {
         fontSize: '0.78rem',
-        color: '#888',
+        color: 'var(--h-fg-dim)',
         fontStyle: 'italic',
         marginTop: '0.25rem'
     };
@@ -395,24 +405,28 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
     return (
         <div className="app-container">
             <header className="header">
-                <img src="/hatselllogo.png" alt="Hatsell" style={{ maxWidth: '420px', width: '100%' }} />
+                <div className="logo-container">
+                    <HatsellLogo />
+                    <h1>Hatsell</h1>
+                </div>
                 <p className="subtitle">General Settings</p>
             </header>
 
-            <div style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem 1rem' }}>
+            <div style={{ maxWidth: '760px', margin: '0 auto', padding: '1.25rem 0.75rem' }}>
 
                 {/* Generated Codes Display */}
                 {generatedCodes && (
                     <div style={{
                         marginBottom: '2rem',
                         padding: '1.5rem',
-                        background: 'rgba(39, 174, 96, 0.08)',
-                        border: '2px solid #27ae60',
+                        background: 'var(--h-green-light)',
+                        border: '2px solid var(--h-green)',
                         borderRadius: '4px',
-                        textAlign: 'center'
+                        textAlign: 'center',
+                        boxShadow: 'var(--h-shadow)'
                     }}>
-                        <h3 style={{ color: '#1e8449', marginBottom: '1rem' }}>Meeting Codes Generated</h3>
-                        <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
+                        <h3 style={{ color: 'var(--h-green-dark)', marginBottom: '1rem' }}>Meeting Codes Generated</h3>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--h-fg-muted)', marginBottom: '1rem' }}>
                             Share these role-specific codes with participants:
                         </p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', textAlign: 'left' }}>
@@ -424,19 +438,19 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                             ].map(({ label, code }) => (
                                 <div key={label} style={{
                                     padding: '0.75rem',
-                                    background: 'white',
+                                    background: 'var(--h-bg-card)',
                                     borderRadius: '3px',
-                                    border: '1px solid #ddd'
+                                    border: '1px solid var(--h-border-soft)'
                                 }}>
-                                    <div style={{ fontSize: '0.75rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--h-fg-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                         {label}
                                     </div>
                                     <div style={{
                                         fontSize: '1.3rem',
                                         fontWeight: '900',
                                         letterSpacing: '0.1em',
-                                        color: '#c0392b',
-                                        fontFamily: "'Impact', 'Arial Black', sans-serif"
+                                        color: 'var(--h-red)',
+                                        fontFamily: "'Courier New', monospace"
                                     }}>
                                         {code}
                                     </div>
@@ -821,7 +835,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                     )}
 
                     {/* E) Opening Package */}
-                    <div>
+                    <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
                         <label style={labelStyle}>Opening Package</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                             <input type="checkbox" checked={meetingSettings.openingPackage.enabled} onChange={(e) => updateOpeningPackage('enabled', e.target.checked)} />
@@ -843,6 +857,36 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         )}
                         <div style={hintStyle}>If enabled, the chair will be prompted to propose adopting these items together at the start of the meeting.</div>
                     </div>
+
+                    {/* F) Timer Enforcement */}
+                    <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
+                        <label style={labelStyle}>Timer Enforcement</label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                            <input type="checkbox" checked={meetingSettings.autoYieldOnTimeExpired} onChange={(e) => updateMeetingSettings('autoYieldOnTimeExpired', e.target.checked)} />
+                            Automatically yield the floor when speaking time expires
+                        </label>
+                        <div style={hintStyle}>If enabled, the speaker's floor is automatically yielded when the time limit is reached. Otherwise, the timer continues running past zero and the chair may allow the speaker to finish.</div>
+                    </div>
+
+                    {/* G) Audio Cues */}
+                    <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
+                        <label style={labelStyle}>Audio Notifications</label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                            <input type="checkbox" checked={meetingSettings.audioCues} onChange={(e) => updateMeetingSettings('audioCues', e.target.checked)} />
+                            Enable audio cues for key meeting events
+                        </label>
+                        <div style={hintStyle}>Plays brief tones when voting opens, speaking time expires, motions are seconded, and other important events occur.</div>
+                    </div>
+
+                    {/* H) Vote Transparency */}
+                    <div>
+                        <label style={labelStyle}>Vote Transparency</label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                            <input type="checkbox" checked={meetingSettings.showVoteDetails} onChange={(e) => updateMeetingSettings('showVoteDetails', e.target.checked)} />
+                            Display individual votes when results are announced
+                        </label>
+                        <div style={hintStyle}>When enabled, the chair will see how each member voted (by name) in the result announcement. By default, only aggregate totals are shown.</div>
+                    </div>
                 </div>
 
                 {/* Unsaved dialog */}
@@ -853,11 +897,13 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         zIndex: 1000
                     }}>
                         <div style={{
-                            background: 'white', padding: '2rem', borderRadius: '8px',
+                            background: 'var(--h-bg-card)', padding: '2rem', borderRadius: '4px',
+                            border: '2px solid var(--h-border)',
+                            boxShadow: 'var(--h-shadow-lg)',
                             maxWidth: '400px', width: '90%', textAlign: 'center'
                         }}>
                             <h3 style={{ marginBottom: '1rem' }}>Unsaved Profile</h3>
-                            <p style={{ marginBottom: '1.5rem', color: '#666' }}>
+                            <p style={{ marginBottom: '1.5rem', color: 'var(--h-fg-muted)' }}>
                                 Your organization profile has not been saved. Would you like to save it?
                             </p>
                             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -881,7 +927,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         display: 'flex', gap: '1rem', justifyContent: 'center',
                         position: 'sticky', bottom: 0, zIndex: 10,
                         padding: '1rem 0',
-                        background: 'linear-gradient(to top, #f4f1ec 60%, transparent)'
+                        background: 'linear-gradient(to top, var(--h-bg) 60%, transparent)'
                     }}>
                         <button onClick={handleConfirm} style={{ padding: '0.75rem 2rem', fontSize: '1rem' }}>
                             Confirm

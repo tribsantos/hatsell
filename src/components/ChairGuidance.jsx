@@ -43,9 +43,10 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
         }
     } else if (stage === MEETING_STAGES.NEW_BUSINESS) {
         if (meetingState.pendingAnnouncement) {
-            const { motionText, aye, nay, result, description, displayName, voteRequired } = meetingState.pendingAnnouncement;
+            const { motionText, aye, nay, result, description, displayName, voteRequired, voteDetails } = meetingState.pendingAnnouncement;
             const thresholdLabel = voteRequired ? getThresholdLabel(voteRequired) : 'Majority';
             const isAmendment = displayName && displayName.toLowerCase().includes('amend');
+            const showDetails = meetingState.meetingSettings?.showVoteDetails && voteDetails && voteDetails.length > 0;
 
             if (result === 'adopted') {
                 if (isAmendment) {
@@ -81,6 +82,10 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
                         buttonLabel: "Proceed to New Business"
                     };
                 }
+            }
+
+            if (showDetails) {
+                guidance.voteDetails = voteDetails;
             }
         } else if (top && top.status === 'pending_second') {
             guidance = {
@@ -193,29 +198,32 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
     if (!guidance) return null;
 
     return (
-        <div className="info-box" aria-live="polite" style={{
-            marginBottom: '2rem',
-            background: 'rgba(192, 57, 43, 0.08)',
-            borderLeft: '4px solid #c0392b'
-        }}>
-            <h4 style={{color: '#7b2d3b', marginBottom: '0.75rem', fontSize: '1.1rem'}}>
-                Chair Guidance: {guidance.title}
-            </h4>
-            <p style={{
-                fontSize: '1.05rem',
-                fontStyle: 'italic',
-                marginBottom: '0.75rem',
-                padding: '0.75rem',
-                background: 'rgba(192, 57, 43, 0.06)',
-                borderRadius: '4px'
-            }}>
-                "{guidance.phrase}"
-            </p>
-            <p style={{fontSize: '0.9rem', color: '#444'}}>
-                {guidance.action}
-            </p>
+        <div className="chair-guidance" role="region" aria-live="polite" aria-label="Chair guidance">
+            <h4>Chair Guidance: {guidance.title}</h4>
+            <div className="script-text">"{guidance.phrase}"</div>
+            <p className="guidance-instruction">{guidance.action}</p>
+            {guidance.voteDetails && guidance.voteDetails.length > 0 && (
+                <div style={{
+                    marginTop: '0.75rem',
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(0,0,0,0.03)',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem'
+                }}>
+                    <div style={{ fontWeight: '600', marginBottom: '0.35rem', color: '#555' }}>Individual Votes:</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 1rem' }}>
+                        {guidance.voteDetails.map((v, i) => (
+                            <span key={i} style={{
+                                color: v.vote === 'aye' ? '#27ae60' : v.vote === 'nay' ? '#c0392b' : '#888'
+                            }}>
+                                {v.name}: {v.vote === 'aye' ? 'Aye' : v.vote === 'nay' ? 'Nay' : 'Abstain'}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
             {guidance.buttonLabel && onAcknowledgeAnnouncement && (
-                <button onClick={onAcknowledgeAnnouncement} style={{marginTop: '1rem', width: '100%'}}>
+                <button type="button" onClick={onAcknowledgeAnnouncement} style={{ marginTop: '0.75rem', width: '100%' }}>
                     {guidance.buttonLabel}
                 </button>
             )}

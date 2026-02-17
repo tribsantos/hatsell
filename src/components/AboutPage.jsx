@@ -1,13 +1,17 @@
 import React from 'react';
+import HatsellLogo from './HatsellLogo';
 
 export default function AboutPage({ onBack }) {
     return (
         <div className="app-container">
             <header className="header">
-                <img src="/hatselllogo.png" alt="Hatsell" style={{ maxWidth: '420px', width: '100%' }} />
+                <div className="logo-container">
+                    <HatsellLogo />
+                    <h1>Hatsell</h1>
+                </div>
                 <p className="subtitle">Based on Robert's Rules of Order</p>
-                <div style={{ marginTop: '1rem' }}>
-                    <button onClick={onBack} className="secondary" style={{ padding: '0.5rem 1rem' }}>
+                <div style={{ marginTop: '0.75rem' }}>
+                    <button onClick={onBack} className="ghost">
                         Back
                     </button>
                 </div>

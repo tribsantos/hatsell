@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ROLES } from '../constants';
 import * as MeetingConnection from '../services/MeetingConnection';
+import HatsellLogo from './HatsellLogo';
 
 export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
     const [name, setName] = useState('');
@@ -76,11 +77,14 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
     return (
         <div className="app-container">
             <header className="header">
-                <img src="/hatselllogo.png" alt="Hatsell" style={{ maxWidth: '420px', width: '100%' }} />
+                <div className="logo-container">
+                    <HatsellLogo />
+                    <h1>Hatsell</h1>
+                </div>
                 <p className="subtitle">Based on Robert's Rules of Order</p>
                 {onAbout && (
-                    <div style={{ marginTop: '1rem' }}>
-                        <button onClick={onAbout} className="secondary" style={{ padding: '0.5rem 1rem' }}>
+                    <div style={{ marginTop: '0.75rem' }}>
+                        <button type="button" onClick={onAbout} className="ghost">
                             About
                         </button>
                     </div>
@@ -89,7 +93,7 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
 
             <div className="login-container">
                 {error && (
-                    <div className="warning-box" style={{marginBottom: '1.5rem'}}>
+                    <div className="login-error" role="alert">
                         {error}
                     </div>
                 )}
@@ -109,32 +113,27 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
 
                     <div className="form-group">
                         <label>Meeting Code</label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div className="login-meeting-code-row">
                             <input
                                 type="text"
                                 value={meetingCode}
                                 onChange={(e) => setMeetingCode(e.target.value.toUpperCase())}
                                 placeholder="Enter meeting code"
                                 disabled={loading}
-                                style={{ flex: 1 }}
+                                style={{ textTransform: 'uppercase' }}
                             />
-                            <button
-                                type="submit"
-                                disabled={loading || !name || !meetingCode.trim()}
-                                style={{ padding: '0.5rem 1.25rem', whiteSpace: 'nowrap' }}
-                            >
-                                {loading ? 'Joining...' : 'Join Meeting'}
+                            <button type="submit" disabled={loading || !name || !meetingCode.trim()}>
+                                {loading ? 'Joining...' : 'Join'}
                             </button>
                         </div>
                     </div>
                 </form>
 
-                <div style={{
-                    marginTop: '2rem',
-                    paddingTop: '1.5rem',
-                    borderTop: '1px solid #e0ddd5',
-                    textAlign: 'center'
-                }}>
+                <div className="login-divider">
+                    <span>or</span>
+                </div>
+
+                <div style={{ textAlign: 'center' }}>
                     <button
                         onClick={() => {
                             if (!name) {
@@ -144,16 +143,16 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
                             onCreateMeeting(name);
                         }}
                         className="secondary"
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            fontSize: '1rem',
-                            width: '100%'
-                        }}
+                        style={{ width: '100%' }}
                         disabled={loading}
                     >
                         Create a New Meeting
                     </button>
                 </div>
+
+                <p className="login-trust-copy">
+                    No account required. Meeting data is stored securely and cleared when the session ends.
+                </p>
             </div>
         </div>
     );

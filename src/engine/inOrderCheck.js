@@ -18,7 +18,8 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
         tabledMotions = [],
         decidedMotions = [],
         isChair = false,
-        lastChairRuling = null
+        lastChairRuling = null,
+        speakingHistory = []
     } = options;
 
     const available = [];
@@ -241,15 +242,17 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
             });
         }
 
-        // Objection to Consideration - only against a main motion, before debate has progressed
+        // Objection to Consideration - only against a main motion, before debate has begun
+        // RONR: Must be raised before any member has spoken in debate on the motion
         if (mainMotion && top === mainMotion &&
             (top.status === MOTION_STATUS.PENDING_CHAIR || top.status === MOTION_STATUS.PENDING_SECOND || top.status === MOTION_STATUS.DEBATING)) {
+            const debateHasBegun = speakingHistory.length > 0;
             available.push({
                 motionType: MOTION_TYPES.OBJECTION_TO_CONSIDERATION,
                 displayName: 'Objection to Consideration',
                 category: MOTION_CATEGORY.INCIDENTAL,
-                enabled: true,
-                reason: null
+                enabled: !debateHasBegun,
+                reason: debateHasBegun ? 'Too late — debate has already begun on this motion' : null
             });
         }
     }

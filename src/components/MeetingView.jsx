@@ -32,25 +32,9 @@ function FloatingNotifications({ notifications, onDismiss }) {
     if (!notifications || notifications.length === 0) return null;
 
     return (
-        <div style={{
-            position: 'fixed', top: '1rem', left: '50%', transform: 'translateX(-50%)',
-            zIndex: 2000, display: 'flex', flexDirection: 'column', gap: '0.5rem',
-            pointerEvents: 'none', maxWidth: '400px', width: '90%'
-        }}>
+        <div className="floating-toasts">
             {notifications.map((n, i) => (
-                <div key={n.timestamp + n.name} style={{
-                    padding: '0.6rem 1rem',
-                    borderRadius: '4px',
-                    background: n.type === 'join'
-                        ? 'rgba(39, 174, 96, 0.9)'
-                        : 'rgba(230, 126, 34, 0.9)',
-                    color: 'white',
-                    fontWeight: '600',
-                    fontSize: '0.9rem',
-                    textAlign: 'center',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                    animation: 'fadeIn 0.3s ease'
-                }}>
+                <div key={n.timestamp + n.name} className={`floating-toast ${n.type === 'join' ? 'join' : 'leave'}`}>
                     {n.type === 'join' ? `${n.name} has joined` : `${n.name} has left`}
                 </div>
             ))}
@@ -76,48 +60,13 @@ function RecessTimer({ recessEnd }) {
     const display = `${isOvertime ? '-' : ''}${m}:${s.toString().padStart(2, '0')}`;
 
     return (
-        <div style={{
-            background: isOvertime ? 'rgba(192, 57, 43, 0.08)' : 'rgba(52, 152, 219, 0.08)',
-            border: `2px solid ${isOvertime ? '#c0392b' : '#2980b9'}`,
-            borderRadius: '4px',
-            padding: '1rem',
-            marginBottom: '1rem',
-            textAlign: 'center'
-        }}>
-            <div style={{
-                fontSize: '0.75rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: '#666',
-                marginBottom: '0.25rem'
-            }}>
-                Recess
-            </div>
+        <div className={`recess-card ${isOvertime ? 'overtime' : ''}`}>
+            <div className="recess-label">Recess</div>
             {isOvertime && (
-                <div style={{
-                    fontSize: '0.85rem',
-                    fontWeight: '700',
-                    color: '#c0392b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    marginBottom: '0.25rem',
-                    animation: 'pulse 2s ease-in-out infinite'
-                }}>
-                    Recess time elapsed
-                </div>
+                <div className="recess-overtime">Recess time elapsed</div>
             )}
-            <div style={{
-                fontSize: '2rem',
-                fontWeight: '900',
-                fontFamily: "'Impact', 'Arial Black', monospace",
-                letterSpacing: '0.05em',
-                color: isOvertime ? '#c0392b' : '#1a1a1a'
-            }}>
-                {display}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>
-                {isOvertime ? 'over scheduled recess' : 'remaining'}
-            </div>
+            <div className="recess-time">{display}</div>
+            <div className="recess-sub">{isOvertime ? 'over scheduled recess' : 'remaining'}</div>
         </div>
     );
 }
@@ -222,24 +171,31 @@ export default function MeetingView({
                 </ul>
 
                 {/* Quorum status */}
-                {meetingState.quorumRule && (
-                    <div style={{
-                        marginTop: '1rem',
-                        padding: '0.75rem',
-                        background: meetingState.participants.length >= meetingState.quorum
-                            ? 'rgba(39, 174, 96, 0.08)'
-                            : 'rgba(192, 57, 43, 0.08)',
-                        borderLeft: `4px solid ${meetingState.participants.length >= meetingState.quorum ? '#27ae60' : '#c0392b'}`,
-                        borderRadius: '3px',
-                        fontSize: '0.85rem'
-                    }}>
-                        <strong>Quorum:</strong> {meetingState.participants.length} of {meetingState.quorum} required
+                {meetingState.quorumRule && (() => {
+                    const rollCallDone = meetingState.stage !== MEETING_STAGES.NOT_STARTED &&
+                        meetingState.stage !== MEETING_STAGES.CALL_TO_ORDER &&
+                        meetingState.stage !== MEETING_STAGES.ROLL_CALL;
+                    let presentCount;
+                    if (rollCallDone && meetingState.rollCallStatus) {
+                        const officerCount = meetingState.participants.filter(p =>
+                            p.role === ROLES.PRESIDENT || p.role === ROLES.VICE_PRESIDENT || p.role === ROLES.SECRETARY
+                        ).length;
+                        const respondedCount = Object.values(meetingState.rollCallStatus).filter(v => v === 'present').length;
+                        presentCount = officerCount + respondedCount;
+                    } else {
+                        presentCount = meetingState.participants.length;
+                    }
+                    const quorumMet = presentCount >= meetingState.quorum;
+                    return (
+                    <div className={`quorum-indicator ${quorumMet ? 'met' : 'not-met'}`}>
+                        <strong>Quorum:</strong> {presentCount} present of {meetingState.quorum} required
                         <br />
                         <span style={{ color: '#666', fontSize: '0.8rem' }}>
                             Rule: {formatQuorumRule(meetingState.quorumRule)}
                         </span>
                     </div>
-                )}
+                    );
+                })()}
 
                 {/* Quorum setting (Chair only, during CALL_TO_ORDER or ROLL_CALL, and not yet set) */}
                 {isChair && !meetingState.quorumRule && (
@@ -309,15 +265,7 @@ export default function MeetingView({
                 }).map(r => {
                     const isSpeaker = meetingState.currentSpeaker?.participant === currentUser.name;
                     return (
-                        <div key={r.id} style={{
-                            background: '#fff3cd',
-                            border: '3px solid #e67e22',
-                            borderRadius: '4px',
-                            padding: '1.25rem',
-                            marginBottom: '1rem',
-                            textAlign: 'center',
-                            animation: 'pulse 2s ease-in-out infinite'
-                        }}>
+                        <div key={r.id} className="warning-box" style={{ marginBottom: '1rem', textAlign: 'center' }}>
                             <h4 style={{ color: '#e67e22', marginBottom: '0.5rem', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 {r.displayName}
                             </h4>
@@ -606,20 +554,13 @@ export default function MeetingView({
                 )}
 
                 {meetingState.stage === MEETING_STAGES.ADJOURNED && (
-                    <div style={{
-                        background: 'rgba(39, 174, 96, 0.08)',
-                        border: '2px solid #27ae60',
-                        borderRadius: '4px',
-                        padding: '1.5rem',
-                        marginBottom: '1.5rem',
-                        textAlign: 'center'
-                    }}>
+                    <div className="info-box" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
                         <p style={{ marginBottom: '1rem', fontWeight: '600', color: '#1e8449' }}>
                             Meeting adjourned. You can export the minutes below.
                         </p>
                         <button
                             onClick={() => exportMinutes(meetingState)}
-                            style={{ background: '#27ae60' }}
+                            className="success"
                         >
                             Export Minutes (.docx)
                         </button>
@@ -631,6 +572,8 @@ export default function MeetingView({
                     <SpeakingTimer
                         currentSpeaker={meetingState.currentSpeaker}
                         maxDurationMinutes={getDebateConstraints(motionStack, meetingState.orgProfile).maxSpeechDuration || null}
+                        autoYield={!!meetingState.meetingSettings?.autoYieldOnTimeExpired}
+                        onAutoYield={onFinishSpeaking}
                     />
                 )}
 
@@ -639,22 +582,10 @@ export default function MeetingView({
                     <RecessTimer recessEnd={meetingState.recessEnd} />
                 )}
 
-                {/* Member Actions — for chair, wrapped in collapsible "use sparingly" section */}
+                {/* Member Actions - for chair, wrapped in collapsible "use sparingly" section */}
                 {isChair ? (
-                    <details style={{
-                        marginTop: '1rem',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        background: 'rgba(0,0,0,0.02)'
-                    }}>
-                        <summary style={{
-                            padding: '0.75rem 1rem',
-                            cursor: 'pointer',
-                            fontWeight: '600',
-                            fontSize: '0.9rem',
-                            color: '#888',
-                            userSelect: 'none'
-                        }}>
+                    <details style={{ marginTop: '1rem' }}>
+                        <summary>
                             Member tools - use sparingly
                         </summary>
                         <div style={{

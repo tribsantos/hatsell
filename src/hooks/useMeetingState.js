@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { MEETING_STAGES, ROLES } from '../constants';
-import { MOTION_TYPES, MOTION_STATUS, MOTION_CATEGORY } from '../constants/motionTypes';
+import { MOTION_TYPES, MOTION_STATUS, MOTION_CATEGORY, VOTE_THRESHOLDS } from '../constants/motionTypes';
 import * as MeetingConnection from '../services/MeetingConnection';
 import { createMotionEntry, pushMotion, popMotion, getCurrentPendingQuestion, getMainMotion, determineVoteResult, updateTopMotion, updateMotionById } from '../engine/motionStack';
 import { getRules, getDisplayName } from '../engine/motionRules';
@@ -23,6 +23,7 @@ const INITIAL_MEETING_STATE = {
     currentSpeaker: null,
     votes: { aye: 0, nay: 0, abstain: 0 },
     votedBy: [],
+    voteDetails: [],
     log: [],
     quorum: 0,
     quorumRule: null,
@@ -41,6 +42,8 @@ export function useMeetingState() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [meetingState, setMeetingState] = useState(INITIAL_MEETING_STATE);
+    const meetingStateRef = useRef(meetingState);
+    meetingStateRef.current = meetingState;
     const hasAttemptedReconnect = useRef(false);
     const pendingRecognitionLock = useRef(false);
 
@@ -79,8 +82,19 @@ export function useMeetingState() {
         return newLog;
     };
 
+    const MAX_LOG_ENTRIES = 200;
+
     const updateMeetingState = (updates) => {
-        const newState = { ...meetingState, ...updates };
+        const newState = { ...meetingStateRef.current, ...updates };
+        // Cap log to prevent unbounded growth
+        if (newState.log && newState.log.length > MAX_LOG_ENTRIES) {
+            newState.log = newState.log.slice(-MAX_LOG_ENTRIES);
+        }
+        // Keep voteDetails in sync with votedBy resets
+        if (updates.votedBy && updates.votedBy.length === 0 && !('voteDetails' in updates)) {
+            newState.voteDetails = [];
+        }
+        meetingStateRef.current = newState;
         setMeetingState(newState);
         MeetingConnection.broadcast(newState);
     };
@@ -172,9 +186,19 @@ export function useMeetingState() {
             // Migrate old state format if needed
             const migratedState = migrateState(existingState);
 
-            const alreadyJoined = migratedState.participants.some(p => p.name === userData.name);
+            const existingParticipant = migratedState.participants.find(p => p.name === userData.name);
 
-            if (alreadyJoined) {
+            if (existingParticipant) {
+                // If the existing participant is still active (seen within 10s), this is a duplicate name
+                const isActive = existingParticipant.lastSeen && (Date.now() - existingParticipant.lastSeen) < 10000;
+                if (isActive && existingParticipant.role !== userData.role) {
+                    alert(`The name "${userData.name}" is already in use by an active participant. Please choose a different name.`);
+                    MeetingConnection.disconnect();
+                    setIsLoggedIn(false);
+                    setCurrentUser(null);
+                    return;
+                }
+                // Otherwise it's a reconnect — restore state
                 setMeetingState(migratedState);
             } else {
                 const userWithTimestamp = { ...userData, lastSeen: Date.now() };
@@ -636,6 +660,11 @@ export function useMeetingState() {
                 entry.status = MOTION_STATUS.PENDING_SECOND;
             }
 
+            // RONR: Rescind requires only a majority vote when previous notice was given
+            if (pending.motionType === MOTION_TYPES.RESCIND && meetingState.meetingSettings?.previousNotice?.rescind) {
+                entry.voteRequired = VOTE_THRESHOLDS.MAJORITY;
+            }
+
             const { newStack, error } = pushMotion(meetingState.motionStack, entry);
             if (error) {
                 updateMeetingState({
@@ -711,10 +740,13 @@ export function useMeetingState() {
     };
 
     const handleVote = (vote) => {
+        if ((meetingState.votedBy || []).includes(currentUser.name)) return;
+
         const newVotes = { ...meetingState.votes };
         newVotes[vote] = (newVotes[vote] || 0) + 1;
 
         const votedBy = [...(meetingState.votedBy || []), currentUser.name];
+        const voteDetails = [...(meetingState.voteDetails || []), { name: currentUser.name, vote }];
 
         // Also update votes on the top motion in the stack
         const top = getCurrentPendingQuestion(meetingState.motionStack);
@@ -732,6 +764,7 @@ export function useMeetingState() {
             motionStack: newStack,
             votes: newVotes,
             votedBy: votedBy,
+            voteDetails: voteDetails,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: `${currentUser.name} voted`
@@ -878,6 +911,15 @@ export function useMeetingState() {
         // Default disposition: pop and continue
         if (newStack.length === 0) {
             // All motions disposed of, back to new business
+            // Dismiss any stale pending motions — no main motion to apply them to
+            const stalePending = meetingState.pendingMotions || [];
+            if (stalePending.length > 0) {
+                const dismissedNames = stalePending.map(pm => pm.displayName).join(', ');
+                newLog = [...newLog, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Pending motions auto-dismissed (no pending question): ${dismissedNames}`
+                }];
+            }
             updateMeetingState({
                 motionStack: [],
                 stage: MEETING_STAGES.NEW_BUSINESS,
@@ -890,14 +932,17 @@ export function useMeetingState() {
                     result,
                     description,
                     displayName: motion.displayName,
-                    voteRequired: motion.voteRequired
+                    voteRequired: motion.voteRequired,
+                    voteDetails: meetingState.voteDetails || []
                 },
                 decidedMotions,
                 votes: { aye: 0, nay: 0, abstain: 0 },
                 votedBy: [],
+                voteDetails: [],
                 ...restoredSpeaking,
                 savedSpeakingState,
                 pendingAmendments: [],
+                pendingMotions: [],
                 log: newLog
             });
         } else {
@@ -1287,6 +1332,23 @@ export function useMeetingState() {
         if (index < 0 || index >= decidedMotions.length) return;
 
         const decided = decidedMotions[index];
+
+        // RONR: only someone who voted on the prevailing side can move to reconsider
+        if (decided.votedBy && decided.result) {
+            const prevailingSide = decided.result === 'adopted' ? 'aye' : 'nay';
+            // Check if the user voted at all on this motion
+            const userVoted = (decided.votedBy || []).includes(currentUser.name);
+            if (!userVoted) {
+                updateMeetingState({
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: `${currentUser.name} cannot move to reconsider: only members who voted on the prevailing side (${prevailingSide}) may do so.`
+                    }]
+                });
+                return;
+            }
+        }
+
         const entry = createMotionEntry(MOTION_TYPES.MAIN, decided.text, currentUser.name);
         if (entry.error) return;
 
@@ -1398,6 +1460,7 @@ export function useMeetingState() {
     };
 
     const handleFinishSpeaking = () => {
+        if (!meetingState.currentSpeaker) return;
         const speakerName = meetingState.currentSpeaker.participant;
         const speakingHistory = meetingState.speakingHistory || [];
         const now = Date.now();
@@ -1578,6 +1641,11 @@ export function useMeetingState() {
         // Otherwise, push directly onto the stack
         const entry = createMotionEntry(requestType, text, currentUser.name, metadata);
         if (entry.error) return;
+
+        // RONR: Rescind requires only a majority vote when previous notice was given
+        if (requestType === MOTION_TYPES.RESCIND && meetingState.meetingSettings?.previousNotice?.rescind) {
+            entry.voteRequired = VOTE_THRESHOLDS.MAJORITY;
+        }
 
         const { newStack, error } = pushMotion(meetingState.motionStack, entry);
         if (error) {

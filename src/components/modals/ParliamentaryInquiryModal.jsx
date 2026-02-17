@@ -13,7 +13,7 @@ export default function ParliamentaryInquiryModal({ onSubmit, onClose }) {
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Parliamentary Inquiry</h3>
-                <div className="info-box" style={{ marginBottom: '1.5rem' }}>
+                <div className="info-box">
                     A Parliamentary Inquiry asks the chair a question about procedure or the
                     effect of a motion. The chair will respond to your inquiry.
                 </div>
@@ -36,3 +36,4 @@ export default function ParliamentaryInquiryModal({ onSubmit, onClose }) {
         </div>
     );
 }
+

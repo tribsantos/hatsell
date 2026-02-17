@@ -91,43 +91,17 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>{config.heading}</h3>
 
-                {rules && (
-                    <div style={{
-                        display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap'
-                    }}>
-                        <span style={{
-                            fontSize: '0.75rem', padding: '0.2rem 0.5rem',
-                            background: 'rgba(192, 57, 43, 0.08)', borderRadius: '3px', color: '#c0392b'
-                        }}>
-                            {rules.isDebatable ? 'Debatable' : 'Not Debatable'}
-                        </span>
-                        <span style={{
-                            fontSize: '0.75rem', padding: '0.2rem 0.5rem',
-                            background: 'rgba(192, 57, 43, 0.08)', borderRadius: '3px', color: '#c0392b'
-                        }}>
-                            {rules.voteRequired === 'two_thirds' ? '2/3 Vote Required' : 'Majority Vote'}
-                        </span>
-                        {rules.requiresSecond && (
-                            <span style={{
-                                fontSize: '0.75rem', padding: '0.2rem 0.5rem',
-                                background: 'rgba(230, 126, 34, 0.1)', borderRadius: '3px', color: '#e67e22'
-                            }}>
-                                Requires Second
-                            </span>
-                        )}
-                        <span style={{
-                            fontSize: '0.75rem', padding: '0.2rem 0.5rem',
-                            background: rules.canInterrupt ? 'rgba(230, 126, 34, 0.15)' : 'rgba(39, 174, 96, 0.08)',
-                            borderRadius: '3px',
-                            color: rules.canInterrupt ? '#e67e22' : '#27ae60'
-                        }}>
-                            {rules.canInterrupt ? 'Interrupts speaker' : 'Does not interrupt'}
-                        </span>
-                    </div>
-                )}
+                <div className="modal-pills">
+                    <span className="modal-pill default">{rules.isDebatable ? 'Debatable' : 'Not Debatable'}</span>
+                    <span className="modal-pill default">{rules.voteRequired === 'two_thirds' ? '2/3 Vote Required' : 'Majority Vote'}</span>
+                    {rules.requiresSecond && <span className="modal-pill warn">Requires Second</span>}
+                    <span className={`modal-pill ${rules.canInterrupt ? 'warn' : 'ok'}`}>
+                        {rules.canInterrupt ? 'Interrupts speaker' : 'Does not interrupt'}
+                    </span>
+                </div>
 
                 {config.showOriginal && currentMotionText && (
-                    <div className="info-box" style={{ marginBottom: '1.5rem' }}>
+                    <div className="info-box">
                         <strong>Pending Question:</strong><br />
                         {currentMotionText}
                     </div>
@@ -147,7 +121,7 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
                     )}
 
                     {config.noTextInput && (
-                        <div className="info-box" style={{ marginBottom: '1.5rem' }}>
+                        <div className="info-box">
                             <p>Motion: "{config.fixedText || config.defaultText}"</p>
                         </div>
                     )}
@@ -161,11 +135,6 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
                                     value={committeeName}
                                     onChange={(e) => setCommitteeName(e.target.value)}
                                     placeholder="e.g., Finance Committee"
-                                    style={{
-                                        width: '100%', padding: '0.5rem',
-                                        background: '#f9f8f5', border: '2px solid #ddd',
-                                        borderRadius: '3px', color: '#1a1a1a'
-                                    }}
                                 />
                             </div>
                             <div className="form-group">
@@ -187,11 +156,6 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
                                 value={postponeTime}
                                 onChange={(e) => setPostponeTime(e.target.value)}
                                 placeholder="e.g., next meeting, 3:00 PM"
-                                style={{
-                                    width: '100%', padding: '0.5rem',
-                                    background: '#f9f8f5', border: '2px solid #ddd',
-                                    borderRadius: '3px', color: '#1a1a1a'
-                                }}
                             />
                         </div>
                     )}
@@ -206,11 +170,6 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
                                     onChange={(e) => setTimeLimit(e.target.value)}
                                     placeholder="e.g., 3"
                                     min="1"
-                                    style={{
-                                        width: '100%', padding: '0.5rem',
-                                        background: '#f9f8f5', border: '2px solid #ddd',
-                                        borderRadius: '3px', color: '#1a1a1a'
-                                    }}
                                 />
                             </div>
                             <div className="form-group">
@@ -221,11 +180,6 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
                                     onChange={(e) => setSpeechLimit(e.target.value)}
                                     placeholder="e.g., 1"
                                     min="1"
-                                    style={{
-                                        width: '100%', padding: '0.5rem',
-                                        background: '#f9f8f5', border: '2px solid #ddd',
-                                        borderRadius: '3px', color: '#1a1a1a'
-                                    }}
                                 />
                             </div>
                         </>
@@ -240,3 +194,4 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
         </div>
     );
 }
+

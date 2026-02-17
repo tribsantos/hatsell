@@ -54,14 +54,14 @@ export default function MeetingStage({ stage, currentMotion, motionStack, suspen
     const info = stageInfo[stage] || stageInfo[MEETING_STAGES.NOT_STARTED];
 
     return (
-        <div className="meeting-stage" aria-live="polite">
+        <section className="meeting-stage" aria-live="polite" aria-label="Current meeting stage">
             <h2>{info.title}</h2>
             <p className="stage-description">{info.description}</p>
             {motionStack && motionStack.length > 1 && (
-                <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                <p className="stage-description" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
                     {motionStack.length} motions on the stack
                 </p>
             )}
-        </div>
+        </section>
     );
 }

@@ -14,24 +14,8 @@ export default function QuorumSettingSection({ onSetQuorum, currentRule }) {
     };
 
     return (
-        <div style={{
-            background: 'rgba(230, 126, 34, 0.08)',
-            border: '2px solid #ddd',
-            borderLeft: '4px solid #e67e22',
-            borderRadius: '4px',
-            padding: '1rem',
-            marginBottom: '1rem'
-        }}>
-            <div style={{
-                fontSize: '0.85rem',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: '#7b2d3b',
-                marginBottom: '0.75rem'
-            }}>
-                Set Minimum Quorum
-            </div>
+        <div className="panel" style={{ marginBottom: '1rem' }} aria-label="Quorum settings">
+            <h3>Set Minimum Quorum</h3>
 
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem', cursor: 'pointer' }}>
@@ -66,11 +50,11 @@ export default function QuorumSettingSection({ onSetQuorum, currentRule }) {
                         style={{
                             flex: 1,
                             padding: '0.5rem',
-                            background: '#f9f8f5',
-                            border: '2px solid #ddd',
+                            background: 'var(--h-bg-warm, #f9f8f5)',
+                            border: '2px solid var(--h-border-soft, #ddd)',
                             borderRadius: '3px',
                             fontSize: '0.9rem',
-                            color: '#1a1a1a'
+                            color: 'var(--h-fg, #1a1a1a)'
                         }}
                     />
                 ) : (
@@ -80,11 +64,11 @@ export default function QuorumSettingSection({ onSetQuorum, currentRule }) {
                         style={{
                             flex: 1,
                             padding: '0.5rem',
-                            background: '#f9f8f5',
-                            border: '2px solid #ddd',
+                            background: 'var(--h-bg-warm, #f9f8f5)',
+                            border: '2px solid var(--h-border-soft, #ddd)',
                             borderRadius: '3px',
                             fontSize: '0.9rem',
-                            color: '#1a1a1a'
+                            color: 'var(--h-fg, #1a1a1a)'
                         }}
                     >
                         <option value="majority">Majority (more than half)</option>

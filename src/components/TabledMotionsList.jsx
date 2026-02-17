@@ -4,21 +4,12 @@ export default function TabledMotionsList({ tabledMotions, isChair, onTakeFromTa
     if (!tabledMotions || tabledMotions.length === 0) return null;
 
     return (
-        <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{ color: '#666', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
-                Tabled Motions ({tabledMotions.length})
-            </h4>
+        <div className="sidebar-list">
+            <h4 className="sidebar-list-title">Tabled Motions ({tabledMotions.length})</h4>
             {tabledMotions.map((item, idx) => (
-                <div key={idx} style={{
-                    padding: '0.75rem',
-                    background: '#f9f8f5',
-                    borderLeft: '3px solid #bbb',
-                    borderRadius: '3px',
-                    marginBottom: '0.5rem',
-                    fontSize: '0.9rem'
-                }}>
-                    <div style={{ color: '#1a1a1a' }}>{item.mainMotionText}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                <div key={idx} className="sidebar-list-item">
+                    <div>{item.mainMotionText}</div>
+                    <div className="sidebar-list-meta">
                         Tabled at {new Date(item.tabledAt).toLocaleTimeString()}
                     </div>
                 </div>

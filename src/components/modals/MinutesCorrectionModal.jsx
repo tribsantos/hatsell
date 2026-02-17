@@ -13,7 +13,7 @@ export default function MinutesCorrectionModal({ onSubmit, onClose }) {
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Propose Correction to Minutes</h3>
-                <div className="info-box" style={{marginBottom: '1.5rem'}}>
+                <div className="info-box">
                     Describe the correction needed to the minutes from the previous meeting.
                 </div>
                 <form onSubmit={handleSubmit}>
@@ -27,15 +27,12 @@ export default function MinutesCorrectionModal({ onSubmit, onClose }) {
                         />
                     </div>
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>
-                            Cancel
-                        </button>
-                        <button type="submit">
-                            Propose Correction
-                        </button>
+                        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
+                        <button type="submit">Propose Correction</button>
                     </div>
                 </form>
             </div>
         </div>
     );
 }
+

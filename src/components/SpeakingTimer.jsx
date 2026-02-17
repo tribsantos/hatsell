@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 
-export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes }) {
+export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes, autoYield, onAutoYield }) {
     const [elapsed, setElapsed] = useState(0);
+    const hasAutoYielded = useRef(false);
+
+    useEffect(() => {
+        hasAutoYielded.current = false;
+    }, [currentSpeaker?.speakingStartTime]);
 
     useEffect(() => {
         if (!currentSpeaker?.speakingStartTime) return;
@@ -13,6 +18,15 @@ export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes }) {
         const interval = setInterval(update, 1000);
         return () => clearInterval(interval);
     }, [currentSpeaker?.speakingStartTime]);
+
+    useEffect(() => {
+        if (!autoYield || !onAutoYield || !maxDurationMinutes || hasAutoYielded.current) return;
+        const totalSeconds = maxDurationMinutes * 60;
+        if (elapsed >= totalSeconds) {
+            hasAutoYielded.current = true;
+            onAutoYield();
+        }
+    }, [elapsed, autoYield, onAutoYield, maxDurationMinutes]);
 
     if (!currentSpeaker) return null;
 
@@ -28,55 +42,30 @@ export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes }) {
         return `${negative ? '-' : ''}${m}:${s.toString().padStart(2, '0')}`;
     };
 
+    const timerClass = `speaking-timer${isOvertime ? ' expired' : totalSeconds && remaining <= 30 ? ' warning' : ''}`;
+
     return (
-        <div style={{
-            background: isOvertime ? 'rgba(192, 57, 43, 0.08)' : 'rgba(39, 174, 96, 0.08)',
-            border: `2px solid ${isOvertime ? '#c0392b' : '#27ae60'}`,
-            borderRadius: '4px',
-            padding: '1rem',
-            marginBottom: '1rem',
-            textAlign: 'center'
-        }}>
-            <div style={{
-                fontSize: '0.75rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: '#666',
-                marginBottom: '0.25rem'
-            }}>
-                {currentSpeaker.participant} — {currentSpeaker.stance === 'pro' ? 'In Favor' : 'Against'}
+        <div className={timerClass} role="timer" aria-live="polite">
+            <div className="timer-label">
+                {currentSpeaker.participant} - {currentSpeaker.stance === 'pro' ? 'In Favor' : 'Against'}
             </div>
 
             {isOvertime && (
-                <div style={{
-                    fontSize: '0.85rem',
-                    fontWeight: '700',
-                    color: '#c0392b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    marginBottom: '0.25rem',
-                    animation: 'pulse 2s ease-in-out infinite'
-                }}>
-                    Time's up
+                <div className="timer-label" style={{ color: '#c0392b', fontWeight: 700 }}>
+                    {autoYield ? 'Floor yielded - time expired' : "Time's up"}
                 </div>
             )}
 
-            <div style={{
-                fontSize: '2rem',
-                fontWeight: '900',
-                fontFamily: "'Impact', 'Arial Black', monospace",
-                letterSpacing: '0.05em',
-                color: isOvertime ? '#c0392b' : '#1a1a1a'
-            }}>
+            <div className="timer-display">
                 {remaining !== null ? formatTime(remaining) : formatTime(elapsed)}
             </div>
 
             {totalSeconds ? (
-                <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>
+                <div className="timer-label" style={{ marginTop: '0.25rem' }}>
                     {isOvertime ? 'over time limit' : `of ${maxDurationMinutes} min`}
                 </div>
             ) : (
-                <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>
+                <div className="timer-label" style={{ marginTop: '0.25rem' }}>
                     elapsed (no time limit)
                 </div>
             )}
