@@ -988,14 +988,17 @@ export function useMeetingState() {
                 if (motion.metadata?.appliedTo) {
                     const targetId = motion.metadata.appliedTo;
                     const target = getMotionById(currentStack, targetId);
+                    // Use proposedText from metadata (full amended text); fallback for old amendments
+                    const proposedText = motion.metadata?.proposedText || motion.text;
                     const existingHistory = target?.metadata?.amendmentHistory || [];
                     const newHistory = [...existingHistory, {
                         amendmentText: motion.text,
+                        proposedText,
                         previousText: target?.text,
                         adoptedAt: Date.now()
                     }];
                     const newStack = updateMotionById(currentStack, targetId, {
-                        text: motion.text,
+                        text: proposedText,
                         metadata: {
                             ...(target?.metadata || {}),
                             amendmentHistory: newHistory,
@@ -1924,9 +1927,10 @@ export function useMeetingState() {
         }
     };
 
-    const handleSubmitAmendment = (amendmentText) => {
+    const handleSubmitAmendment = (amendmentLanguage, proposedText) => {
         // Route through the subsidiary motion system
-        handleMoveSubsidiary(MOTION_TYPES.AMEND, amendmentText, {});
+        // RONR language goes as motion text; full proposed text stored in metadata
+        handleMoveSubsidiary(MOTION_TYPES.AMEND, amendmentLanguage, { proposedText });
     };
 
     const handleRecognizeAmendment = (amendment) => {
@@ -1939,7 +1943,7 @@ export function useMeetingState() {
         const top = getCurrentPendingQuestion(meetingState.motionStack);
         if (!top) return;
 
-        const metadata = { proposer: amendment.proposer };
+        const metadata = { ...amendment.metadata, proposer: amendment.proposer };
         const currentDegree = top.motionType === MOTION_TYPES.AMEND ? top.degree : 0;
         metadata.degree = currentDegree + 1;
         metadata.appliedTo = top.id;

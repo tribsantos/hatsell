@@ -1,16 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { MOTION_TYPES } from '../../constants/motionTypes';
 import { getRules } from '../../engine/motionRules';
+import { computeWordDiff, generateAmendmentLanguage } from '../../engine/amendmentDiff';
 import RuleHintBox from '../RuleHintBox';
 
+function DiffDisplay({ ops }) {
+    return (
+        <div className="amendment-diff">
+            <div className="amendment-diff-label">Changes</div>
+            <div>
+                {ops.map((op, i) => (
+                    <span key={i} className={op.type === 'delete' ? 'diff-word-delete' : op.type === 'insert' ? 'diff-word-insert' : undefined}>
+                        {op.word}{' '}
+                    </span>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function AmendmentLanguageBox({ language }) {
+    return (
+        <div className="amendment-language-box">
+            <div className="amendment-language-label">Formal Amendment</div>
+            <div>{language}</div>
+        </div>
+    );
+}
+
 export default function AmendmentModal({ originalMotion, onSubmit, onClose }) {
-    const [amendmentText, setAmendmentText] = useState('');
+    const [proposedText, setProposedText] = useState(originalMotion || '');
     const rules = getRules(MOTION_TYPES.AMEND);
+
+    const ops = useMemo(() => computeWordDiff(originalMotion || '', proposedText), [originalMotion, proposedText]);
+    const language = useMemo(() => generateAmendmentLanguage(originalMotion || '', proposedText), [originalMotion, proposedText]);
+
+    const hasChanges = language !== null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!amendmentText.trim()) return;
-        onSubmit(amendmentText);
+        if (!hasChanges) return;
+        onSubmit({ language, proposedText });
     };
 
     return (
@@ -27,19 +57,23 @@ export default function AmendmentModal({ originalMotion, onSubmit, onClose }) {
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Amendment Text</label>
+                        <label>Proposed Amended Text</label>
                         <textarea
-                            value={amendmentText}
-                            onChange={(e) => setAmendmentText(e.target.value)}
-                            placeholder="I move to amend by..."
+                            value={proposedText}
+                            onChange={(e) => setProposedText(e.target.value)}
+                            placeholder="Edit the text above to reflect your proposed changes..."
                             autoFocus
                         />
                     </div>
+
+                    {hasChanges && <DiffDisplay ops={ops} />}
+                    {hasChanges && <AmendmentLanguageBox language={language} />}
+
                     <div className="modal-buttons">
                         <button type="button" className="secondary" onClick={onClose}>
                             Cancel
                         </button>
-                        <button type="submit">
+                        <button type="submit" disabled={!hasChanges}>
                             Propose Amendment
                         </button>
                     </div>
@@ -48,4 +82,3 @@ export default function AmendmentModal({ originalMotion, onSubmit, onClose }) {
         </div>
     );
 }
-
