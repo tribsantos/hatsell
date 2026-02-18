@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ROLES } from './constants';
 import { MOTION_TYPES } from './constants/motionTypes';
 import { useMeetingState } from './hooks/useMeetingState';
@@ -39,6 +39,7 @@ export default function App() {
     );
     const [disclaimerChecked, setDisclaimerChecked] = useState(false);
     const [activeDrawer, setActiveDrawer] = useState(null);
+    const [inactivityWarning, setInactivityWarning] = useState(false);
 
     const toggleDrawer = (name) => {
         setActiveDrawer(prev => prev === name ? null : name);
@@ -130,7 +131,10 @@ export default function App() {
         modalData
     } = useModal();
 
-    useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingState, updateMeetingState);
+    useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingState, updateMeetingState, {
+        onInactivityWarning: (action) => setInactivityWarning(action === 'show'),
+        inactivityWarningActive: inactivityWarning
+    });
     useAudioCues(meetingState);
 
     if (activePage === 'about') {
@@ -529,6 +533,55 @@ export default function App() {
                     onClose={closeModal}
                 />
             )}
+
+            {inactivityWarning && isLoggedIn && (
+                <InactivityWarningModal
+                    lastActivityTime={meetingState.lastActivityTime}
+                    onResume={() => {
+                        updateMeetingState({});
+                        setInactivityWarning(false);
+                    }}
+                    onEnd={() => {
+                        handleAdjourn();
+                        setInactivityWarning(false);
+                    }}
+                />
+            )}
+        </div>
+    );
+}
+
+function InactivityWarningModal({ lastActivityTime, onResume, onEnd }) {
+    const [countdown, setCountdown] = useState(60);
+    const countdownRef = useRef(null);
+
+    useEffect(() => {
+        const tick = () => {
+            const elapsed = Date.now() - lastActivityTime;
+            const graceUsed = elapsed - 30 * 60 * 1000;
+            const remaining = Math.max(0, Math.ceil((60 * 1000 - graceUsed) / 1000));
+            setCountdown(remaining);
+        };
+        tick();
+        countdownRef.current = setInterval(tick, 1000);
+        return () => clearInterval(countdownRef.current);
+    }, [lastActivityTime]);
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal variant-warning" role="alertdialog" aria-labelledby="inactivity-heading">
+                <h3 id="inactivity-heading">Meeting Inactive</h3>
+                <p className="modal-intro">
+                    This meeting has been inactive for 30 minutes. It will automatically adjourn if no action is taken.
+                </p>
+                <div className="inactivity-countdown">
+                    {countdown}s
+                </div>
+                <div className="modal-buttons">
+                    <button onClick={onResume}>Resume Meeting</button>
+                    <button className="danger" onClick={onEnd}>End Meeting</button>
+                </div>
+            </div>
         </div>
     );
 }

@@ -33,6 +33,7 @@ const INITIAL_MEETING_STATE = {
     minutesCorrections: [],
     notifications: [],
     lastChairRuling: null,
+    lastActivityTime: null,
 
     // Legacy compat - kept for minutes correction flow
     currentMotion: null
@@ -100,6 +101,7 @@ export function useMeetingState() {
         if (updates.votedBy && updates.votedBy.length === 0 && !('voteDetails' in updates)) {
             newState.voteDetails = [];
         }
+        newState.lastActivityTime = Date.now();
         meetingStateRef.current = newState;
         setMeetingState(newState);
         MeetingConnection.broadcast(newState);

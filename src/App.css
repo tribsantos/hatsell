@@ -1908,6 +1908,15 @@ details > section {
 .modal.variant-bring_back  { border-top: 4px solid var(--h-green); }
 .modal.variant-appeal      { border-top: 4px solid var(--h-amber); }
 .modal.variant-amend       { border-top: 4px solid #3b82f6; }
+.modal.variant-warning     { border-top: 4px solid var(--h-amber); }
+.inactivity-countdown {
+  font-size: 2rem;
+  font-weight: 900;
+  font-family: 'Courier New', monospace;
+  color: var(--h-amber);
+  text-align: center;
+  margin: 1rem 0;
+}
 
 .modal h3 {
   font-family: var(--h-font-heading);

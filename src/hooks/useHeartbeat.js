@@ -2,18 +2,22 @@ import { useEffect, useRef } from 'react';
 import { MEETING_STAGES, ROLES } from '../constants';
 import * as MeetingConnection from '../services/MeetingConnection';
 
-export function useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingState, updateMeetingState) {
+export function useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingState, updateMeetingState, options = {}) {
     const prevParticipantNames = useRef(null);
     const meetingStateRef = useRef(meetingState);
     const updateMeetingStateRef = useRef(updateMeetingState);
     const currentUserRef = useRef(currentUser);
     const isLoggedInRef = useRef(isLoggedIn);
+    const onInactivityWarningRef = useRef(options.onInactivityWarning);
+    const inactivityWarningActiveRef = useRef(options.inactivityWarningActive);
 
     // Keep refs current without re-running the effect
     meetingStateRef.current = meetingState;
     updateMeetingStateRef.current = updateMeetingState;
     currentUserRef.current = currentUser;
     isLoggedInRef.current = isLoggedIn;
+    onInactivityWarningRef.current = options.onInactivityWarning;
+    inactivityWarningActiveRef.current = options.inactivityWarningActive;
 
     useEffect(() => {
         if (!currentUser) return;
@@ -166,6 +170,36 @@ export function useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingSt
                     }
 
                     updateMeetingStateRef.current(updates);
+                }
+            }
+
+            // --- STEP 3: Inactivity check (chair only) ---
+            const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+            const GRACE_PERIOD = 60 * 1000; // 60 seconds after warning
+
+            if (cu.role === ROLES.PRESIDENT &&
+                ms.stage !== MEETING_STAGES.ADJOURNED &&
+                ms.stage !== MEETING_STAGES.NOT_STARTED &&
+                ms.lastActivityTime) {
+                const elapsed = now - ms.lastActivityTime;
+
+                if (elapsed > INACTIVITY_TIMEOUT + GRACE_PERIOD) {
+                    // Grace period expired — auto-adjourn
+                    updateMeetingStateRef.current({
+                        stage: MEETING_STAGES.ADJOURNED,
+                        log: [...ms.log, {
+                            timestamp: new Date().toLocaleTimeString(),
+                            message: 'Meeting auto-adjourned due to 30 minutes of inactivity.'
+                        }]
+                    });
+                    if (onInactivityWarningRef.current) {
+                        onInactivityWarningRef.current('hide');
+                    }
+                } else if (elapsed > INACTIVITY_TIMEOUT && !inactivityWarningActiveRef.current) {
+                    // Show warning
+                    if (onInactivityWarningRef.current) {
+                        onInactivityWarningRef.current('show');
+                    }
                 }
             }
         }, 3000);
