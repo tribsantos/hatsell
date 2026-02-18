@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import * as MeetingConnection from '../services/MeetingConnection';
 import HatsellLogo from './HatsellLogo';
-
-const STORAGE_KEY = 'hatsell_org_profiles';
 
 const DEFAULT_PROFILE = {
     organizationName: '',
@@ -162,38 +160,14 @@ function generateCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-function getSavedProfiles() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    } catch {
-        return {};
-    }
-}
-
-function saveProfiles(profiles) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
-}
-
 export default function GeneralSettings({ userName, onConfirm, onCancel }) {
     const [profile, setProfile] = useState(DEFAULT_PROFILE);
     const [meetingSettings, setMeetingSettings] = useState(DEFAULT_MEETING_SETTINGS);
-    const [savedProfileName, setSavedProfileName] = useState('');
-    const [loadProfileName, setLoadProfileName] = useState('');
-    const [savedNames, setSavedNames] = useState([]);
-    const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [generatedCodes, setGeneratedCodes] = useState(null);
-    const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-    const [isDirty, setIsDirty] = useState(false);
     const [showAddAgenda, setShowAddAgenda] = useState(false);
-
-    useEffect(() => {
-        const profiles = getSavedProfiles();
-        setSavedNames(Object.keys(profiles));
-    }, []);
 
     const updateProfile = (field, value) => {
         setProfile(prev => ({ ...prev, [field]: value }));
-        setIsDirty(true);
     };
 
     const updateMeetingSettings = (field, value) => {
@@ -253,50 +227,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
         });
     };
 
-    const handleSave = () => {
-        if (!savedProfileName.trim()) return;
-        const profiles = getSavedProfiles();
-        profiles[savedProfileName.trim()] = { ...profile, meetingSettings, savedAt: Date.now() };
-        saveProfiles(profiles);
-        setSavedNames(Object.keys(profiles));
-        setIsDirty(false);
-        setShowSaveDialog(false);
-    };
-
-    const handleLoad = () => {
-        if (!loadProfileName) return;
-        const profiles = getSavedProfiles();
-        const loaded = profiles[loadProfileName];
-        if (loaded) {
-            const { savedAt, meetingCodes, previousNotice, meetingSettings: savedMeetingSettings, ...rest } = loaded;
-            setProfile({ ...DEFAULT_PROFILE, ...rest });
-            if (savedMeetingSettings) {
-                setMeetingSettings({ ...DEFAULT_MEETING_SETTINGS, ...savedMeetingSettings });
-            } else if (previousNotice) {
-                // Backward compat: migrate old profiles with previousNotice in profile
-                setMeetingSettings(prev => ({
-                    ...prev,
-                    previousNotice: { ...prev.previousNotice, ...previousNotice }
-                }));
-            }
-            setSavedProfileName(loadProfileName);
-            setIsDirty(false);
-        }
-    };
-
-    const handleDeleteProfile = (name) => {
-        const profiles = getSavedProfiles();
-        delete profiles[name];
-        saveProfiles(profiles);
-        setSavedNames(Object.keys(profiles));
-        if (loadProfileName === name) setLoadProfileName('');
-    };
-
     const handleConfirm = () => {
-        if (isDirty && !generatedCodes) {
-            setShowUnsavedDialog(true);
-            return;
-        }
         doGenerateCodes();
     };
 
@@ -343,15 +274,6 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
         codeMappings[codes.secretary] = { role: 'Secretary', baseCode };
         codeMappings[codes.member] = { role: 'Member', baseCode };
         sessionStorage.setItem('hatsell_code_mappings', JSON.stringify(codeMappings));
-
-        // Also save to the profile if it was saved
-        if (savedProfileName) {
-            const profiles = getSavedProfiles();
-            if (profiles[savedProfileName]) {
-                profiles[savedProfileName].meetingCodes = codes;
-                saveProfiles(profiles);
-            }
-        }
 
         setGeneratedCodes(codes);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -475,64 +397,6 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                 style={{ padding: '0.75rem 2rem', fontSize: '1rem' }}
                             >
                                 Start Meeting
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Save/Load Profile Controls */}
-                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                    <button onClick={() => setShowSaveDialog(true)} className="secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                        Save Organization Profile
-                    </button>
-                    {savedNames.length > 0 && (
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <select
-                                value={loadProfileName}
-                                onChange={(e) => setLoadProfileName(e.target.value)}
-                                aria-label="Select saved organization profile"
-                                style={{ padding: '0.5rem', border: '2px solid #ddd', borderRadius: '3px', fontSize: '0.85rem', background: '#f9f8f5' }}
-                            >
-                                <option value="">Select profile...</option>
-                                {savedNames.map(n => (
-                                    <option key={n} value={n}>{n}</option>
-                                ))}
-                            </select>
-                            <button onClick={handleLoad} className="secondary" disabled={!loadProfileName} style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}>
-                                Load
-                            </button>
-                            {loadProfileName && (
-                                <button onClick={() => handleDeleteProfile(loadProfileName)} className="danger" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}>
-                                    Delete
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Save Dialog */}
-                {showSaveDialog && (
-                    <div style={{
-                        marginBottom: '1.5rem',
-                        padding: '1rem',
-                        background: 'rgba(52, 152, 219, 0.08)',
-                        border: '1px solid #2980b9',
-                        borderRadius: '4px'
-                    }}>
-                        <label style={labelStyle}>Profile Name</label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input
-                                type="text"
-                                value={savedProfileName}
-                                onChange={(e) => setSavedProfileName(e.target.value)}
-                                placeholder="e.g. My Organization"
-                                style={{ ...inputStyle, flex: 1 }}
-                            />
-                            <button onClick={handleSave} disabled={!savedProfileName.trim()} style={{ padding: '0.5rem 1rem' }}>
-                                Save
-                            </button>
-                            <button onClick={() => setShowSaveDialog(false)} className="secondary" style={{ padding: '0.5rem 0.75rem' }}>
-                                Cancel
                             </button>
                         </div>
                     </div>
@@ -919,38 +783,6 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         <div style={hintStyle}>When enabled, the chair will see how each member voted (by name) in the result announcement. By default, only aggregate totals are shown.</div>
                     </div>
                 </div>
-
-                {/* Unsaved dialog */}
-                {showUnsavedDialog && (
-                    <div style={{
-                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                        background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        zIndex: 1000
-                    }}>
-                        <div style={{
-                            background: 'var(--h-bg-card)', padding: '2rem', borderRadius: '4px',
-                            border: '2px solid var(--h-border)',
-                            boxShadow: 'var(--h-shadow-lg)',
-                            maxWidth: '400px', width: '90%', textAlign: 'center'
-                        }}>
-                            <h3 style={{ marginBottom: '1rem' }}>Unsaved Profile</h3>
-                            <p style={{ marginBottom: '1.5rem', color: 'var(--h-fg-muted)' }}>
-                                Your organization profile has not been saved. Would you like to save it?
-                            </p>
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                                <button onClick={() => { setShowUnsavedDialog(false); doGenerateCodes(); }} className="secondary">
-                                    Continue Without Saving
-                                </button>
-                                <button onClick={() => { setShowUnsavedDialog(false); setShowSaveDialog(true); }}>
-                                    Save First
-                                </button>
-                                <button onClick={() => setShowUnsavedDialog(false)} className="secondary">
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Action Buttons */}
                 {!generatedCodes && (

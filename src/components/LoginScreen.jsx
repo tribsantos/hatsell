@@ -37,7 +37,7 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
                 else if (lookup.role === 'Secretary') role = ROLES.SECRETARY;
                 else role = ROLES.MEMBER;
             } else {
-                // Fall back to session/local storage code mappings
+                // Fall back to session storage code mappings
                 const codeMappings = JSON.parse(sessionStorage.getItem('hatsell_code_mappings') || '{}');
                 if (codeMappings[code]) {
                     if (codeMappings[code].role === 'Chair') role = ROLES.PRESIDENT;
@@ -45,16 +45,6 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
                     else if (codeMappings[code].role === 'Secretary') role = ROLES.SECRETARY;
                     else role = ROLES.MEMBER;
                     actualCode = codeMappings[code].baseCode;
-                } else {
-                    // Check saved profiles in localStorage
-                    const profiles = JSON.parse(localStorage.getItem('hatsell_org_profiles') || '{}');
-                    const allMeetings = Object.values(profiles).flatMap(p => p.meetingCodes ? [p.meetingCodes] : []);
-                    for (const codes of allMeetings) {
-                        if (codes.chair === code) { role = ROLES.PRESIDENT; actualCode = codes.base; break; }
-                        if (codes.viceChair === code) { role = ROLES.VICE_PRESIDENT; actualCode = codes.base; break; }
-                        if (codes.secretary === code) { role = ROLES.SECRETARY; actualCode = codes.base; break; }
-                        if (codes.member === code) { role = ROLES.MEMBER; actualCode = codes.base; break; }
-                    }
                 }
             }
 
