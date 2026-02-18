@@ -45,6 +45,9 @@ export function useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingSt
                 prevParticipantNames.current = new Set((newState.participants || []).map(p => p.name));
             }
 
+            // Update our own ref immediately so the heartbeat interval
+            // doesn't read stale participants and overwrite a recent join
+            meetingStateRef.current = newState;
             setMeetingState(newState);
         });
 
@@ -54,16 +57,31 @@ export function useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingSt
             if (!isLoggedInRef.current || !cu) return;
 
             const now = Date.now();
+
+            // --- STEP 1: Update our lastSeen via PARTIAL Firebase update ---
+            // This only modifies our entry's lastSeen field in Firebase,
+            // preserving all other participants and state. Prevents the race
+            // condition where a full broadcast could overwrite a concurrent join.
+            const myIndex = ms.participants.findIndex(p => p.name === cu.name);
+            if (myIndex >= 0) {
+                MeetingConnection.updateParticipantLastSeen(myIndex, now);
+            }
+
+            // Update local state only (no full broadcast)
             const updatedParticipants = ms.participants.map(p =>
                 p.name === cu.name ? { ...p, lastSeen: now } : p
             );
+            const localUpdate = { ...ms, participants: updatedParticipants };
+            meetingStateRef.current = localUpdate;
+            setMeetingState(localUpdate);
 
-            // Always broadcast our updated lastSeen so other tabs see it
-            updateMeetingStateRef.current({ participants: updatedParticipants });
-
+            // --- STEP 2: Prune inactive participants ---
+            // Only broadcast the full state when actually removing someone.
+            // 45s timeout accounts for browser background-tab throttling
+            // (browsers reduce setInterval to ~60s in background tabs)
             const activeParticipants = updatedParticipants.filter(p => {
                 if (!p.lastSeen) return true;
-                return (now - p.lastSeen) < 10000;
+                return (now - p.lastSeen) < 45000;
             });
 
             const hadPresident = ms.participants.some(p => p.role === ROLES.PRESIDENT);

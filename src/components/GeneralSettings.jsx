@@ -5,6 +5,7 @@ import HatsellLogo from './HatsellLogo';
 const STORAGE_KEY = 'hatsell_org_profiles';
 
 const DEFAULT_PROFILE = {
+    organizationName: '',
     totalMembership: '',
     quorumType: 'default',      // 'fixed' | 'fraction' | 'default'
     quorumValue: '',
@@ -19,6 +20,7 @@ const DEFAULT_PROFILE = {
 };
 
 const DEFAULT_MEETING_SETTINGS = {
+    meetingName: 'Regular Meeting',
     agendaItems: [],
     agendaStatus: 'guidance',
     previousNotice: {
@@ -541,6 +543,18 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                     <h3 style={{ marginBottom: '1rem', color: '#1a1a1a' }}>Organization Profile</h3>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
+                        <label style={labelStyle}>Organization Name</label>
+                        <input
+                            type="text"
+                            value={profile.organizationName}
+                            onChange={(e) => updateProfile('organizationName', e.target.value)}
+                            placeholder="e.g. Springfield Civic Association"
+                            style={inputStyle}
+                        />
+                        <div style={hintStyle}>Appears in the top bar during the meeting and in exported minutes.</div>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
                         <label style={labelStyle}>Total Membership (optional)</label>
                         <input
                             type="number"
@@ -702,6 +716,18 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                 {/* Section 2: Settings for this meeting */}
                 <div style={{ ...sectionStyle, borderLeft: '4px solid #2980b9' }}>
                     <h3 style={{ marginBottom: '1rem', color: '#1a1a1a' }}>Settings for this meeting</h3>
+
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                        <label style={labelStyle}>Meeting Name</label>
+                        <input
+                            type="text"
+                            value={meetingSettings.meetingName}
+                            onChange={(e) => updateMeetingSettings('meetingName', e.target.value)}
+                            placeholder="e.g. Regular Meeting, Annual Meeting"
+                            style={inputStyle}
+                        />
+                        <div style={hintStyle}>Displayed in the top bar and used in minutes export.</div>
+                    </div>
 
                     {/* A) Agenda */}
                     <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd' }}>

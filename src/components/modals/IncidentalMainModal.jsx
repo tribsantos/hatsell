@@ -4,7 +4,7 @@ import { incidentalMainOptions } from '../../constants';
 export default function IncidentalMainModal({ onSelectTemplate, onClose }) {
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-main" onClick={(e) => e.stopPropagation()}>
                 <h3>Incidental Main Motions</h3>
                 <p className="modal-intro">
                     Choose an incidental main motion template. You can edit the text before introducing it.

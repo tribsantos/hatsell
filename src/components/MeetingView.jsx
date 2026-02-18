@@ -8,12 +8,8 @@ import VotingSection from './VotingSection';
 import { ChairActions, MemberActions } from './ActionButtons';
 import MotionStackDisplay from './MotionStackDisplay';
 import PendingRequestsPanel from './PendingRequestsPanel';
-import TabledMotionsList from './TabledMotionsList';
-import DecidedMotionsList from './DecidedMotionsList';
 import { exportMinutes } from '../services/minutesExport';
-import QuorumSettingSection from './QuorumSettingSection';
 import SpeakingTimer from './SpeakingTimer';
-import { formatQuorumRule } from '../engine/quorum';
 import { getDebateConstraints } from '../engine/debateEngine';
 import { REQUEST_FLOWS } from '../engine/pendingRequests';
 import { getRules } from '../engine/motionRules';
@@ -124,7 +120,6 @@ export default function MeetingView({
     onResumeFromSuspendedRules,
     onSuspendedVote,
     onDeclareNoSecond,
-    onSetQuorum,
     onChairAcceptMotion,
     onChairRejectMotion,
     onRecognizePendingMotion,
@@ -150,70 +145,6 @@ export default function MeetingView({
                 notifications={meetingState.notifications || []}
                 onDismiss={dismissNotification}
             />
-            <aside className="panel" role="complementary" aria-label="Participants and meeting information">
-                <h3>Participants ({meetingState.participants.length})</h3>
-                <ul className="participants-list">
-                    {meetingState.participants.map((p, idx) => (
-                        <li
-                            key={idx}
-                            className={`participant-item ${
-                                p.role === ROLES.PRESIDENT ? 'chair' : ''
-                            } ${
-                                p.role === ROLES.VICE_PRESIDENT ? 'vice-president' : ''
-                            } ${
-                                meetingState.currentSpeaker?.participant === p.name ? 'speaking' : ''
-                            }`}
-                        >
-                            <div className="participant-name">{p.name}</div>
-                            <div className="participant-role">{p.role}</div>
-                        </li>
-                    ))}
-                </ul>
-
-                {/* Quorum status */}
-                {meetingState.quorumRule && (() => {
-                    const rollCallDone = meetingState.stage !== MEETING_STAGES.NOT_STARTED &&
-                        meetingState.stage !== MEETING_STAGES.CALL_TO_ORDER &&
-                        meetingState.stage !== MEETING_STAGES.ROLL_CALL;
-                    let presentCount;
-                    if (rollCallDone && meetingState.rollCallStatus) {
-                        const officerCount = meetingState.participants.filter(p =>
-                            p.role === ROLES.PRESIDENT || p.role === ROLES.VICE_PRESIDENT || p.role === ROLES.SECRETARY
-                        ).length;
-                        const respondedCount = Object.values(meetingState.rollCallStatus).filter(v => v === 'present').length;
-                        presentCount = officerCount + respondedCount;
-                    } else {
-                        presentCount = meetingState.participants.length;
-                    }
-                    const quorumMet = presentCount >= meetingState.quorum;
-                    return (
-                    <div className={`quorum-indicator ${quorumMet ? 'met' : 'not-met'}`}>
-                        <strong>Quorum:</strong> {presentCount} present of {meetingState.quorum} required
-                        <br />
-                        <span style={{ color: '#666', fontSize: '0.8rem' }}>
-                            Rule: {formatQuorumRule(meetingState.quorumRule)}
-                        </span>
-                    </div>
-                    );
-                })()}
-
-                {/* Quorum setting (Chair only, during CALL_TO_ORDER or ROLL_CALL, and not yet set) */}
-                {isChair && !meetingState.quorumRule && (
-                    meetingState.stage === MEETING_STAGES.CALL_TO_ORDER ||
-                    meetingState.stage === MEETING_STAGES.ROLL_CALL
-                ) && (
-                    <div style={{ marginTop: '1rem' }}>
-                        <QuorumSettingSection
-                            onSetQuorum={onSetQuorum}
-                            currentRule={meetingState.quorumRule}
-                        />
-                    </div>
-                )}
-
-                {/* Tabled and Decided Motions in sidebar */}
-                <TabledMotionsList tabledMotions={meetingState.tabledMotions} isChair={isChair} />
-                <DecidedMotionsList decidedMotions={meetingState.decidedMotions} />
-            </aside>
 
             <main className="panel" id="main-content">
                 <MeetingStage
@@ -522,7 +453,7 @@ export default function MeetingView({
                 )}
 
                 {/* Motion Stack Display */}
-                <MotionStackDisplay motionStack={motionStack} isChair={isChair} />
+                <MotionStackDisplay motionStack={motionStack} isChair={isChair} decidedMotions={meetingState.decidedMotions} />
 
                 {/* Legacy current motion display (only if no stack but currentMotion exists for minutes correction) */}
                 {meetingState.currentMotion && motionStack.length === 0 && (
@@ -647,59 +578,6 @@ export default function MeetingView({
                     />
                 )}
             </main>
-
-            <aside className="panel" role="complementary" aria-label="Speaking queue and meeting log">
-                <h3>Speaking Queue</h3>
-                {meetingState.currentSpeaker && (
-                    <div className="info-box">
-                        <strong>Currently Speaking:</strong><br />
-                        {meetingState.currentSpeaker.participant}
-                        <span className={`stance-badge ${meetingState.currentSpeaker.stance}`}>
-                            {meetingState.currentSpeaker.stance}
-                        </span>
-                    </div>
-                )}
-                <ul className="speaking-queue">
-                    {meetingState.speakingQueue.map((item, idx) => (
-                        <li key={idx} className={`queue-item ${item.stance}`}>
-                            <div>
-                                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                                    <span>{item.participant}</span>
-                                    {item.hasSpokenBefore && (
-                                        <span style={{fontSize: '0.75rem', opacity: 0.6}}>(repeat)</span>
-                                    )}
-                                </div>
-                                <span className={`stance-badge ${item.stance}`}>
-                                    {item.stance}
-                                </span>
-                            </div>
-                            <div className="queue-position">{idx + 1}</div>
-                        </li>
-                    ))}
-                </ul>
-
-                <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0 }}>Meeting Log</h3>
-                    {meetingState.stage === MEETING_STAGES.ADJOURNED && (
-                        <button
-                            onClick={() => exportMinutes(meetingState)}
-                            className="secondary"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-                            data-tooltip="Download formal minutes as an editable Word document" title="Download formal minutes as an editable Word document"
-                        >
-                            Export Minutes (.docx)
-                        </button>
-                    )}
-                </div>
-                <div className="meeting-log">
-                    {meetingState.log.slice().reverse().map((entry, idx) => (
-                        <div key={idx} className="log-entry">
-                            <div className="log-timestamp">{entry.timestamp}</div>
-                            <div>{entry.message}</div>
-                        </div>
-                    ))}
-                </div>
-            </aside>
         </div>
     );
 }

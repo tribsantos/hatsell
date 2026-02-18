@@ -22,7 +22,7 @@ export default function SuspendRulesModal({ onSubmit, onClose }) {
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
                 <h3>Suspend the Rules</h3>
                 <div className="info-box">
                     <p>Suspend the Rules allows the assembly to do something that would

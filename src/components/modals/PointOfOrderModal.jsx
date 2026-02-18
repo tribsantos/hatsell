@@ -11,7 +11,7 @@ export default function PointOfOrderModal({ onSubmit, onClose }) {
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
                 <h3>Point of Order</h3>
                 <div className="info-box">
                     A Point of Order calls attention to a breach of rules or procedural error.

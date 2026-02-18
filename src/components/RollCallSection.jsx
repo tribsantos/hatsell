@@ -41,31 +41,37 @@ export default function RollCallSection({ participants, rollCallStatus, currentU
                             <div className="roll-call-grid">
                                 {membersToCall.map((p, idx) => {
                                     const status = rollCallStatus[p.name];
-                                    const statusLabel = status === 'present' ? 'Present' : status === 'called' ? 'Awaiting...' : 'Click to call';
-                                    return (
-                                        <div key={idx}>
-                                            <button
-                                                type="button"
-                                                onClick={() => onCallMember(p.name)}
-                                                disabled={status === 'present'}
-                                                className={`roll-call-member ${status === 'present' ? 'present' : ''}`}
-                                            >
-                                                <div className="member-name">{p.name}</div>
-                                                <div className="member-role">{p.role}</div>
-                                                <div className="member-status">{statusLabel}</div>
-                                            </button>
+                                    const isPresent = status === 'present';
+                                    const isCalled = status === 'called';
+                                    const statusClass = isPresent ? 'status-present' : isCalled ? 'status-called' : '';
+                                    const statusLabel = isPresent ? 'Present' : isCalled ? 'Called \u2014 Click to Confirm' : 'Click to Call';
+                                    const initial = p.name ? p.name.charAt(0).toUpperCase() : '?';
 
-                                            {status === 'called' && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onMarkPresent(p.name)}
-                                                    className="success"
-                                                    style={{ marginTop: '0.35rem', width: '100%', minHeight: '36px' }}
-                                                >
-                                                    Mark Present
-                                                </button>
-                                            )}
-                                        </div>
+                                    const handleClick = () => {
+                                        if (isPresent) return;
+                                        if (isCalled) {
+                                            onMarkPresent(p.name);
+                                        } else {
+                                            onCallMember(p.name);
+                                        }
+                                    };
+
+                                    return (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={handleClick}
+                                            disabled={isPresent}
+                                            className={`roll-call-card ${statusClass}`}
+                                        >
+                                            <div className="roll-call-avatar">
+                                                {isPresent ? '\u2713' : initial}
+                                            </div>
+                                            <div className="roll-call-card-info">
+                                                <div className="roll-call-card-name">{p.name}</div>
+                                                <div className="roll-call-card-status">{statusLabel}</div>
+                                            </div>
+                                        </button>
                                     );
                                 })}
                             </div>
@@ -94,8 +100,8 @@ export default function RollCallSection({ participants, rollCallStatus, currentU
                             <div className="warning-box" style={{ marginBottom: '1rem' }}>
                                 <strong>Your name has been called!</strong>
                             </div>
-                            <button type="button" onClick={onRespondToRollCall} style={{ fontSize: '1rem', padding: '0.8rem 1.4rem' }}>
-                                Respond: Present
+                            <button type="button" onClick={onRespondToRollCall} className="roll-call-respond-btn success">
+                                Present
                             </button>
                         </div>
                     )}

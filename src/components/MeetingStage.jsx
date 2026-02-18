@@ -7,7 +7,8 @@ export default function MeetingStage({ stage, currentMotion, motionStack, suspen
     const stageInfo = {
         [MEETING_STAGES.NOT_STARTED]: {
             title: 'Meeting Not Started',
-            description: 'Waiting for chair to call meeting to order'
+            description: 'Waiting for chair to call meeting to order',
+            subtitle: 'Members may join using their meeting code'
         },
         [MEETING_STAGES.CALL_TO_ORDER]: {
             title: 'Call to Order',
@@ -19,13 +20,15 @@ export default function MeetingStage({ stage, currentMotion, motionStack, suspen
         },
         [MEETING_STAGES.APPROVE_MINUTES]: {
             title: 'Approve Minutes',
-            description: 'Review and approve minutes from previous meeting'
+            description: 'Review and approve minutes from previous meeting',
+            subtitle: 'Corrections may be proposed before approval'
         },
         [MEETING_STAGES.NEW_BUSINESS]: {
             title: top ? `${top.displayName} - Pending Second` : (currentMotion ? 'Motion Pending Second' : 'New Business'),
             description: top
                 ? `${top.displayName} requires a second to proceed`
-                : (currentMotion ? 'Motion requires a second to proceed' : 'Members may introduce new motions')
+                : (currentMotion ? 'Motion requires a second to proceed' : 'Members may introduce new motions'),
+            subtitle: top ? 'A second is required before debate may begin' : null
         },
         [MEETING_STAGES.MOTION_DISCUSSION]: {
             title: top ? `Discussion: ${top.displayName}` : 'Discussion',
@@ -39,15 +42,18 @@ export default function MeetingStage({ stage, currentMotion, motionStack, suspen
         },
         [MEETING_STAGES.RECESS]: {
             title: 'Meeting in Recess',
-            description: 'The meeting is temporarily recessed'
+            description: 'The meeting is temporarily recessed',
+            subtitle: 'Business resumes when the chair reconvenes'
         },
         [MEETING_STAGES.SUSPENDED_RULES]: {
             title: 'RULES SUSPENDED',
-            description: suspendedRulesPurpose || 'Rules have been suspended'
+            description: suspendedRulesPurpose || 'Rules have been suspended',
+            subtitle: 'Normal parliamentary procedure is temporarily set aside'
         },
         [MEETING_STAGES.ADJOURNED]: {
             title: 'Meeting Adjourned',
-            description: 'Meeting has concluded'
+            description: 'Meeting has concluded',
+            subtitle: 'Minutes may be exported for the record'
         }
     };
 
@@ -57,6 +63,9 @@ export default function MeetingStage({ stage, currentMotion, motionStack, suspen
         <section className="meeting-stage" aria-live="polite" aria-label="Current meeting stage">
             <h2>{info.title}</h2>
             <p className="stage-description">{info.description}</p>
+            {info.subtitle && (
+                <p className="stage-subtitle">{info.subtitle}</p>
+            )}
             {motionStack && motionStack.length > 1 && (
                 <p className="stage-description" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
                     {motionStack.length} motions on the stack

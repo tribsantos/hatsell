@@ -41,9 +41,15 @@ const INITIAL_MEETING_STATE = {
 export function useMeetingState() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
-    const [meetingState, setMeetingState] = useState(INITIAL_MEETING_STATE);
+    const [meetingState, setMeetingStateRaw] = useState(INITIAL_MEETING_STATE);
     const meetingStateRef = useRef(meetingState);
     meetingStateRef.current = meetingState;
+
+    // Wrapper that updates ref immediately so heartbeat/subscribe don't read stale state
+    const setMeetingState = (newState) => {
+        meetingStateRef.current = newState;
+        setMeetingStateRaw(newState);
+    };
     const hasAttemptedReconnect = useRef(false);
     const pendingRecognitionLock = useRef(false);
 
@@ -140,7 +146,7 @@ export function useMeetingState() {
             if (userData.orgProfile) {
                 const op = userData.orgProfile;
                 if (op.quorumType === 'fixed' && op.quorumValue) {
-                    quorumRule = { type: 'fixed', value: parseInt(op.quorumValue) };
+                    quorumRule = { type: 'number', value: parseInt(op.quorumValue) };
                     quorum = parseInt(op.quorumValue);
                 } else if (op.quorumType === 'fraction' && op.quorumValue) {
                     quorumRule = { type: 'fraction', value: parseFloat(op.quorumValue) };
@@ -148,10 +154,10 @@ export function useMeetingState() {
                 } else if (op.quorumType === 'default') {
                     const membership = parseInt(op.totalMembership);
                     if (membership) {
-                        quorumRule = { type: 'fraction', value: 0.5 };
-                        quorum = Math.ceil(membership * 0.5);
+                        quorumRule = { type: 'fraction', value: 'majority' };
+                        quorum = Math.floor(membership / 2) + 1;
                     } else {
-                        // No total membership known — use participant count as basis
+                        // No total membership known — majority of those present
                         quorumRule = { type: 'majority_present' };
                         quorum = 1; // Will be recalculated at roll call
                     }

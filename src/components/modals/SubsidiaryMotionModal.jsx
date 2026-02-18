@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MOTION_TYPES } from '../../constants/motionTypes';
 import { getRules } from '../../engine/motionRules';
+import RuleHintBox from '../RuleHintBox';
 
 const SUBSIDIARY_FIELDS = {
     [MOTION_TYPES.AMEND]: {
@@ -88,17 +89,11 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-subsidiary" onClick={(e) => e.stopPropagation()}>
                 <h3>{config.heading}</h3>
+                <p className="modal-description">Subsidiary motion &mdash; applies to the pending question.</p>
 
-                <div className="modal-pills">
-                    <span className="modal-pill default">{rules.isDebatable ? 'Debatable' : 'Not Debatable'}</span>
-                    <span className="modal-pill default">{rules.voteRequired === 'two_thirds' ? '2/3 Vote Required' : 'Majority Vote'}</span>
-                    {rules.requiresSecond && <span className="modal-pill warn">Requires Second</span>}
-                    <span className={`modal-pill ${rules.canInterrupt ? 'warn' : 'ok'}`}>
-                        {rules.canInterrupt ? 'Interrupts speaker' : 'Does not interrupt'}
-                    </span>
-                </div>
+                <RuleHintBox rules={rules} />
 
                 {config.showOriginal && currentMotionText && (
                     <div className="info-box">

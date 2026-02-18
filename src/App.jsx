@@ -11,6 +11,10 @@ import MeetingView from './components/MeetingView';
 import AboutPage from './components/AboutPage';
 import GeneralSettings from './components/GeneralSettings';
 import HatsellLogo from './components/HatsellLogo';
+import TopBar from './components/TopBar';
+import MembersDrawer from './components/drawers/MembersDrawer';
+import QueueDrawer from './components/drawers/QueueDrawer';
+import LogDrawer from './components/drawers/LogDrawer';
 import MotionModal from './components/modals/MotionModal';
 import AmendmentModal from './components/modals/AmendmentModal';
 import PointOfOrderModal from './components/modals/PointOfOrderModal';
@@ -34,6 +38,11 @@ export default function App() {
         () => sessionStorage.getItem('hatsell_disclaimer') === 'true'
     );
     const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+    const [activeDrawer, setActiveDrawer] = useState(null);
+
+    const toggleDrawer = (name) => {
+        setActiveDrawer(prev => prev === name ? null : name);
+    };
 
     const {
         isLoggedIn,
@@ -216,35 +225,41 @@ export default function App() {
     const motionStack = meetingState.motionStack || [];
     const top = getCurrentPendingQuestion(motionStack);
 
+    const isChair = currentUser.role === ROLES.PRESIDENT || currentUser.role === ROLES.VICE_PRESIDENT;
+
     return (
-        <div className="app-container">
+        <div className="app-container" style={{ padding: 0 }}>
             <a href="#main-content" className="skip-to-content">Skip to main content</a>
-            <header className="header">
-                <div className="logo-container">
-                    <HatsellLogo />
-                    <h1>Hatsell</h1>
-                </div>
-                <p className="subtitle">Based on Robert's Rules of Order</p>
-                <div className="top-bar-info">
-                    <span>Logged in as: {currentUser.name} ({currentUser.role})</span>
-                    {meetingState.meetingCode && (
-                        <span>
-                            Meeting Code: <strong className="meeting-code-display">{meetingState.meetingCode}</strong>
-                        </span>
-                    )}
-                    <button onClick={() => setActivePage('about')} className="secondary">
-                        About
-                    </button>
-                    <button onClick={handleLogout} className="secondary">
-                        Logout
-                    </button>
-                    {currentUser.role === ROLES.PRESIDENT && (
-                        <button onClick={handleClearMeeting} className="danger">
-                            Clear Meeting
-                        </button>
-                    )}
-                </div>
-            </header>
+            <TopBar
+                meetingState={meetingState}
+                currentUser={currentUser}
+                activeDrawer={activeDrawer}
+                onToggleDrawer={toggleDrawer}
+                onLogout={handleLogout}
+                onAbout={() => setActivePage('about')}
+            />
+
+            {activeDrawer === 'members' && (
+                <MembersDrawer
+                    meetingState={meetingState}
+                    currentUser={currentUser}
+                    isChair={isChair}
+                    onSetQuorum={handleSetQuorum}
+                    onClose={() => setActiveDrawer(null)}
+                />
+            )}
+            {activeDrawer === 'queue' && (
+                <QueueDrawer
+                    meetingState={meetingState}
+                    onClose={() => setActiveDrawer(null)}
+                />
+            )}
+            {activeDrawer === 'log' && (
+                <LogDrawer
+                    meetingState={meetingState}
+                    onClose={() => setActiveDrawer(null)}
+                />
+            )}
 
             <MeetingView
                 meetingState={meetingState}
@@ -299,7 +314,6 @@ export default function App() {
                 onResumeFromSuspendedRules={handleResumeFromSuspendedRules}
                 onSuspendedVote={handleSuspendedVote}
                 onDeclareNoSecond={handleDeclareNoSecond}
-                onSetQuorum={handleSetQuorum}
                 onChairAcceptMotion={handleChairAcceptMotion}
                 onChairRejectMotion={handleChairRejectMotion}
                 onRecognizePendingMotion={handleRecognizePendingMotion}

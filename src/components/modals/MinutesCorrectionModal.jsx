@@ -11,7 +11,7 @@ export default function MinutesCorrectionModal({ onSubmit, onClose }) {
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-main" onClick={(e) => e.stopPropagation()}>
                 <h3>Propose Correction to Minutes</h3>
                 <div className="info-box">
                     Describe the correction needed to the minutes from the previous meeting.

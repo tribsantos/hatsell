@@ -5,7 +5,7 @@ export default function PreChairWithdrawModal({ motionText, onWithdraw, onReform
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
                 <h3>Withdraw or Reformulate</h3>
 
                 <div className="info-box">

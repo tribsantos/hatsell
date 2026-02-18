@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function HatsellLogo() {
+export default function HatsellLogo({ small }) {
     const cx = 100;
     const cy = 100;
     const color = '#7b2d3b';
@@ -52,7 +52,8 @@ export default function HatsellLogo() {
     ];
 
     return (
-        <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+            className={small ? 'logo-small' : undefined}>
             <circle cx={cx} cy={cy} r="92" stroke={color} strokeWidth="1" opacity="0.18" />
             <circle cx={cx} cy={cy} r="90" stroke={color} strokeWidth="0.5" opacity="0.1" />
             <circle cx={cx} cy={cy} r="22" stroke={color} strokeWidth="1" opacity="0.2" fill={color} fillOpacity="0.04" />

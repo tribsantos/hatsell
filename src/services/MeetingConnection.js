@@ -1,4 +1,4 @@
-import { ref, set, get, onValue, off, remove } from 'firebase/database';
+import { ref, set, get, update, onValue, off, remove } from 'firebase/database';
 import { database } from './firebaseConfig';
 
 const STATE_VERSION = 2;
@@ -111,6 +111,16 @@ export async function clearState() {
 
 export function getCachedState() {
     return cachedState;
+}
+
+/**
+ * Partial update: only modifies the specified field of a participant
+ * without overwriting the entire state. Prevents race conditions where
+ * a full broadcast could overwrite concurrent changes from other tabs.
+ */
+export function updateParticipantLastSeen(index, timestamp) {
+    if (!meetingRef || index < 0) return Promise.resolve();
+    return update(meetingRef, { [`participants/${index}/lastSeen`]: timestamp });
 }
 
 export async function checkMeetingExists(meetingCode) {

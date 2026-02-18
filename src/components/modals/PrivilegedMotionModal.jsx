@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MOTION_TYPES } from '../../constants/motionTypes';
 import { getRules } from '../../engine/motionRules';
+import RuleHintBox from '../RuleHintBox';
 
 export default function PrivilegedMotionModal({ motionType, onSubmit, onClose }) {
     const [recessDuration, setRecessDuration] = useState('');
@@ -53,17 +54,11 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-privileged" onClick={(e) => e.stopPropagation()}>
                 <h3>{getHeading()}</h3>
+                <p className="modal-description">Privileged motion &mdash; takes precedence over all pending business.</p>
 
-                <div className="modal-pills">
-                    <span className="modal-pill default">Not Debatable</span>
-                    <span className="modal-pill default">{rules.requiresSecond ? 'Requires Second' : 'No Second Needed'}</span>
-                    {rules.voteRequired !== 'none' && <span className="modal-pill default">Majority Vote</span>}
-                    <span className={`modal-pill ${rules.canInterrupt ? 'warn' : 'ok'}`}>
-                        {rules.canInterrupt ? 'Interrupts speaker' : 'Does not interrupt'}
-                    </span>
-                </div>
+                <RuleHintBox rules={rules} />
 
                 <form onSubmit={handleSubmit}>
                     {motionType === MOTION_TYPES.RECESS && (

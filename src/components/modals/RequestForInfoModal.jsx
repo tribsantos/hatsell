@@ -11,7 +11,7 @@ export default function RequestForInfoModal({ onSubmit, onClose }) {
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
                 <h3>Request for Information</h3>
                 <div className="info-box">
                     A Request for Information (Point of Information) asks a factual question

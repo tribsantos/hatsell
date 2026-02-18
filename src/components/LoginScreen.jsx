@@ -75,65 +75,77 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
     };
 
     return (
-        <div className="app-container">
-            <header className="header">
-                <div className="logo-container">
-                    <HatsellLogo />
-                    <h1>Hatsell</h1>
-                </div>
-                <p className="subtitle">Based on Robert's Rules of Order</p>
-                {onAbout && (
-                    <div style={{ marginTop: '0.75rem' }}>
-                        <button type="button" onClick={onAbout} className="ghost">
-                            About
-                        </button>
+        <div className="app-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+            <div className="login-top-bar" aria-hidden="true" />
+            <div className="login-corner-mark top-left" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M0 8V0H8" stroke="hsl(4, 62%, 30%)" strokeWidth="1" opacity="0.15" /></svg>
+            </div>
+            <div className="login-corner-mark top-right" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M24 8V0H16" stroke="hsl(4, 62%, 30%)" strokeWidth="1" opacity="0.15" /></svg>
+            </div>
+            <div className="login-corner-mark bottom-left" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M0 16V24H8" stroke="hsl(4, 62%, 30%)" strokeWidth="1" opacity="0.15" /></svg>
+            </div>
+            <div className="login-corner-mark bottom-right" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M24 16V24H16" stroke="hsl(4, 62%, 30%)" strokeWidth="1" opacity="0.15" /></svg>
+            </div>
+            <div style={{ width: '100%', maxWidth: '460px' }}>
+                <header className="header">
+                    <div className="logo-container">
+                        <HatsellLogo />
+                        <h1>Hatsell</h1>
                     </div>
-                )}
-            </header>
+                    <p className="subtitle">Parliamentary Meeting Assistant</p>
+                    <span className="header-badge">Based on Robert's Rules of Order</span>
+                </header>
 
-            <div className="login-container">
-                {error && (
-                    <div className="login-error" role="alert">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleJoin}>
-                    <div className="form-group">
-                        <label>Your Name</label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Enter your name"
-                            required
-                            disabled={loading}
-                        />
+                <div className="login-container">
+                    <div className="login-section-heading">
+                        <span>Join Meeting</span>
                     </div>
 
-                    <div className="form-group">
-                        <label>Meeting Code</label>
-                        <div className="login-meeting-code-row">
+                    {error && (
+                        <div className="login-error" role="alert">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleJoin}>
+                        <div className="form-group">
+                            <label>Your Name</label>
                             <input
                                 type="text"
-                                value={meetingCode}
-                                onChange={(e) => setMeetingCode(e.target.value.toUpperCase())}
-                                placeholder="Enter meeting code"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="e.g. Hon. Margaret Chen"
+                                required
                                 disabled={loading}
-                                style={{ textTransform: 'uppercase' }}
+                                autoFocus
+                                autoComplete="name"
                             />
-                            <button type="submit" disabled={loading || !name || !meetingCode.trim()}>
-                                {loading ? 'Joining...' : 'Join'}
-                            </button>
                         </div>
+
+                        <div className="form-group">
+                            <label>Meeting Code</label>
+                            <div className="login-meeting-code-row">
+                                <input
+                                    type="text"
+                                    value={meetingCode}
+                                    onChange={(e) => setMeetingCode(e.target.value.toUpperCase())}
+                                    placeholder="E.g. XCGJAD"
+                                    disabled={loading}
+                                />
+                                <button type="submit" disabled={loading || !name || !meetingCode.trim()}>
+                                    {loading ? 'Joining...' : 'Join →'}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div className="login-divider">
+                        <span>or</span>
                     </div>
-                </form>
 
-                <div className="login-divider">
-                    <span>or</span>
-                </div>
-
-                <div style={{ textAlign: 'center' }}>
                     <button
                         onClick={() => {
                             if (!name) {
@@ -142,17 +154,28 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
                             }
                             onCreateMeeting(name);
                         }}
-                        className="secondary"
-                        style={{ width: '100%' }}
+                        className="login-create-btn"
                         disabled={loading}
                     >
-                        Create a New Meeting
+                        + Create a New Meeting
                     </button>
                 </div>
 
-                <p className="login-trust-copy">
-                    No account required. Meeting data is stored securely and cleared when the session ends.
-                </p>
+                <footer className="login-footer">
+                    <p className="login-trust-copy">
+                        Hatsell runs entirely in your browser. No account required.
+                        <br />
+                        Meeting data is not stored on our servers.
+                    </p>
+                    <div className="login-footer-links">
+                        {onAbout && (
+                            <button type="button" onClick={onAbout}>About Hatsell</button>
+                        )}
+                        <span className="separator">|</span>
+                        <button type="button" onClick={() => {}}>First Time?</button>
+                    </div>
+                    <p className="login-version">v2.1.0</p>
+                </footer>
             </div>
         </div>
     );

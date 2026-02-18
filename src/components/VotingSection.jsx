@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ROLES } from '../constants';
 import { describeThreshold, getThresholdLabel } from '../engine/voteEngine';
 
@@ -32,7 +32,9 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
     const strictMemberCount = (participants || []).filter((p) => p.role === ROLES.MEMBER).length;
     const aye = votes.aye || 0;
     const nay = votes.nay || 0;
+    const abstain = votes.abstain || 0;
     const totalCast = aye + nay;
+    const totalAll = aye + nay + abstain;
 
     const computeMajorityAchieved = () => {
         if (totalCast === 0) return false;
@@ -43,6 +45,21 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
     };
 
     const majorityAchieved = computeMajorityAchieved();
+
+    // Compute preliminary result for chair (require at least 2 votes cast to show)
+    const getPreliminaryResult = () => {
+        if (totalCast < 2) return null;
+        if (voteRequired === 'two_thirds') {
+            return aye >= (totalCast * 2) / 3 ? 'passes' : 'fails';
+        }
+        if (voteRequired === 'tie_sustains') {
+            // Appeal: aye > nay overturns; tie or nay majority sustains chair
+            return aye > nay ? 'passes' : 'fails';
+        }
+        return aye > totalCast / 2 ? 'passes' : 'fails';
+    };
+    const preliminaryResult = getPreliminaryResult();
+    const isAppeal = voteRequired === 'tie_sustains';
 
     const totalParticipants = (participants || []).length;
     const allVoted = totalParticipants > 0 && totalVoted >= totalParticipants;
@@ -72,6 +89,11 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
         }
     }
 
+    // Tally bar segment widths
+    const barAye = totalAll > 0 ? (aye / totalAll) * 100 : 0;
+    const barNay = totalAll > 0 ? (nay / totalAll) * 100 : 0;
+    const barAbstain = totalAll > 0 ? (abstain / totalAll) * 100 : 0;
+
     return (
         <div className="vote-section" aria-live="polite">
             <h3>Cast Your Vote</h3>
@@ -100,29 +122,53 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
                     <button className="abstain" onClick={() => onVote('abstain')}>Abstain</button>
                 </div>
             ) : (
-                <div className="info-box">Your vote has been recorded.</div>
+                <div className="vote-confirmed">
+                    <span className="check-icon">{'\u2713'}</span>
+                    Your vote has been recorded
+                </div>
             )}
+
+            {/* Vote tally visible to all participants */}
+            {totalAll > 0 && (
+                <div className="vote-tally-bar" role="img" aria-label={`Votes: ${aye} aye, ${nay} nay, ${abstain} abstain`}>
+                    {barAye > 0 && <div className="bar-segment bar-aye" style={{ width: `${barAye}%` }} />}
+                    {barNay > 0 && <div className="bar-segment bar-nay" style={{ width: `${barNay}%` }} />}
+                    {barAbstain > 0 && <div className="bar-segment bar-abstain" style={{ width: `${barAbstain}%` }} />}
+                </div>
+            )}
+
+            <div className="vote-tally">
+                <div className="vote-count">
+                    <div className="number">{votes.aye}</div>
+                    <div className="label">Ayes</div>
+                </div>
+                <div className="vote-count">
+                    <div className="number">{votes.nay}</div>
+                    <div className="label">Nays</div>
+                </div>
+                <div className="vote-count">
+                    <div className="number">{votes.abstain}</div>
+                    <div className="label">Abstentions</div>
+                </div>
+            </div>
+
+            <div className="vote-threshold">
+                Threshold: {thresholdLabel} | Abstentions do not count as votes cast
+            </div>
 
             {isChair ? (
                 <>
-                    <div className="vote-tally">
-                        <div className="vote-count">
-                            <div className="number">{votes.aye}</div>
-                            <div className="label">Ayes</div>
+                    {/* Preliminary result badge — chair only */}
+                    {preliminaryResult && (
+                        <div style={{ textAlign: 'center' }}>
+                            <span className={`vote-preliminary ${preliminaryResult}`}>
+                                {isAppeal
+                                    ? `Preliminary: Appeal ${preliminaryResult === 'passes' ? 'Sustained' : 'Denied'}`
+                                    : `Preliminary: Motion ${preliminaryResult === 'passes' ? 'Passes' : 'Fails'}`
+                                }
+                            </span>
                         </div>
-                        <div className="vote-count">
-                            <div className="number">{votes.nay}</div>
-                            <div className="label">Nays</div>
-                        </div>
-                        <div className="vote-count">
-                            <div className="number">{votes.abstain}</div>
-                            <div className="label">Abstentions</div>
-                        </div>
-                    </div>
-
-                    <div className="vote-threshold">
-                        Threshold: {thresholdLabel} | Abstentions do not count as votes cast
-                    </div>
+                    )}
 
                     {announceReason && (
                         <div style={{ textAlign: 'center', marginTop: '0.75rem', fontSize: '0.8rem', color: announceDisabled ? '#e67e22' : '#27ae60', fontWeight: 600 }}>
@@ -146,11 +192,8 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
                     </div>
                 </>
             ) : (
-                <div style={{ marginTop: '1.5rem', textAlign: 'center', color: '#666' }}>
-                    <p>Votes cast: {totalVoted}</p>
-                    <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                        {thresholdLabel} required. Results will be announced by the chair.
-                    </p>
+                <div style={{ marginTop: '1rem', textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>
+                    {thresholdLabel} required. Results will be announced by the chair.
                 </div>
             )}
         </div>

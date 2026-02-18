@@ -185,8 +185,8 @@ export function ChairActions({
             <button
                 key="complete-roll-call"
                 onClick={onRollCall}
-                data-tooltip={meetingState.quorumRule ? "Confirm attendance and establish quorum" : "Set a quorum requirement first (see left panel)"}
-                title={meetingState.quorumRule ? "Confirm attendance and establish quorum" : "Set a quorum requirement first (see left panel)"}
+                data-tooltip={meetingState.quorumRule ? "Confirm attendance and establish quorum" : "Set a quorum requirement first (see Members drawer)"}
+                title={meetingState.quorumRule ? "Confirm attendance and establish quorum" : "Set a quorum requirement first (see Members drawer)"}
                 disabled={!meetingState.quorumRule}
             >
                 Complete Roll Call
@@ -422,10 +422,10 @@ export function MemberActions({
             <div className="action-buttons">
                 {!speakingQueue.find(s => s.participant === currentUser.name) && (
                     <>
-                        <button onClick={() => onRequestToSpeak('pro')} className="success" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support">
+                        <button onClick={() => onRequestToSpeak('pro')} className="speak-btn-favor" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support">
                             Speak in Favor
                         </button>
-                        <button onClick={() => onRequestToSpeak('con')} data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition">
+                        <button onClick={() => onRequestToSpeak('con')} className="speak-btn-against" data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition">
                             Speak Against
                         </button>
                     </>
@@ -457,20 +457,25 @@ export function MemberActions({
                     </div>
 
                     {bringBackMotions.length > 0 && (
-                        <div style={{display: 'flex', gap: '0.5rem', width: '100%', flexWrap: 'wrap'}}>
-                            {bringBackMotions.map(m => (
-                                <button
-                                    key={m.motionType}
-                                    onClick={() => m.enabled && onBringBackMotion(m.motionType)}
-                                    className="secondary"
-                                    disabled={!m.enabled}
-                                    data-tooltip={getMotionTooltip(m)}
-                                    title={getMotionTooltip(m)}
-                                    style={{flex: 1, fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
-                                >
-                                    {m.displayName}<InterruptBadge motionType={m.motionType} />
-                                </button>
-                            ))}
+                        <div className="action-section" style={{ width: '100%' }}>
+                            <details>
+                                <summary>Bring Back Motions ({bringBackMotions.length})</summary>
+                                <div className="action-grid">
+                                    {bringBackMotions.map(m => (
+                                        <button
+                                            key={m.motionType}
+                                            onClick={() => m.enabled && onBringBackMotion(m.motionType)}
+                                            className="secondary"
+                                            disabled={!m.enabled}
+                                            data-tooltip={getMotionTooltip(m)}
+                                            title={getMotionTooltip(m)}
+                                            style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
+                                        >
+                                            {m.displayName}<InterruptBadge motionType={m.motionType} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </details>
                         </div>
                     )}
                 </>
@@ -494,10 +499,10 @@ export function MemberActions({
             {stage === MEETING_STAGES.MOTION_DISCUSSION && debateAllowed && !hasPendingPointOfOrder &&
              !speakingQueue.find(s => s.participant === currentUser.name) && (
                 <>
-                    <button onClick={() => onRequestToSpeak('pro')} className="success" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support">
+                    <button onClick={() => onRequestToSpeak('pro')} className="speak-btn-favor" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support">
                         Speak in Favor
                     </button>
-                    <button onClick={() => onRequestToSpeak('con')} data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition">
+                    <button onClick={() => onRequestToSpeak('con')} className="speak-btn-against" data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition">
                         Speak Against
                     </button>
                 </>
@@ -531,56 +536,50 @@ export function MemberActions({
 
             {/* === SUBSIDIARY MOTIONS === */}
             {stage === MEETING_STAGES.MOTION_DISCUSSION && subsidiaryMotions.length > 0 && !hasPendingPointOfOrder && (
-                <div style={{ width: '100%' }}>
-                    <div style={{
-                        fontSize: '0.75rem', color: '#666', marginBottom: '0.5rem',
-                        textTransform: 'uppercase', letterSpacing: '0.05em'
-                    }}>
-                        Subsidiary Motions
-                    </div>
-                    <div style={{display: 'flex', gap: '0.5rem', width: '100%', flexWrap: 'wrap'}}>
-                        {subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).map(m => (
-                            <button
-                                key={m.motionType}
-                                onClick={() => m.enabled && onSubsidiaryMotion(m.motionType)}
-                                className="secondary"
-                                disabled={!m.enabled}
-                                data-tooltip={getMotionTooltip(m)}
-                                title={getMotionTooltip(m)}
-                                style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
-                            >
-                                {m.displayName}<InterruptBadge motionType={m.motionType} />
-                            </button>
-                        ))}
-                    </div>
+                <div className="action-section" style={{ width: '100%' }}>
+                    <details>
+                        <summary>Subsidiary Motions ({subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).length})</summary>
+                        <div className="action-grid">
+                            {subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).map(m => (
+                                <button
+                                    key={m.motionType}
+                                    onClick={() => m.enabled && onSubsidiaryMotion(m.motionType)}
+                                    className="secondary"
+                                    disabled={!m.enabled}
+                                    data-tooltip={getMotionTooltip(m)}
+                                    title={getMotionTooltip(m)}
+                                    style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
+                                >
+                                    {m.displayName}<InterruptBadge motionType={m.motionType} />
+                                </button>
+                            ))}
+                        </div>
+                    </details>
                 </div>
             )}
 
             {/* === PRIVILEGED MOTIONS === */}
             {(stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS ||
               stage === MEETING_STAGES.VOTING) && privilegedMotions.length > 0 && (
-                <div style={{ width: '100%' }}>
-                    <div style={{
-                        fontSize: '0.75rem', color: '#666', marginBottom: '0.5rem',
-                        textTransform: 'uppercase', letterSpacing: '0.05em'
-                    }}>
-                        Privileged Motions
-                    </div>
-                    <div style={{display: 'flex', gap: '0.5rem', width: '100%', flexWrap: 'wrap'}}>
-                        {privilegedMotions.map(m => (
-                            <button
-                                key={m.motionType}
-                                onClick={() => m.enabled && onPrivilegedMotion(m.motionType)}
-                                className="secondary"
-                                disabled={!m.enabled}
-                                data-tooltip={getMotionTooltip(m)}
-                                title={getMotionTooltip(m)}
-                                style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
-                            >
-                                {m.displayName}<InterruptBadge motionType={m.motionType} />
-                            </button>
-                        ))}
-                    </div>
+                <div className="action-section" style={{ width: '100%' }}>
+                    <details>
+                        <summary>Privileged Motions ({privilegedMotions.length})</summary>
+                        <div className="action-grid">
+                            {privilegedMotions.map(m => (
+                                <button
+                                    key={m.motionType}
+                                    onClick={() => m.enabled && onPrivilegedMotion(m.motionType)}
+                                    className="secondary"
+                                    disabled={!m.enabled}
+                                    data-tooltip={getMotionTooltip(m)}
+                                    title={getMotionTooltip(m)}
+                                    style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
+                                >
+                                    {m.displayName}<InterruptBadge motionType={m.motionType} />
+                                </button>
+                            ))}
+                        </div>
+                    </details>
                 </div>
             )}
 
@@ -592,90 +591,86 @@ export function MemberActions({
                 const divisionEnabled = divisionAvail?.enabled ?? false;
 
                 return (
-                <div style={{ width: '100%' }}>
-                    <div style={{
-                        fontSize: '0.75rem', color: '#666', marginBottom: '0.5rem',
-                        textTransform: 'uppercase', letterSpacing: '0.05em'
-                    }}>
-                        Incidental Motions
-                    </div>
-                    <div style={{display: 'flex', gap: '0.5rem', width: '100%', flexWrap: 'wrap'}}>
-                        <button
-                            onClick={!hasPendingPointOfOrder ? onPointOfOrder : undefined}
-                            className="secondary"
-                            data-tooltip={hasPendingPointOfOrder ? 'Alert the chair that a rule is being broken — OUT OF ORDER: A point of order is already pending' : 'Alert the chair that a rule is being broken'}
-                            title={hasPendingPointOfOrder ? 'Alert the chair that a rule is being broken — OUT OF ORDER: A point of order is already pending' : 'Alert the chair that a rule is being broken'}
-                            style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem', ...(hasPendingPointOfOrder ? disabledStyle : {})}}
-                            disabled={hasPendingPointOfOrder}
-                        >
-                            Point of Order
-                        </button>
-                        <button
-                            onClick={onParliamentaryInquiry}
-                            className="secondary"
-                            data-tooltip="Ask the chair a question about procedure" title="Ask the chair a question about procedure"
-                            style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem'}}
-                        >
-                            Parl. Inquiry
-                        </button>
-                        <button
-                            onClick={onRequestForInfo}
-                            className="secondary"
-                            data-tooltip="Ask a factual question relevant to the discussion" title="Ask a factual question relevant to the discussion"
-                            style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem'}}
-                        >
-                            Request Info
-                        </button>
-                        <button
-                            onClick={appealEnabled ? onAppeal : undefined}
-                            className="secondary"
-                            disabled={!appealEnabled}
-                            data-tooltip={!appealEnabled ? 'Challenge the chair\'s ruling — OUT OF ORDER: No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
-                            title={!appealEnabled ? 'Challenge the chair\'s ruling — OUT OF ORDER: No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
-                            style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem', ...(!appealEnabled ? disabledStyle : {})}}
-                        >
-                            Appeal Chair
-                        </button>
-                        <button
-                            onClick={divisionEnabled ? onDivision : undefined}
-                            className="secondary"
-                            disabled={!divisionEnabled}
-                            data-tooltip={!divisionEnabled ? 'Request a counted vote — OUT OF ORDER: Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
-                            title={!divisionEnabled ? 'Request a counted vote — OUT OF ORDER: Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
-                            style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem', ...(!divisionEnabled ? disabledStyle : {})}}
-                        >
-                            Division
-                        </button>
-                        <button
-                            onClick={onSuspendRules}
-                            className="secondary"
-                            data-tooltip="Temporarily set aside the rules (requires 2/3 vote)" title="Temporarily set aside the rules (requires 2/3 vote)"
-                            style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem'}}
-                        >
-                            Suspend Rules
-                        </button>
-                        {motionStack.length > 0 && top?.mover === currentUser.name && top?.status !== 'pending_chair' && (
+                <div className="action-section" style={{ width: '100%' }}>
+                    <details>
+                        <summary>Incidental Motions</summary>
+                        <div className="action-grid">
                             <button
-                                onClick={onWithdrawMotion}
+                                onClick={!hasPendingPointOfOrder ? onPointOfOrder : undefined}
                                 className="secondary"
-                                data-tooltip="Request to take back your motion (requires consent)" title="Request to take back your motion (requires consent)"
-                                style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem'}}
+                                data-tooltip={hasPendingPointOfOrder ? 'Alert the chair that a rule is being broken — OUT OF ORDER: A point of order is already pending' : 'Alert the chair that a rule is being broken'}
+                                title={hasPendingPointOfOrder ? 'Alert the chair that a rule is being broken — OUT OF ORDER: A point of order is already pending' : 'Alert the chair that a rule is being broken'}
+                                style={{fontSize: '0.85rem', padding: '0.5rem', ...(hasPendingPointOfOrder ? disabledStyle : {})}}
+                                disabled={hasPendingPointOfOrder}
                             >
-                                Withdraw Motion
+                                Point of Order
                             </button>
-                        )}
-                        {/* Call for Orders of the Day — available when business appears out of agenda order */}
-                        {onOrdersOfTheDay && !isChair && (stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS) && (
                             <button
-                                onClick={onOrdersOfTheDay}
+                                onClick={onParliamentaryInquiry}
                                 className="secondary"
-                                data-tooltip="Demand the assembly return to the prescribed order of business" title="Demand the assembly return to the prescribed order of business"
-                                style={{flex: '1 1 45%', fontSize: '0.85rem', padding: '0.5rem'}}
+                                data-tooltip="Ask the chair a question about procedure" title="Ask the chair a question about procedure"
+                                style={{fontSize: '0.85rem', padding: '0.5rem'}}
                             >
-                                Orders of the Day
+                                Parl. Inquiry
                             </button>
-                        )}
-                    </div>
+                            <button
+                                onClick={onRequestForInfo}
+                                className="secondary"
+                                data-tooltip="Ask a factual question relevant to the discussion" title="Ask a factual question relevant to the discussion"
+                                style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                            >
+                                Request Info
+                            </button>
+                            <button
+                                onClick={appealEnabled ? onAppeal : undefined}
+                                className="secondary"
+                                disabled={!appealEnabled}
+                                data-tooltip={!appealEnabled ? 'Challenge the chair\'s ruling — OUT OF ORDER: No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
+                                title={!appealEnabled ? 'Challenge the chair\'s ruling — OUT OF ORDER: No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
+                                style={{fontSize: '0.85rem', padding: '0.5rem', ...(!appealEnabled ? disabledStyle : {})}}
+                            >
+                                Appeal Chair
+                            </button>
+                            <button
+                                onClick={divisionEnabled ? onDivision : undefined}
+                                className="secondary"
+                                disabled={!divisionEnabled}
+                                data-tooltip={!divisionEnabled ? 'Request a counted vote — OUT OF ORDER: Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
+                                title={!divisionEnabled ? 'Request a counted vote — OUT OF ORDER: Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
+                                style={{fontSize: '0.85rem', padding: '0.5rem', ...(!divisionEnabled ? disabledStyle : {})}}
+                            >
+                                Division
+                            </button>
+                            <button
+                                onClick={onSuspendRules}
+                                className="secondary"
+                                data-tooltip="Temporarily set aside the rules (requires 2/3 vote)" title="Temporarily set aside the rules (requires 2/3 vote)"
+                                style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                            >
+                                Suspend Rules
+                            </button>
+                            {motionStack.length > 0 && top?.mover === currentUser.name && top?.status !== 'pending_chair' && (
+                                <button
+                                    onClick={onWithdrawMotion}
+                                    className="secondary"
+                                    data-tooltip="Request to take back your motion (requires consent)" title="Request to take back your motion (requires consent)"
+                                    style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                                >
+                                    Withdraw Motion
+                                </button>
+                            )}
+                            {onOrdersOfTheDay && !isChair && (stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS) && (
+                                <button
+                                    onClick={onOrdersOfTheDay}
+                                    className="secondary"
+                                    data-tooltip="Demand the assembly return to the prescribed order of business" title="Demand the assembly return to the prescribed order of business"
+                                    style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                                >
+                                    Orders of the Day
+                                </button>
+                            )}
+                        </div>
+                    </details>
                 </div>
                 );
             })()}

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { specialOriginalOptions } from '../../constants';
+import { MOTION_TYPES } from '../../constants/motionTypes';
+import { getRules } from '../../engine/motionRules';
+import RuleHintBox from '../RuleHintBox';
 
 export default function MotionModal({ heading = 'Introduce a Motion', initialText = '', showSpecialOptions = true, previousNotice, onSubmit, onClose }) {
     const [motionText, setMotionText] = useState(initialText || '');
+    const mainRules = getRules(MOTION_TYPES.MAIN);
 
     useEffect(() => {
         setMotionText(initialText || '');
@@ -16,8 +20,12 @@ export default function MotionModal({ heading = 'Introduce a Motion', initialTex
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-main" onClick={(e) => e.stopPropagation()}>
                 <h3>{heading || 'Introduce a Motion'}</h3>
+                <p className="modal-description">Original main motion &mdash; introduces new business before the assembly.</p>
+
+                <RuleHintBox rules={mainRules} />
+
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label>Motion Text</label>

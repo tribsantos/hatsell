@@ -13,7 +13,7 @@ const INCIDENTAL_INTERRUPTS = {
 export default function IncidentalMotionsModal({ onSubmit, onClose }) {
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
                 <h3>Incidental Motions</h3>
                 <p className="modal-intro">Choose an incidental motion to bring before the chair.</p>
                 <div className="modal-template-list">

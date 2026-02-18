@@ -5,7 +5,7 @@ export default function WithdrawMotionModal({ motionText, mover, currentUser, on
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
                 <h3>Withdraw a Motion</h3>
                 <div className="info-box">
                     {isMover ? (
