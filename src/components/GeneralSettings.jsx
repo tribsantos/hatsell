@@ -596,47 +596,52 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle}>Voting Basis for Majority</label>
-                        <div style={radioGroupStyle}>
-                            {[
-                                { value: 'votes_cast', label: 'Majority of votes cast (default RONR)' },
-                                { value: 'members_present', label: 'Majority of members present' },
-                                { value: 'entire_membership', label: 'Majority of entire membership' }
-                            ].map(opt => (
-                                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                    <input
-                                        type="radio"
-                                        name="majorityBasis"
-                                        value={opt.value}
-                                        checked={profile.majorityBasis === opt.value}
-                                        onChange={(e) => updateProfile('majorityBasis', e.target.value)}
-                                    />
-                                    {opt.label}
-                                </label>
-                            ))}
+                        <label style={labelStyle}>Voting Basis</label>
+                        <div className="settings-vote-grid">
+                            <div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--h-fg-muted)', fontWeight: 600, marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Majority</div>
+                                <div className="settings-option-group">
+                                    {[
+                                        { value: 'votes_cast', label: 'Votes cast', tag: 'RONR default' },
+                                        { value: 'members_present', label: 'Members present' },
+                                        { value: 'entire_membership', label: 'Entire membership' }
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            className={`settings-option ${profile.majorityBasis === opt.value ? 'selected' : ''}`}
+                                            onClick={() => updateProfile('majorityBasis', opt.value)}
+                                        >
+                                            <span className="settings-option-dot" />
+                                            <span>{opt.label}</span>
+                                            {opt.tag && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: 'var(--h-fg-dim)', fontStyle: 'italic' }}>{opt.tag}</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--h-fg-muted)', fontWeight: 600, marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Two-Thirds</div>
+                                <div className="settings-option-group">
+                                    {[
+                                        { value: 'votes_cast', label: 'Votes cast', tag: 'RONR default' },
+                                        { value: 'members_present', label: 'Members present' },
+                                        { value: 'entire_membership', label: 'Entire membership' }
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            className={`settings-option ${profile.twoThirdsBasis === opt.value ? 'selected' : ''}`}
+                                            onClick={() => updateProfile('twoThirdsBasis', opt.value)}
+                                        >
+                                            <span className="settings-option-dot" />
+                                            <span>{opt.label}</span>
+                                            {opt.tag && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: 'var(--h-fg-dim)', fontStyle: 'italic' }}>{opt.tag}</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle}>Voting Basis for Two-Thirds</label>
-                        <div style={radioGroupStyle}>
-                            {[
-                                { value: 'votes_cast', label: 'Two-thirds of votes cast (default RONR)' },
-                                { value: 'members_present', label: 'Two-thirds of members present' },
-                                { value: 'entire_membership', label: 'Two-thirds of entire membership' }
-                            ].map(opt => (
-                                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                    <input
-                                        type="radio"
-                                        name="twoThirdsBasis"
-                                        value={opt.value}
-                                        checked={profile.twoThirdsBasis === opt.value}
-                                        onChange={(e) => updateProfile('twoThirdsBasis', e.target.value)}
-                                    />
-                                    {opt.label}
-                                </label>
-                            ))}
-                        </div>
+                        <div style={hintStyle}>How votes are counted for each threshold type. RONR default counts only votes actually cast.</div>
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
