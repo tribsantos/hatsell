@@ -62,14 +62,15 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
     const isAppeal = voteRequired === 'tie_sustains';
 
     const totalParticipants = (participants || []).length;
-    const allVoted = totalParticipants > 0 && totalVoted >= totalParticipants;
+    const chairNotVoted = isChair && !hasVoted;
+    const allVoted = totalParticipants > 0 && (totalVoted >= totalParticipants || (chairNotVoted && totalVoted >= totalParticipants - 1));
 
     let announceDisabled = false;
     let announceReason = '';
     if (voteStartTime) {
         if (allVoted) {
             announceDisabled = false;
-            announceReason = 'All participants have voted';
+            announceReason = chairNotVoted ? 'All members have voted — chair may vote or announce' : 'All participants have voted';
         } else if (elapsedSeconds < 30) {
             announceDisabled = true;
             announceReason = `Voting open (${30 - elapsedSeconds}s until early close)`;

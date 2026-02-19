@@ -172,7 +172,8 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
         const motionName = top ? top.displayName : 'Motion';
         const thresholdLabel = top ? getThresholdLabel(top.voteRequired) : 'Majority';
         const totalVotes = (meetingState.votes.aye || 0) + (meetingState.votes.nay || 0) + (meetingState.votes.abstain || 0);
-        const allVoted = totalVotes >= meetingState.participants.length;
+        const chairHasVoted = (meetingState.votedBy || []).includes(currentUser.name);
+        const allVoted = totalVotes >= meetingState.participants.length || (!chairHasVoted && totalVotes >= meetingState.participants.length - 1);
 
         if (!allVoted) {
             guidance = {
@@ -183,7 +184,7 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
         } else {
             guidance = {
                 title: "Announce Result",
-                phrase: "All votes have been cast.",
+                phrase: chairHasVoted ? "All votes have been cast." : "All members have voted. The chair may vote or announce the result.",
                 action: `${thresholdLabel} required. Click 'Announce Result' to declare the outcome.`
             };
         }
