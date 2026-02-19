@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MOTION_TYPES } from '../../constants/motionTypes';
 import { getRules } from '../../engine/motionRules';
-import { computeWordDiff, generateAmendmentLanguage } from '../../engine/amendmentDiff';
+import { computeWordDiff, generateAmendmentLanguage, isPunctuation } from '../../engine/amendmentDiff';
 import RuleHintBox from '../RuleHintBox';
 
 function DiffDisplay({ ops }) {
@@ -9,11 +9,17 @@ function DiffDisplay({ ops }) {
         <div className="amendment-diff">
             <div className="amendment-diff-label">Changes</div>
             <div>
-                {ops.map((op, i) => (
-                    <span key={i} className={op.type === 'delete' ? 'diff-word-delete' : op.type === 'insert' ? 'diff-word-insert' : undefined}>
-                        {op.word}{' '}
-                    </span>
-                ))}
+                {ops.map((op, i) => {
+                    const needsSpace = i > 0 && !isPunctuation(op.word);
+                    return (
+                        <React.Fragment key={i}>
+                            {needsSpace && ' '}
+                            <span className={op.type === 'delete' ? 'diff-word-delete' : op.type === 'insert' ? 'diff-word-insert' : undefined}>
+                                {op.word}
+                            </span>
+                        </React.Fragment>
+                    );
+                })}
             </div>
         </div>
     );

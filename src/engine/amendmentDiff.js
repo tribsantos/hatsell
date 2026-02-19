@@ -3,10 +3,65 @@
  *
  * computeWordDiff(original, proposed)   → [{ type, word }]
  * generateAmendmentLanguage(original, proposed) → string | null
+ * isPunctuation(token) → boolean
  */
 
+const PUNCTUATION_NAMES = {
+    '.': 'period',
+    ',': 'comma',
+    ';': 'semicolon',
+    ':': 'colon',
+    '!': 'exclamation point',
+    '?': 'question mark',
+};
+
+export function isPunctuation(token) {
+    return PUNCTUATION_NAMES.hasOwnProperty(token);
+}
+
+function punctuationName(token) {
+    return PUNCTUATION_NAMES[token] || token;
+}
+
+function punctuationArticle(token) {
+    const name = punctuationName(token);
+    return /^[aeiou]/i.test(name) ? 'an' : 'a';
+}
+
+/**
+ * Rejoin tokens for natural quoting: attach punctuation to preceding word.
+ * ["in", "the", "galaxy", "."] → "in the galaxy."
+ */
+function rejoinForQuote(tokens) {
+    let result = '';
+    for (const t of tokens) {
+        if (isPunctuation(t) && result.length > 0) {
+            result += t;
+        } else {
+            if (result.length > 0) result += ' ';
+            result += t;
+        }
+    }
+    return result;
+}
+
+/**
+ * Tokenize text into words, splitting trailing punctuation into separate tokens.
+ * "history." → ["history", "."]
+ */
 function tokenize(text) {
-    return (text || '').trim().split(/\s+/).filter(Boolean);
+    const raw = (text || '').trim().split(/\s+/).filter(Boolean);
+    const tokens = [];
+    for (const word of raw) {
+        const match = word.match(/^(.+?)([.,;:!?])$/);
+        if (match && /[a-zA-Z0-9]/.test(match[1])) {
+            tokens.push(match[1]);
+            tokens.push(match[2]);
+        } else {
+            tokens.push(word);
+        }
+    }
+    return tokens;
 }
 
 /**
@@ -67,13 +122,12 @@ export function generateAmendmentLanguage(originalText, proposedText) {
     const hasChange = ops.some(o => o.type !== 'keep');
     if (!hasChange) return null;
 
-    const origWords = tokenize(originalText);
-    const deletedCount = ops.filter(o => o.type === 'delete').length;
+    // Substitution threshold: >60% of original *words* (not punctuation) changed
+    const origWords = tokenize(originalText).filter(t => !isPunctuation(t));
+    const deletedWordCount = ops.filter(o => o.type === 'delete' && !isPunctuation(o.word)).length;
 
-    // Substitution threshold: >60% of original words changed
-    if (origWords.length > 0 && deletedCount / origWords.length > 0.6) {
-        const proposedWords = tokenize(proposedText);
-        return `I move to amend by substituting the following: "${proposedWords.join(' ')}"`;
+    if (origWords.length > 0 && deletedWordCount / origWords.length > 0.6) {
+        return `I move to amend by substituting the following: "${rejoinForQuote(tokenize(proposedText))}"`;
     }
 
     // Group contiguous change blocks
@@ -89,24 +143,27 @@ export function generateAmendmentLanguage(originalText, proposedText) {
             }
         } else {
             if (!current) {
-                // Gather up to 3 preceding keep-words as context
+                // Gather up to 3 preceding non-punctuation keep-words as context
                 const contextBefore = [];
                 for (let k = idx - 1; k >= 0 && contextBefore.length < 3; k--) {
                     if (ops[k].type === 'keep') {
-                        contextBefore.unshift(ops[k].word);
+                        if (!isPunctuation(ops[k].word)) {
+                            contextBefore.unshift(ops[k].word);
+                        }
                     } else break;
                 }
-                // Gather up to 3 following keep-words as context
+                // Gather up to 3 following non-punctuation keep-words as context
                 const contextAfter = [];
                 for (let k = idx + 1; k < ops.length && contextAfter.length < 3; k++) {
                     if (ops[k].type === 'keep') {
-                        contextAfter.push(ops[k].word);
+                        if (!isPunctuation(ops[k].word)) {
+                            contextAfter.push(ops[k].word);
+                        }
                     } else if (ops[k].type !== 'keep') {
-                        // Still part of this change block, keep scanning
                         continue;
                     }
                 }
-                current = { deleted: [], inserted: [], contextBefore, contextAfter, startIdx: idx };
+                current = { deleted: [], inserted: [], contextBefore, contextAfter };
             }
             if (op.type === 'delete') current.deleted.push(op.word);
             if (op.type === 'insert') current.inserted.push(op.word);
@@ -118,26 +175,90 @@ export function generateAmendmentLanguage(originalText, proposedText) {
 
     const clauses = blocks.map(block => {
         const { deleted, inserted, contextBefore, contextAfter } = block;
-        const hasDel = deleted.length > 0;
-        const hasIns = inserted.length > 0;
 
-        if (hasIns && !hasDel) {
-            // Pure insertion
-            if (contextBefore.length > 0) {
-                return `adding '${inserted.join(' ')}' after the words '${contextBefore.join(' ')}'`;
-            } else if (contextAfter.length > 0) {
-                return `adding '${inserted.join(' ')}' before the words '${contextAfter.join(' ')}'`;
+        const hasPunct = deleted.some(isPunctuation) || inserted.some(isPunctuation);
+
+        if (!hasPunct) {
+            // Word-only logic (no punctuation involved)
+            const hasDel = deleted.length > 0;
+            const hasIns = inserted.length > 0;
+
+            if (hasIns && !hasDel) {
+                if (contextBefore.length > 0) {
+                    return `adding '${inserted.join(' ')}' after the words '${contextBefore.join(' ')}'`;
+                } else if (contextAfter.length > 0) {
+                    return `adding '${inserted.join(' ')}' before the words '${contextAfter.join(' ')}'`;
+                }
+                return `adding '${inserted.join(' ')}'`;
             }
-            return `adding '${inserted.join(' ')}'`;
+
+            if (hasDel && !hasIns) {
+                return `striking '${deleted.join(' ')}'`;
+            }
+
+            return `striking '${deleted.join(' ')}' and inserting '${inserted.join(' ')}'`;
         }
 
-        if (hasDel && !hasIns) {
-            // Pure deletion
-            return `striking '${deleted.join(' ')}'`;
+        // Punctuation-aware logic
+        const delPunct = deleted.filter(isPunctuation);
+        const delWords = deleted.filter(t => !isPunctuation(t));
+
+        // Split inserted into leading punctuation and body
+        let insLeadingPunct = [];
+        let insBodyStart = 0;
+        for (let k = 0; k < inserted.length; k++) {
+            if (isPunctuation(inserted[k])) {
+                insLeadingPunct.push(inserted[k]);
+                insBodyStart = k + 1;
+            } else break;
+        }
+        const insBody = inserted.slice(insBodyStart);
+        const insHasWords = insBody.some(t => !isPunctuation(t));
+
+        const parts = [];
+        const lastContextWord = contextBefore.length > 0 ? contextBefore[contextBefore.length - 1] : null;
+
+        // Deleted punctuation
+        for (const p of delPunct) {
+            if (lastContextWord) {
+                parts.push(`striking the ${punctuationName(p)} after '${lastContextWord}'`);
+            } else {
+                parts.push(`striking the ${punctuationName(p)}`);
+            }
         }
 
-        // Both deletion and insertion (substitution within block)
-        return `striking '${deleted.join(' ')}' and inserting '${inserted.join(' ')}'`;
+        // Deleted words
+        if (delWords.length > 0) {
+            parts.push(`striking '${delWords.join(' ')}'`);
+        }
+
+        // Inserted leading punctuation
+        for (const p of insLeadingPunct) {
+            parts.push(`inserting ${punctuationArticle(p)} ${punctuationName(p)}`);
+        }
+
+        // Inserted body (words + any trailing punctuation, rejoined for quoting)
+        if (insBody.length > 0 && insHasWords) {
+            const quoted = rejoinForQuote(insBody);
+            if (insLeadingPunct.length > 0) {
+                parts.push(`followed by '${quoted}'`);
+            } else if (delWords.length > 0 || delPunct.length > 0) {
+                parts.push(`inserting '${quoted}'`);
+            } else if (contextBefore.length > 0) {
+                parts.push(`adding '${quoted}' after the words '${contextBefore.join(' ')}'`);
+            } else if (contextAfter.length > 0) {
+                parts.push(`adding '${quoted}' before the words '${contextAfter.join(' ')}'`);
+            } else {
+                parts.push(`adding '${quoted}'`);
+            }
+        } else if (insBody.length > 0 && !insHasWords) {
+            // Body is only trailing punctuation
+            for (const p of insBody.filter(isPunctuation)) {
+                parts.push(`inserting ${punctuationArticle(p)} ${punctuationName(p)}`);
+            }
+        }
+
+        return parts.join(', ');
     });
 
     const body = clauses.join('; and ');
