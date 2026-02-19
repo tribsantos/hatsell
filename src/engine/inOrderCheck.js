@@ -30,13 +30,14 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
     // Check if we're in a stage where motions can be made
     const businessStages = [
         MEETING_STAGES.NEW_BUSINESS,
+        MEETING_STAGES.AGENDA_ITEM,
         MEETING_STAGES.MOTION_DISCUSSION,
         MEETING_STAGES.VOTING
     ];
 
     // === MAIN MOTIONS ===
     // Only available when no business is pending and in an appropriate stage
-    if (stage === MEETING_STAGES.NEW_BUSINESS && stack.length === 0) {
+    if ((stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && stack.length === 0) {
         available.push({
             motionType: MOTION_TYPES.MAIN,
             displayName: 'Main Motion',
@@ -258,7 +259,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
     }
 
     // === BRING-BACK MOTIONS ===
-    if (stage === MEETING_STAGES.NEW_BUSINESS && stack.length === 0) {
+    if ((stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && stack.length === 0) {
         available.push({
             motionType: MOTION_TYPES.TAKE_FROM_TABLE,
             displayName: 'Take from the Table',

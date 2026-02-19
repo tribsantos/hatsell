@@ -107,7 +107,9 @@ export default function App() {
         handleDismissPendingMotion,
         handleReformulateMotion,
         handleOrdersOfTheDay,
-        handleOrdersOfTheDayResponse
+        handleOrdersOfTheDayResponse,
+        handleAdoptAgenda,
+        handleNextAgendaItem
     } = useMeetingState();
 
     const {
@@ -325,6 +327,8 @@ export default function App() {
                 onPreChairWithdraw={openPreChairWithdrawModal}
                 onOrdersOfTheDay={handleOrdersOfTheDay}
                 onOrdersOfTheDayResponse={handleOrdersOfTheDayResponse}
+                onAdoptAgenda={handleAdoptAgenda}
+                onNextAgendaItem={handleNextAgendaItem}
             />
 
             {/* === MODALS === */}

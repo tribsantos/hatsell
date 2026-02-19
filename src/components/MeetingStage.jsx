@@ -1,7 +1,7 @@
 import React from 'react';
 import { MEETING_STAGES } from '../constants';
 
-export default function MeetingStage({ stage, currentMotion, motionStack, suspendedRulesPurpose }) {
+export default function MeetingStage({ stage, currentMotion, motionStack, suspendedRulesPurpose, agendaItems, currentAgendaIndex }) {
     const top = motionStack && motionStack.length > 0 ? motionStack[motionStack.length - 1] : null;
 
     const stageInfo = {
@@ -23,6 +23,19 @@ export default function MeetingStage({ stage, currentMotion, motionStack, suspen
             description: 'Review and approve minutes from previous meeting',
             subtitle: 'Corrections may be proposed before approval'
         },
+        [MEETING_STAGES.ADOPT_AGENDA]: {
+            title: 'Adopt Agenda',
+            description: 'Review and adopt the proposed agenda'
+        },
+        [MEETING_STAGES.AGENDA_ITEM]: (() => {
+            const items = agendaItems || [];
+            const idx = currentAgendaIndex ?? 0;
+            const item = items[idx];
+            return {
+                title: item ? `Agenda Item ${idx + 1}: ${item.title}` : 'Agenda Item',
+                description: item ? `Item ${idx + 1} of ${items.length}` : 'Processing agenda items'
+            };
+        })(),
         [MEETING_STAGES.NEW_BUSINESS]: {
             title: top ? `${top.displayName} - Pending Second` : (currentMotion ? 'Motion Pending Second' : 'New Business'),
             description: top

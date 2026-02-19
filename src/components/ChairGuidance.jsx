@@ -92,6 +92,34 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
                 action: "Pause for corrections. If none are offered: 'Hearing no corrections, the minutes stand approved as distributed.' If corrections are proposed, handle them before approving."
             };
         }
+    } else if (stage === MEETING_STAGES.ADOPT_AGENDA) {
+        const agendaItems = meetingState.meetingSettings?.agendaItems || [];
+        guidance = {
+            title: "Adopt the Agenda",
+            phrase: `The proposed agenda contains ${agendaItems.length} item${agendaItems.length !== 1 ? 's' : ''}. Is there a motion to adopt the agenda as presented?`,
+            action: "Adopt by unanimous consent or entertain a motion to adopt."
+        };
+    } else if (stage === MEETING_STAGES.AGENDA_ITEM) {
+        const agendaItems = meetingState.meetingSettings?.agendaItems || [];
+        const idx = meetingState.currentAgendaIndex ?? 0;
+        const item = agendaItems[idx];
+        if (item) {
+            if (item.category === 'informational_report') {
+                guidance = {
+                    title: `Agenda Item ${idx + 1}: ${item.title}`,
+                    phrase: item.owner
+                        ? `The chair recognizes ${item.owner} for a report on "${item.title}".`
+                        : `The next item of business is a report: "${item.title}".`,
+                    action: "After the report, ask if there are questions. When done, advance to the next item."
+                };
+            } else {
+                guidance = {
+                    title: `Agenda Item ${idx + 1}: ${item.title}`,
+                    phrase: `The next item of business is "${item.title}". Is there a motion?`,
+                    action: "Wait for a member to make a motion, or advance to the next item if no action is needed."
+                };
+            }
+        }
     } else if (stage === MEETING_STAGES.NEW_BUSINESS) {
         if (top && top.status === 'pending_second') {
             guidance = {

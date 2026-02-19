@@ -3,6 +3,8 @@ export const MEETING_STAGES = {
     CALL_TO_ORDER: 'call_to_order',
     ROLL_CALL: 'roll_call',
     APPROVE_MINUTES: 'approve_minutes',
+    ADOPT_AGENDA: 'adopt_agenda',
+    AGENDA_ITEM: 'agenda_item',
     REPORTS: 'reports',
     UNFINISHED_BUSINESS: 'unfinished_business',
     NEW_BUSINESS: 'new_business',

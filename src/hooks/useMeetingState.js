@@ -229,6 +229,16 @@ export function useMeetingState() {
 
     // ========== MEETING LIFECYCLE ==========
 
+    const getBaseStage = () => {
+        const agendaItems = meetingStateRef.current.meetingSettings?.agendaItems || [];
+        if (agendaItems.length > 0 &&
+            meetingStateRef.current.currentAgendaIndex != null &&
+            meetingStateRef.current.currentAgendaIndex < agendaItems.length) {
+            return MEETING_STAGES.AGENDA_ITEM;
+        }
+        return MEETING_STAGES.NEW_BUSINESS;
+    };
+
     const handleCallToOrder = () => {
         updateMeetingState({
             stage: MEETING_STAGES.ROLL_CALL,
@@ -341,13 +351,67 @@ export function useMeetingState() {
     };
 
     const handleApproveMinutes = () => {
+        const agendaItems = meetingState.meetingSettings?.agendaItems || [];
+        const hasAgenda = agendaItems.length > 0;
+        const isOrders = meetingState.meetingSettings?.agendaStatus === 'orders_of_the_day';
+
+        let nextStage, logMsg;
+        if (hasAgenda && isOrders) {
+            nextStage = MEETING_STAGES.ADOPT_AGENDA;
+            logMsg = 'Minutes approved. Proceeding to adopt the agenda.';
+        } else if (hasAgenda) {
+            nextStage = MEETING_STAGES.AGENDA_ITEM;
+            logMsg = 'Minutes approved. Proceeding to the first agenda item.';
+        } else {
+            nextStage = MEETING_STAGES.NEW_BUSINESS;
+            logMsg = 'Minutes approved. Proceeding to New Business.';
+        }
+
         updateMeetingState({
-            stage: MEETING_STAGES.NEW_BUSINESS,
+            stage: nextStage,
+            currentAgendaIndex: hasAgenda ? 0 : null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'Minutes approved. Proceeding to New Business.'
+                message: logMsg
             }]
         });
+    };
+
+    const handleAdoptAgenda = () => {
+        updateMeetingState({
+            stage: MEETING_STAGES.AGENDA_ITEM,
+            agendaAdopted: true,
+            currentAgendaIndex: 0,
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: 'Agenda adopted. Proceeding to first agenda item.'
+            }]
+        });
+    };
+
+    const handleNextAgendaItem = () => {
+        const agendaItems = meetingState.meetingSettings?.agendaItems || [];
+        const nextIndex = (meetingState.currentAgendaIndex ?? 0) + 1;
+        const currentItem = agendaItems[meetingState.currentAgendaIndex ?? 0];
+
+        if (nextIndex >= agendaItems.length) {
+            updateMeetingState({
+                stage: MEETING_STAGES.NEW_BUSINESS,
+                currentAgendaIndex: null,
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Concluded agenda item: "${currentItem?.title}". All agenda items complete. Proceeding to New Business.`
+                }]
+            });
+        } else {
+            updateMeetingState({
+                currentAgendaIndex: nextIndex,
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Concluded agenda item: "${currentItem?.title}". Moving to next item.`
+                }]
+            });
+        }
     };
 
     // ========== MOTION STACK OPERATIONS ==========
@@ -373,7 +437,7 @@ export function useMeetingState() {
         updateMeetingState({
             motionStack: newStack,
             currentMotion: { text: motionText, mover, needsSecond: true },
-            stage: MEETING_STAGES.NEW_BUSINESS,
+            stage: getBaseStage(),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: `${mover} moved: "${motionText}"`
@@ -415,7 +479,7 @@ export function useMeetingState() {
 
         updateMeetingState({
             motionStack: newStack,
-            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : MEETING_STAGES.NEW_BUSINESS,
+            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : getBaseStage(),
             currentMotion: below ? {
                 text: below.text,
                 mover: below.mover,
@@ -498,7 +562,7 @@ export function useMeetingState() {
 
         updateMeetingState({
             motionStack: newStack,
-            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : MEETING_STAGES.NEW_BUSINESS,
+            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : getBaseStage(),
             currentMotion: below ? {
                 text: below.text,
                 mover: below.mover,
@@ -930,7 +994,7 @@ export function useMeetingState() {
             }
             updateMeetingState({
                 motionStack: [],
-                stage: MEETING_STAGES.NEW_BUSINESS,
+                stage: getBaseStage(),
                 currentMotion: null,
                 pendingAnnouncement: {
                     motionText: motion.text,
@@ -1102,7 +1166,7 @@ export function useMeetingState() {
 
                 updateMeetingState({
                     motionStack: [],
-                    stage: MEETING_STAGES.NEW_BUSINESS,
+                    stage: getBaseStage(),
                     currentMotion: null,
                     tabledMotions: [...(meetingState.tabledMotions || []), tabledEntry],
                     decidedMotions,
@@ -1135,7 +1199,7 @@ export function useMeetingState() {
 
                 updateMeetingState({
                     motionStack: [],
-                    stage: MEETING_STAGES.NEW_BUSINESS,
+                    stage: getBaseStage(),
                     currentMotion: null,
                     tabledMotions: [...(meetingState.tabledMotions || []), postponedEntry],
                     decidedMotions,
@@ -1161,7 +1225,7 @@ export function useMeetingState() {
 
                 updateMeetingState({
                     motionStack: [],
-                    stage: MEETING_STAGES.NEW_BUSINESS,
+                    stage: getBaseStage(),
                     currentMotion: null,
                     decidedMotions,
                     votes: { aye: 0, nay: 0, abstain: 0 },
@@ -1184,7 +1248,7 @@ export function useMeetingState() {
                 // Kill the main motion entirely
                 updateMeetingState({
                     motionStack: [],
-                    stage: MEETING_STAGES.NEW_BUSINESS,
+                    stage: getBaseStage(),
                     currentMotion: null,
                     decidedMotions,
                     votes: { aye: 0, nay: 0, abstain: 0 },
@@ -1285,7 +1349,7 @@ export function useMeetingState() {
                     motionStack: currentStack,
                     stage: MEETING_STAGES.SUSPENDED_RULES,
                     suspendedRulesContext: {
-                        previousStage: currentStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : MEETING_STAGES.NEW_BUSINESS,
+                        previousStage: currentStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : getBaseStage(),
                         motionStack: currentStack,
                         savedSpeakingState
                     },
@@ -1307,7 +1371,7 @@ export function useMeetingState() {
                 const nextTop = getCurrentPendingQuestion(currentStack);
                 updateMeetingState({
                     motionStack: currentStack,
-                    stage: currentStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : MEETING_STAGES.NEW_BUSINESS,
+                    stage: currentStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : getBaseStage(),
                     currentMotion: nextTop ? {
                         text: nextTop.text,
                         mover: nextTop.mover,
@@ -1390,7 +1454,7 @@ export function useMeetingState() {
 
         updateMeetingState({
             motionStack: newStack,
-            stage: MEETING_STAGES.NEW_BUSINESS,
+            stage: getBaseStage(),
             currentMotion: { text: decided.text, mover: currentUser.name, needsSecond: true },
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
@@ -1778,7 +1842,7 @@ export function useMeetingState() {
 
         updateMeetingState({
             motionStack: newStack,
-            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : MEETING_STAGES.NEW_BUSINESS,
+            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : getBaseStage(),
             currentMotion: below ? {
                 text: below.text,
                 mover: below.mover,
@@ -1802,9 +1866,9 @@ export function useMeetingState() {
     const handleResumeFromSuspendedRules = () => {
         const ctx = meetingState.suspendedRulesContext;
         if (!ctx) {
-            // Fallback: just go to new business
+            // Fallback: just go to base stage
             updateMeetingState({
-                stage: MEETING_STAGES.NEW_BUSINESS,
+                stage: getBaseStage(),
                 suspendedRulesContext: null,
                 suspendedSpeakingState: null,
                 suspendedRulesPurpose: null,
@@ -1904,7 +1968,7 @@ export function useMeetingState() {
         updateMeetingState({
             stage: meetingState.motionStack.length > 0
                 ? MEETING_STAGES.MOTION_DISCUSSION
-                : MEETING_STAGES.NEW_BUSINESS,
+                : getBaseStage(),
             recessEnd: null,
             currentMotion: top ? {
                 text: top.text,
@@ -1925,13 +1989,16 @@ export function useMeetingState() {
         if (!meetingState.pendingAnnouncement) return;
 
         const returningToDebate = meetingState.stage === MEETING_STAGES.MOTION_DISCUSSION;
+        const baseStage = getBaseStage();
         updateMeetingState({
             pendingAnnouncement: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: returningToDebate
                     ? 'Chair continues debate on the pending question.'
-                    : 'Chair proceeded to New Business.'
+                    : baseStage === MEETING_STAGES.AGENDA_ITEM
+                        ? 'Chair continues with the current agenda item.'
+                        : 'Chair proceeded to New Business.'
             }]
         });
     };
@@ -2214,10 +2281,10 @@ export function useMeetingState() {
 
     const handleOrdersOfTheDayResponse = (comply) => {
         if (comply) {
-            // Return to agenda-appropriate stage (new business)
+            // Return to agenda-appropriate stage
             updateMeetingState({
                 ordersOfTheDayDemand: null,
-                stage: MEETING_STAGES.NEW_BUSINESS,
+                stage: getBaseStage(),
                 currentSpeaker: null,
                 speakingQueue: [],
                 log: [...meetingState.log, {
@@ -2250,7 +2317,7 @@ export function useMeetingState() {
             } else {
                 updateMeetingState({
                     ordersOfTheDayDemand: null,
-                    stage: MEETING_STAGES.NEW_BUSINESS,
+                    stage: getBaseStage(),
                     log: [...meetingState.log, {
                         timestamp: new Date().toLocaleTimeString(),
                         message: 'Chair returns to the Orders of the Day (unable to initiate suspend the rules)'
@@ -2334,7 +2401,9 @@ export function useMeetingState() {
         handleDismissPendingMotion,
         handleReformulateMotion,
         handleOrdersOfTheDay,
-        handleOrdersOfTheDayResponse
+        handleOrdersOfTheDayResponse,
+        handleAdoptAgenda,
+        handleNextAgendaItem
     };
 }
 

@@ -13,6 +13,7 @@ import SpeakingTimer from './SpeakingTimer';
 import { getDebateConstraints } from '../engine/debateEngine';
 import { REQUEST_FLOWS } from '../engine/pendingRequests';
 import { getRules } from '../engine/motionRules';
+import { getCategoryLabel } from '../constants/agenda';
 
 function FloatingNotifications({ notifications, onDismiss }) {
     useEffect(() => {
@@ -126,7 +127,9 @@ export default function MeetingView({
     onDismissPendingMotion,
     onPreChairWithdraw,
     onOrdersOfTheDay,
-    onOrdersOfTheDayResponse
+    onOrdersOfTheDayResponse,
+    onAdoptAgenda,
+    onNextAgendaItem
 }) {
     const isChair = currentUser.role === ROLES.PRESIDENT || currentUser.role === ROLES.VICE_PRESIDENT;
     const motionStack = meetingState.motionStack || [];
@@ -152,7 +155,56 @@ export default function MeetingView({
                     currentMotion={meetingState.currentMotion}
                     motionStack={motionStack}
                     suspendedRulesPurpose={meetingState.suspendedRulesPurpose}
+                    agendaItems={meetingState.meetingSettings?.agendaItems}
+                    currentAgendaIndex={meetingState.currentAgendaIndex}
                 />
+
+                {meetingState.stage === MEETING_STAGES.ADOPT_AGENDA && (() => {
+                    const agendaItems = meetingState.meetingSettings?.agendaItems || [];
+                    return (
+                        <div className="info-box" style={{ marginBottom: '1.5rem' }}>
+                            <h4 style={{ color: '#2980b9', marginBottom: '0.75rem' }}>Proposed Agenda</h4>
+                            {agendaItems.map((item, idx) => (
+                                <div key={item.id || idx} style={{
+                                    padding: '0.5rem 0.75rem', marginBottom: '0.35rem',
+                                    background: 'rgba(0,0,0,0.03)', borderRadius: '3px',
+                                    borderLeft: '3px solid #2980b9'
+                                }}>
+                                    <span style={{ fontWeight: 600 }}>{idx + 1}. {item.title}</span>
+                                    <span style={{ color: '#888', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+                                        {getCategoryLabel(item.category)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    );
+                })()}
+
+                {meetingState.stage === MEETING_STAGES.AGENDA_ITEM && (() => {
+                    const agendaItems = meetingState.meetingSettings?.agendaItems || [];
+                    const idx = meetingState.currentAgendaIndex ?? 0;
+                    const item = agendaItems[idx];
+                    if (!item) return null;
+                    return (
+                        <div className="info-box" style={{ marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <h4 style={{ color: '#2980b9' }}>
+                                    Item {idx + 1} of {agendaItems.length}: {item.title}
+                                </h4>
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                                {getCategoryLabel(item.category)}
+                                {item.owner && ` \u2014 ${item.owner}`}
+                                {item.timeTarget && ` (${item.timeTarget} min target)`}
+                            </div>
+                            {item.notes && (
+                                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#555', fontStyle: 'italic' }}>
+                                    {item.notes}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 <ChairGuidance
                     meetingState={meetingState}
@@ -186,6 +238,8 @@ export default function MeetingView({
                         onChairRejectMotion={onChairRejectMotion}
                         onSecondMotion={onSecondMotion}
                         onOrdersOfTheDayResponse={onOrdersOfTheDayResponse}
+                        onAdoptAgenda={onAdoptAgenda}
+                        onNextAgendaItem={onNextAgendaItem}
                     />
                 )}
 

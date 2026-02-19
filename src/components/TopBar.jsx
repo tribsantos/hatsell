@@ -7,6 +7,8 @@ const STAGE_LABELS = {
     [MEETING_STAGES.CALL_TO_ORDER]: 'Call to Order',
     [MEETING_STAGES.ROLL_CALL]: 'Roll Call',
     [MEETING_STAGES.APPROVE_MINUTES]: 'Minutes',
+    [MEETING_STAGES.ADOPT_AGENDA]: 'Adopt Agenda',
+    [MEETING_STAGES.AGENDA_ITEM]: 'Agenda',
     [MEETING_STAGES.REPORTS]: 'Reports',
     [MEETING_STAGES.UNFINISHED_BUSINESS]: 'Unfinished Business',
     [MEETING_STAGES.NEW_BUSINESS]: 'New Business',

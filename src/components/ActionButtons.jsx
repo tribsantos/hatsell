@@ -57,7 +57,9 @@ export function ChairActions({
     onChairAcceptMotion,
     onChairRejectMotion,
     onSecondMotion,
-    onOrdersOfTheDayResponse
+    onOrdersOfTheDayResponse,
+    onAdoptAgenda,
+    onNextAgendaItem
 }) {
     const {
         stage, motionStack = [], currentMotion, speakingQueue, currentSpeaker,
@@ -201,6 +203,25 @@ export function ChairActions({
         );
     }
 
+    // Adopt Agenda
+    if (stage === MEETING_STAGES.ADOPT_AGENDA) {
+        buttons.push(
+            <button key="adopt-agenda" onClick={onAdoptAgenda} data-tooltip="Adopt the proposed agenda as the order of business" title="Adopt the proposed agenda as the order of business">Adopt Agenda</button>
+        );
+    }
+
+    // Next / Conclude Agenda Item
+    if (stage === MEETING_STAGES.AGENDA_ITEM && motionStack.length === 0 && !currentMotion) {
+        const agendaItems = meetingState.meetingSettings?.agendaItems || [];
+        const idx = meetingState.currentAgendaIndex ?? 0;
+        const isLast = idx >= agendaItems.length - 1;
+        buttons.push(
+            <button key="next-agenda" onClick={onNextAgendaItem} data-tooltip={isLast ? "Conclude the last agenda item and proceed to New Business" : "Move to the next agenda item"} title={isLast ? "Conclude the last agenda item and proceed to New Business" : "Move to the next agenda item"}>
+                {isLast ? 'Conclude Agenda' : 'Next Agenda Item'}
+            </button>
+        );
+    }
+
     // Recess resume
     if (stage === MEETING_STAGES.RECESS) {
         buttons.push(
@@ -321,7 +342,7 @@ export function ChairActions({
     }
 
     // Adjourn (no business pending)
-    if (stage === MEETING_STAGES.NEW_BUSINESS && motionStack.length === 0 && !currentMotion) {
+    if ((stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && motionStack.length === 0 && !currentMotion) {
         buttons.push(
             <button key="adjourn" onClick={() => { if (window.confirm('Are you sure you want to adjourn the meeting?')) onAdjourn(); }} className="danger" data-tooltip="End the meeting" title="End the meeting">Adjourn Meeting</button>
         );
@@ -449,7 +470,7 @@ export function MemberActions({
             )}
 
             {/* === NEW BUSINESS AREA === */}
-            {stage === MEETING_STAGES.NEW_BUSINESS && motionStack.length === 0 && !currentMotion && (
+            {(stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && motionStack.length === 0 && !currentMotion && (
                 <>
                     <div style={{display: 'flex', gap: '0.75rem', width: '100%'}}>
                         <button onClick={onNewMotion} data-tooltip="Propose a new item for the group to consider" title="Propose a new item for the group to consider" style={{flex: 1}}>Original Motion</button>
@@ -560,7 +581,7 @@ export function MemberActions({
 
             {/* === PRIVILEGED MOTIONS === */}
             {(stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS ||
-              stage === MEETING_STAGES.VOTING) && privilegedMotions.length > 0 && (
+              stage === MEETING_STAGES.AGENDA_ITEM || stage === MEETING_STAGES.VOTING) && privilegedMotions.length > 0 && (
                 <div className="action-section" style={{ width: '100%' }}>
                     <details>
                         <summary>Privileged Motions ({privilegedMotions.length})</summary>
@@ -659,7 +680,7 @@ export function MemberActions({
                                     Withdraw Motion
                                 </button>
                             )}
-                            {onOrdersOfTheDay && !isChair && (stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS) && (
+                            {onOrdersOfTheDay && !isChair && (stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && (
                                 <button
                                     onClick={onOrdersOfTheDay}
                                     className="secondary"
