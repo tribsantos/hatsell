@@ -2060,6 +2060,24 @@ details > section {
   color: #3b82f6;
   margin-bottom: 0.375rem;
 }
+.amendment-proposed-text {
+  background: rgba(59, 130, 246, 0.06);
+  border-left: 3px solid #3b82f6;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0 3px 3px 0;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--h-fg);
+}
+.amendment-proposed-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #3b82f6;
+  margin-bottom: 0.25rem;
+}
 
 /* === RESPONSIVE STAGE HEADING === */
 @media (min-width: 768px) {

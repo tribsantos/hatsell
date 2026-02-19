@@ -54,6 +54,13 @@ function MotionCard({ motion, isTop, isChair, defaultExpanded }) {
                         {motion.text}
                     </div>
 
+                    {motion.metadata?.proposedText && (
+                        <div className="amendment-proposed-text">
+                            <div className="amendment-proposed-label">If adopted, the motion would read:</div>
+                            <div>"{motion.metadata.proposedText}"</div>
+                        </div>
+                    )}
+
                     <div className="motion-meta" style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
                         <div>Moved by: {motion.mover}</div>
                         {motion.seconder && <div>Seconded by: {motion.seconder}</div>}

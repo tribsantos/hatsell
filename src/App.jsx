@@ -386,7 +386,7 @@ export default function App() {
 
             {showModal === 'amendment' && (
                 <AmendmentModal
-                    originalMotion={top?.text || meetingState.currentMotion?.text}
+                    originalMotion={top?.metadata?.proposedText || top?.text || meetingState.currentMotion?.text}
                     onSubmit={({ language, proposedText }) => {
                         handleSubmitAmendment(language, proposedText);
                         closeModal();
