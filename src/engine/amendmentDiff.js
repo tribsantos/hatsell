@@ -234,7 +234,11 @@ export function generateAmendmentLanguage(originalText, proposedText) {
 
         // Inserted leading punctuation
         for (const p of insLeadingPunct) {
-            parts.push(`inserting ${punctuationArticle(p)} ${punctuationName(p)}`);
+            if (lastContextWord) {
+                parts.push(`inserting ${punctuationArticle(p)} ${punctuationName(p)} after '${lastContextWord}'`);
+            } else {
+                parts.push(`inserting ${punctuationArticle(p)} ${punctuationName(p)}`);
+            }
         }
 
         // Inserted body (words + any trailing punctuation, rejoined for quoting)
