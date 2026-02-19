@@ -971,6 +971,17 @@ export function useMeetingState() {
                     seconder: nextTop.seconder,
                     needsSecond: nextTop.status === MOTION_STATUS.PENDING_SECOND
                 } : null,
+                pendingAnnouncement: {
+                    motionText: motion.text,
+                    aye: meetingState.votes.aye,
+                    nay: meetingState.votes.nay,
+                    abstain: meetingState.votes.abstain,
+                    result,
+                    description,
+                    displayName: motion.displayName,
+                    voteRequired: motion.voteRequired,
+                    voteDetails: meetingState.voteDetails || []
+                },
                 decidedMotions,
                 votes: { aye: 0, nay: 0, abstain: 0 },
                 votedBy: [],
@@ -1016,6 +1027,17 @@ export function useMeetingState() {
                             seconder: nextTop.seconder,
                             needsSecond: false
                         } : null,
+                        pendingAnnouncement: {
+                            motionText: motion.text,
+                            aye: meetingState.votes.aye,
+                            nay: meetingState.votes.nay,
+                            abstain: meetingState.votes.abstain,
+                            result: 'adopted',
+                            description: 'Amendment adopted',
+                            displayName: motion.displayName,
+                            voteRequired: motion.voteRequired,
+                            voteDetails: meetingState.voteDetails || []
+                        },
                         decidedMotions,
                         votes: { aye: 0, nay: 0, abstain: 0 },
                         votedBy: [],
@@ -1902,11 +1924,14 @@ export function useMeetingState() {
     const handleAcknowledgeAnnouncement = () => {
         if (!meetingState.pendingAnnouncement) return;
 
+        const returningToDebate = meetingState.stage === MEETING_STAGES.MOTION_DISCUSSION;
         updateMeetingState({
             pendingAnnouncement: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'Chair proceeded to New Business.'
+                message: returningToDebate
+                    ? 'Chair continues debate on the pending question.'
+                    : 'Chair proceeded to New Business.'
             }]
         });
     };

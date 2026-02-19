@@ -13,7 +13,58 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
 
     let guidance = null;
 
-    if (stage === MEETING_STAGES.CALL_TO_ORDER) {
+    if (meetingState.pendingAnnouncement) {
+        const { motionText, aye, nay, result, description, displayName, voteRequired, voteDetails } = meetingState.pendingAnnouncement;
+        const thresholdLabel = voteRequired ? getThresholdLabel(voteRequired) : 'Majority';
+        const isAmendment = displayName && displayName.toLowerCase().includes('amend');
+        const hasMoreBusiness = motionStack.length > 0;
+        const showDetails = meetingState.meetingSettings?.showVoteDetails && voteDetails && voteDetails.length > 0;
+        const buttonLabel = hasMoreBusiness ? 'Continue Debate' : 'Proceed to New Business';
+
+        if (result === 'adopted') {
+            if (isAmendment) {
+                const mainText = mainMotion?.text || motionText;
+                guidance = {
+                    title: "Announce the Result",
+                    phrase: `The ayes have it and the amendment is adopted. Discussion continues on the motion as amended: "${mainText}".`,
+                    action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required.`,
+                    buttonLabel
+                };
+            } else {
+                guidance = {
+                    title: "Announce the Result",
+                    phrase: hasMoreBusiness
+                        ? `The ayes have it and the ${displayName || 'motion'} is adopted. Debate continues on the pending question.`
+                        : `The ayes have it and the motion is adopted: "${motionText}". Is there further business?`,
+                    action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required.`,
+                    buttonLabel
+                };
+            }
+        } else {
+            if (isAmendment) {
+                const mainText = mainMotion?.text || motionText;
+                guidance = {
+                    title: "Announce the Result",
+                    phrase: `The amendment is lost. Discussion continues on the main motion: "${mainText}".`,
+                    action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required.`,
+                    buttonLabel
+                };
+            } else {
+                guidance = {
+                    title: "Announce the Result",
+                    phrase: hasMoreBusiness
+                        ? `The nays have it and the ${displayName || 'motion'} is lost. Debate continues on the pending question.`
+                        : `The nays have it and the motion is lost. Is there further business?`,
+                    action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required.`,
+                    buttonLabel
+                };
+            }
+        }
+
+        if (showDetails) {
+            guidance.voteDetails = voteDetails;
+        }
+    } else if (stage === MEETING_STAGES.CALL_TO_ORDER) {
         guidance = {
             title: "Call to Order",
             phrase: "The meeting will come to order.",
@@ -42,52 +93,7 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
             };
         }
     } else if (stage === MEETING_STAGES.NEW_BUSINESS) {
-        if (meetingState.pendingAnnouncement) {
-            const { motionText, aye, nay, result, description, displayName, voteRequired, voteDetails } = meetingState.pendingAnnouncement;
-            const thresholdLabel = voteRequired ? getThresholdLabel(voteRequired) : 'Majority';
-            const isAmendment = displayName && displayName.toLowerCase().includes('amend');
-            const showDetails = meetingState.meetingSettings?.showVoteDetails && voteDetails && voteDetails.length > 0;
-
-            if (result === 'adopted') {
-                if (isAmendment) {
-                    const mainText = mainMotion?.text || motionText;
-                    guidance = {
-                        title: "Announce the Result",
-                        phrase: `The ayes have it and the amendment is adopted. Discussion continues on the main motion as amended: "${mainText}".`,
-                        action: `${thresholdLabel} was required. Click 'Proceed to New Business' to continue.`,
-                        buttonLabel: "Proceed to New Business"
-                    };
-                } else {
-                    guidance = {
-                        title: "Announce the Result",
-                        phrase: `The ayes have it and the motion is adopted: "${motionText}". Is there further business?`,
-                        action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required. Click 'Proceed to New Business' to continue.`,
-                        buttonLabel: "Proceed to New Business"
-                    };
-                }
-            } else {
-                if (isAmendment) {
-                    const mainText = mainMotion?.text || motionText;
-                    guidance = {
-                        title: "Announce the Result",
-                        phrase: `The amendment is lost. Discussion continues on the main motion: "${mainText}".`,
-                        action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required. Click 'Proceed to New Business' to continue.`,
-                        buttonLabel: "Proceed to New Business"
-                    };
-                } else {
-                    guidance = {
-                        title: "Announce the Result",
-                        phrase: `The nays have it and the motion is lost. Is there further business?`,
-                        action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required. Click 'Proceed to New Business' to continue.`,
-                        buttonLabel: "Proceed to New Business"
-                    };
-                }
-            }
-
-            if (showDetails) {
-                guidance.voteDetails = voteDetails;
-            }
-        } else if (top && top.status === 'pending_second') {
+        if (top && top.status === 'pending_second') {
             guidance = {
                 title: `${top.displayName} Awaiting Second`,
                 phrase: `It has been moved: "${top.text}". Is there a second?`,
