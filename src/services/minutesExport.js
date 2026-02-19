@@ -29,7 +29,7 @@ export async function exportMinutes(meetingState) {
     const adjournTime = adjournEntry?.timestamp || 'N/A';
 
     // Build participants info
-    const chair = participants.find(p => p.role === 'President/Chair');
+    const chair = participants.find(p => p.role === 'Chair' || p.role === 'President/Chair');
     const secretary = participants.find(p => p.role === 'Secretary');
 
     const sections = [];
@@ -40,14 +40,18 @@ export async function exportMinutes(meetingState) {
             alignment: AlignmentType.CENTER,
             spacing: { after: 100 },
             children: [
-                new TextRun({ text: 'MINUTES OF MEETING', bold: true, size: 32 })
+                new TextRun({ text: meetingState.meetingSettings?.meetingName
+                    ? `MINUTES OF ${meetingState.meetingSettings.meetingName.toUpperCase()}`
+                    : 'MINUTES OF MEETING', bold: true, size: 32 })
             ]
         }),
         new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 100 },
             children: [
-                new TextRun({ text: '[Organization Name]', italics: true, size: 24, color: '888888' })
+                new TextRun(meetingState.orgProfile?.organizationName
+                    ? { text: meetingState.orgProfile.organizationName, size: 24 }
+                    : { text: '[Organization Name]', italics: true, size: 24, color: '888888' })
             ]
         }),
         new Paragraph({
@@ -101,6 +105,22 @@ export async function exportMinutes(meetingState) {
         );
     }
 
+    // Build full attendance from current participants + log entries (people who left early)
+    const allAttendees = new Map();
+    participants.forEach(p => allAttendees.set(p.name, p.role));
+    log.forEach(e => {
+        const joinMatch = e.message.match(/^(.+) joined as (.+)$/);
+        if (joinMatch) {
+            const [, name, role] = joinMatch;
+            if (!allAttendees.has(name)) allAttendees.set(name, role);
+        }
+    });
+    // Also include the chair from the "Meeting created by" log entry
+    const createdEntry = log.find(e => e.message.includes('Meeting created by'));
+    if (createdEntry && chair) {
+        allAttendees.set(chair.name, chair.role);
+    }
+
     sections.push(
         new Paragraph({
             spacing: { after: 100 },
@@ -110,14 +130,14 @@ export async function exportMinutes(meetingState) {
         })
     );
 
-    participants.forEach(p => {
+    allAttendees.forEach((role, name) => {
         sections.push(
             new Paragraph({
                 spacing: { after: 40 },
                 indent: { left: 720 },
                 children: [
-                    new TextRun({ text: `${p.name}` }),
-                    new TextRun({ text: ` (${p.role})`, italics: true, color: '666666' })
+                    new TextRun({ text: name }),
+                    new TextRun({ text: ` (${role})`, italics: true, color: '666666' })
                 ]
             })
         );

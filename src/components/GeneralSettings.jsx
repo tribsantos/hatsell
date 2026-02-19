@@ -325,6 +325,29 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
 
             <div style={{ maxWidth: '760px', margin: '0 auto', padding: '1.25rem 0.75rem' }}>
 
+                {/* Quick Start */}
+                {!generatedCodes && (
+                    <div style={{
+                        marginBottom: '2rem',
+                        padding: '1.25rem',
+                        background: 'var(--h-bg-card)',
+                        border: '2px solid var(--h-border)',
+                        borderRadius: '4px',
+                        textAlign: 'center',
+                        boxShadow: 'var(--h-shadow)'
+                    }}>
+                        <button
+                            onClick={doGenerateCodes}
+                            style={{ padding: '0.75rem 2rem', fontSize: '1rem', marginBottom: '0.5rem' }}
+                        >
+                            Quick Start
+                        </button>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--h-fg-dim)' }}>
+                            Start a meeting immediately with default settings. Or customize below.
+                        </div>
+                    </div>
+                )}
+
                 {/* Generated Codes Display */}
                 {generatedCodes && (
                     <div style={{
