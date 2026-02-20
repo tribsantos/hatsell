@@ -9,6 +9,9 @@ import { getCurrentPendingQuestion } from './engine/motionStack';
 import LoginScreen from './components/LoginScreen';
 import MeetingView from './components/MeetingView';
 import AboutPage from './components/AboutPage';
+import TutorialPage from './components/TutorialPage';
+import TutorialChairPage from './components/TutorialChairPage';
+import TutorialMemberPage from './components/TutorialMemberPage';
 import GeneralSettings from './components/GeneralSettings';
 import HatsellLogo from './components/HatsellLogo';
 import TopBar from './components/TopBar';
@@ -139,6 +142,39 @@ export default function App() {
     });
     useAudioCues(meetingState);
 
+    if (activePage === 'tutorial') {
+        return (
+            <TutorialPage
+                onBack={() => setActivePage('meeting')}
+                onOpenApp={() => setActivePage('meeting')}
+                onChair={() => setActivePage('tutorialChair')}
+                onMember={() => setActivePage('tutorialMember')}
+            />
+        );
+    }
+
+    if (activePage === 'tutorialChair') {
+        return (
+            <TutorialChairPage
+                onBack={() => setActivePage('meeting')}
+                onOpenApp={() => setActivePage('meeting')}
+                onOverview={() => setActivePage('tutorial')}
+                onMember={() => setActivePage('tutorialMember')}
+            />
+        );
+    }
+
+    if (activePage === 'tutorialMember') {
+        return (
+            <TutorialMemberPage
+                onBack={() => setActivePage('meeting')}
+                onOpenApp={() => setActivePage('meeting')}
+                onOverview={() => setActivePage('tutorial')}
+                onChair={() => setActivePage('tutorialChair')}
+            />
+        );
+    }
+
     if (activePage === 'about') {
         return <AboutPage onBack={() => setActivePage('meeting')} />;
     }
@@ -168,6 +204,7 @@ export default function App() {
             <LoginScreen
                 onLogin={handleLogin}
                 onAbout={() => setActivePage('about')}
+                onTutorial={() => setActivePage('tutorial')}
                 onCreateMeeting={(name) => {
                     setSettingsUserName(name);
                     setActivePage('generalSettings');

@@ -3,7 +3,7 @@ import { ROLES } from '../constants';
 import * as MeetingConnection from '../services/MeetingConnection';
 import HatsellLogo from './HatsellLogo';
 
-export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
+export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeeting }) {
     const [name, setName] = useState('');
     const [meetingCode, setMeetingCode] = useState('');
     const [loading, setLoading] = useState(false);
@@ -186,8 +186,10 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
                         {onAbout && (
                             <button type="button" onClick={onAbout}>About Hatsell</button>
                         )}
-                        <span className="separator">|</span>
-                        <button type="button" onClick={() => {}}>First Time?</button>
+                        {onAbout && onTutorial && <span className="separator">|</span>}
+                        {onTutorial && (
+                            <button type="button" onClick={onTutorial}>First Time?</button>
+                        )}
                     </div>
                     <p className="login-version">v2.1.0</p>
                 </footer>
