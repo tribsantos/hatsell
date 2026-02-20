@@ -4,6 +4,8 @@
    Mobile-first, accessible contrast, keyboard focus states.
    ================================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap');
+
 /* === RESET & BASE === */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -30,7 +32,7 @@
   --h-shadow-lg:  6px 6px 0 rgba(0,0,0,0.10);
   --h-radius:     4px;
   --h-font:       'Inter', 'Helvetica Neue', Arial, sans-serif;
-  --h-font-heading: 'Georgia', 'Times New Roman', serif;
+  --h-font-heading: 'Playfair Display', 'Georgia', 'Times New Roman', serif;
   --h-transition: 0.2s ease;
 }
 
@@ -160,9 +162,9 @@ select:focus-visible {
   gap: 0.25rem;
 }
 .logo-container svg {
-  width: 120px;
-  height: 120px;
-  opacity: 0.75;
+  width: 160px;
+  height: 160px;
+  opacity: 0.88;
 }
 svg.logo-small {
   width: 28px;
@@ -437,6 +439,89 @@ svg.logo-small {
   height: 1px;
   background: var(--h-border-soft);
 }
+/* Login tab toggle */
+.login-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--h-red);
+  margin-bottom: 1.5rem;
+}
+.login-tab {
+  flex: 1;
+  background: transparent;
+  color: var(--h-fg-muted);
+  border: none;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all var(--h-transition);
+  min-height: auto;
+  border-radius: 0;
+}
+.login-tab:hover:not(:disabled) {
+  color: var(--h-red);
+  background: var(--h-red-light);
+  transform: none;
+  box-shadow: none;
+}
+.login-tab.active {
+  color: var(--h-red);
+  border-bottom: 3px solid var(--h-red);
+  margin-bottom: -2px;
+}
+/* Login form elements */
+.login-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  color: var(--h-fg);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.login-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background: var(--h-bg-warm);
+  border: 2px solid var(--h-border-soft);
+  border-radius: 3px;
+  color: var(--h-fg);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color var(--h-transition), box-shadow var(--h-transition);
+}
+.login-input:focus {
+  outline: none;
+  border-color: var(--h-red);
+  box-shadow: 0 0 0 3px var(--h-red-ring);
+}
+.login-submit {
+  width: 100%;
+  background: var(--h-red);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all var(--h-transition);
+  font-family: inherit;
+  min-height: 44px;
+}
+.login-submit:hover:not(:disabled) {
+  background: var(--h-red-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(192, 57, 43, 0.25);
+}
+.login-submit:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 .login-error {
   background: var(--h-red-light);
   border: 1px solid rgba(192, 57, 43, 0.2);
@@ -686,7 +771,7 @@ button.ghost:hover:not(:disabled) {
   margin-bottom: 1.25rem;
 }
 .meeting-stage h2 {
-  font-family: var(--h-font-heading);
+  font-family: var(--h-font);
   font-size: 1.75rem;
   color: var(--h-red);
   margin-bottom: 0.25rem;
@@ -894,27 +979,60 @@ button.ghost:hover:not(:disabled) {
 
 /* === SPEAKING TIMER === */
 .speaking-timer {
-  text-align: center;
-  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
   background: var(--h-bg-warm);
+  border: 1px solid var(--h-border-soft);
   border-radius: 3px;
   margin-bottom: 1rem;
 }
+.speaking-timer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.speaking-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.speaking-dot.pro { background: var(--h-green); }
+.speaking-dot.con { background: var(--h-red); }
+.speaking-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--h-fg);
+}
+.speaking-stance {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.speaking-stance.pro { color: var(--h-green-dark); }
+.speaking-stance.con { color: var(--h-red); }
+.speaking-timer-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
 .speaking-timer .timer-display {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 900;
   font-family: 'Courier New', monospace;
   color: var(--h-fg);
   letter-spacing: 0.1em;
 }
-.speaking-timer .timer-label {
-  font-size: 0.75rem;
-  color: var(--h-fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 .speaking-timer.warning .timer-display { color: var(--h-amber); }
 .speaking-timer.expired .timer-display { color: var(--h-red); }
+.yield-btn {
+  font-size: 0.75rem !important;
+  padding: 0.375rem 0.75rem !important;
+  min-height: 32px !important;
+}
 
 /* === VOTING === */
 .vote-section {
@@ -1722,18 +1840,20 @@ details > section {
 
 /* Speaking stance buttons */
 .speak-btn-favor {
-  background: var(--h-green) !important;
-  color: #fff !important;
+  background: rgba(39, 174, 96, 0.15) !important;
+  color: var(--h-green-dark) !important;
+  border: 1px solid rgba(39, 174, 96, 0.35) !important;
 }
 .speak-btn-favor:hover:not(:disabled) {
-  background: var(--h-green-dark) !important;
+  background: rgba(39, 174, 96, 0.25) !important;
 }
 .speak-btn-against {
-  background: var(--h-red) !important;
-  color: #fff !important;
+  background: hsla(4, 50%, 40%, 0.12) !important;
+  color: var(--h-red) !important;
+  border: 1px solid hsla(4, 50%, 40%, 0.30) !important;
 }
 .speak-btn-against:hover:not(:disabled) {
-  background: var(--h-red-dark) !important;
+  background: hsla(4, 50%, 40%, 0.22) !important;
 }
 
 /* === RESPONSIVE: TABLET+ (768px) === */
@@ -1755,6 +1875,7 @@ details > section {
 /* === RESPONSIVE: MOBILE OVERRIDES (<768px) === */
 @media (max-width: 767px) {
   .header h1 { font-size: 2rem; }
+  .logo-container svg { width: 120px; height: 120px; }
   .header .subtitle { font-size: 0.75rem; }
   .meeting-stage h2 { font-size: 1.35rem; }
   .meeting-stage { padding: 1rem; }

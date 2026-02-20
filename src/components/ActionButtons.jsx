@@ -293,25 +293,6 @@ export function ChairActions({
         );
     }
 
-    // Recognize Speaker during debate
-    if (stage === MEETING_STAGES.MOTION_DISCUSSION && speakingQueue.length > 0 && !currentSpeaker &&
-        !(pendingAmendments && pendingAmendments.length > 0) &&
-        (meetingState.pendingMotions || []).length === 0 && !hasPendingPointOfOrder &&
-        !meetingState.ordersOfTheDayDemand) {
-        buttons.push(
-            <button
-                key="recognize-speaker"
-                onClick={!appealWindowActive ? onRecognizeSpeaker : undefined}
-                disabled={appealWindowActive}
-                data-tooltip={appealWindowActive ? "Wait for appeal window to expire" : "Give the floor to the next person in queue"}
-                title={appealWindowActive ? "Wait for appeal window to expire" : "Give the floor to the next person in queue"}
-                style={appealWindowActive ? { opacity: 0.45 } : {}}
-            >
-                Recognize Next Speaker
-            </button>
-        );
-    }
-
     // Speaker Yields (chair can end speaker's time)
     if (currentSpeaker && currentSpeaker.participant !== currentUser.name) {
         buttons.push(
@@ -321,24 +302,26 @@ export function ChairActions({
         );
     }
 
-    // Call the Question (vote) — hide during Point of Order, pending motions, active speaker
+    // Call the Vote (only when no speakers waiting — chair must use Previous Question otherwise)
     if (stage === MEETING_STAGES.MOTION_DISCUSSION && !currentSpeaker &&
         !(pendingAmendments && pendingAmendments.length > 0) &&
         (meetingState.pendingMotions || []).length === 0 && !hasPendingPointOfOrder &&
-        !meetingState.ordersOfTheDayDemand &&
-        top?.status !== 'pending_chair' && top?.status !== 'pending_second') {
-        buttons.push(
-            <button
-                key="call-question"
-                onClick={!appealWindowActive ? onCallVote : undefined}
-                disabled={appealWindowActive}
-                data-tooltip={appealWindowActive ? "Wait for appeal window to expire" : "End debate and put the motion to a vote"}
-                title={appealWindowActive ? "Wait for appeal window to expire" : "End debate and put the motion to a vote"}
-                style={appealWindowActive ? { opacity: 0.45 } : {}}
-            >
-                Call the Question (Vote)
-            </button>
-        );
+        !meetingState.ordersOfTheDayDemand) {
+        const showCallVote = top?.status !== 'pending_chair' && top?.status !== 'pending_second' && speakingQueue.length === 0;
+        if (showCallVote) {
+            buttons.push(
+                <button
+                    key="call-vote"
+                    onClick={!appealWindowActive ? onCallVote : undefined}
+                    disabled={appealWindowActive}
+                    data-tooltip="End debate and put the motion to a vote"
+                    title="End debate and put the motion to a vote"
+                    style={appealWindowActive ? { opacity: 0.45 } : {}}
+                >
+                    Call the Vote
+                </button>
+            );
+        }
     }
 
     // Adjourn (no business pending)
@@ -462,13 +445,6 @@ export function MemberActions({
 
     return (
         <div className="action-buttons">
-            {/* Yield Floor (speaker) */}
-            {currentSpeaker && currentSpeaker.participant === currentUser.name && (
-                <button onClick={onFinishSpeaking} className="secondary" data-tooltip="Finish speaking and return the floor to the chair" title="Finish speaking and return the floor to the chair">
-                    Yield Floor
-                </button>
-            )}
-
             {/* === NEW BUSINESS AREA === */}
             {(stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && motionStack.length === 0 && !currentMotion && (
                 <>
@@ -519,14 +495,14 @@ export function MemberActions({
             {/* Speak buttons (only when debate is allowed) */}
             {stage === MEETING_STAGES.MOTION_DISCUSSION && debateAllowed && !hasPendingPointOfOrder &&
              !speakingQueue.find(s => s.participant === currentUser.name) && (
-                <>
-                    <button onClick={() => onRequestToSpeak('pro')} className="speak-btn-favor" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support">
+                <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                    <button onClick={() => onRequestToSpeak('pro')} className="speak-btn-favor" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support" style={{ flex: 1 }}>
                         Speak in Favor
                     </button>
-                    <button onClick={() => onRequestToSpeak('con')} className="speak-btn-against" data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition">
+                    <button onClick={() => onRequestToSpeak('con')} className="speak-btn-against" data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition" style={{ flex: 1 }}>
                         Speak Against
                     </button>
-                </>
+                </div>
             )}
 
             {/* Propose Amendment */}
@@ -555,144 +531,150 @@ export function MemberActions({
                 );
             })()}
 
-            {/* === SUBSIDIARY MOTIONS === */}
-            {stage === MEETING_STAGES.MOTION_DISCUSSION && subsidiaryMotions.length > 0 && !hasPendingPointOfOrder && (
-                <div className="action-section" style={{ width: '100%' }}>
-                    <details>
-                        <summary>Subsidiary Motions ({subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).length})</summary>
-                        <div className="action-grid">
-                            {subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).map(m => (
-                                <button
-                                    key={m.motionType}
-                                    onClick={() => m.enabled && onSubsidiaryMotion(m.motionType)}
-                                    className="secondary"
-                                    disabled={!m.enabled}
-                                    data-tooltip={getMotionTooltip(m)}
-                                    title={getMotionTooltip(m)}
-                                    style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
-                                >
-                                    {m.displayName}<InterruptBadge motionType={m.motionType} />
-                                </button>
-                            ))}
-                        </div>
-                    </details>
-                </div>
-            )}
-
-            {/* === PRIVILEGED MOTIONS === */}
-            {(stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS ||
-              stage === MEETING_STAGES.AGENDA_ITEM || stage === MEETING_STAGES.VOTING) && privilegedMotions.length > 0 && (
-                <div className="action-section" style={{ width: '100%' }}>
-                    <details>
-                        <summary>Privileged Motions ({privilegedMotions.length})</summary>
-                        <div className="action-grid">
-                            {privilegedMotions.map(m => (
-                                <button
-                                    key={m.motionType}
-                                    onClick={() => m.enabled && onPrivilegedMotion(m.motionType)}
-                                    className="secondary"
-                                    disabled={!m.enabled}
-                                    data-tooltip={getMotionTooltip(m)}
-                                    title={getMotionTooltip(m)}
-                                    style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
-                                >
-                                    {m.displayName}<InterruptBadge motionType={m.motionType} />
-                                </button>
-                            ))}
-                        </div>
-                    </details>
-                </div>
-            )}
-
-            {/* === INCIDENTAL MOTIONS === */}
-            {stage !== MEETING_STAGES.ADJOURNED && stage !== MEETING_STAGES.NOT_STARTED && (() => {
+            {/* === BOTTOM ACTIONS: Point of Order + More (members) / flat sections (chair) === */}
+            {(() => {
                 const appealAvail = available.find(m => m.motionType === MOTION_TYPES.APPEAL);
                 const appealEnabled = appealAvail?.enabled ?? false;
                 const divisionAvail = available.find(m => m.motionType === MOTION_TYPES.DIVISION_OF_ASSEMBLY);
                 const divisionEnabled = divisionAvail?.enabled ?? false;
 
+                const subsidiarySection = stage === MEETING_STAGES.MOTION_DISCUSSION && subsidiaryMotions.length > 0 && !hasPendingPointOfOrder && (
+                    <div className="action-section" style={{ width: '100%' }}>
+                        <details>
+                            <summary>Subsidiary Motions ({subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).length})</summary>
+                            <div className="action-grid">
+                                {subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).map(m => (
+                                    <button
+                                        key={m.motionType}
+                                        onClick={() => m.enabled && onSubsidiaryMotion(m.motionType)}
+                                        className="secondary"
+                                        disabled={!m.enabled}
+                                        data-tooltip={getMotionTooltip(m)}
+                                        title={getMotionTooltip(m)}
+                                        style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
+                                    >
+                                        {m.displayName}<InterruptBadge motionType={m.motionType} />
+                                    </button>
+                                ))}
+                            </div>
+                        </details>
+                    </div>
+                );
+
+                const privilegedSection = (stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS ||
+                    stage === MEETING_STAGES.AGENDA_ITEM || stage === MEETING_STAGES.VOTING) && privilegedMotions.length > 0 && (
+                    <div className="action-section" style={{ width: '100%' }}>
+                        <details>
+                            <summary>Privileged Motions ({privilegedMotions.length})</summary>
+                            <div className="action-grid">
+                                {privilegedMotions.map(m => (
+                                    <button
+                                        key={m.motionType}
+                                        onClick={() => m.enabled && onPrivilegedMotion(m.motionType)}
+                                        className="secondary"
+                                        disabled={!m.enabled}
+                                        data-tooltip={getMotionTooltip(m)}
+                                        title={getMotionTooltip(m)}
+                                        style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
+                                    >
+                                        {m.displayName}<InterruptBadge motionType={m.motionType} />
+                                    </button>
+                                ))}
+                            </div>
+                        </details>
+                    </div>
+                );
+
+                const incidentalButtons = stage !== MEETING_STAGES.ADJOURNED && stage !== MEETING_STAGES.NOT_STARTED && (
+                    <div className="action-section" style={{ width: '100%' }}>
+                        <details>
+                            <summary>Incidental Motions</summary>
+                            <div className="action-grid">
+                                <button
+                                    onClick={!hasPendingPointOfOrder ? onPointOfOrder : undefined}
+                                    className="secondary"
+                                    disabled={hasPendingPointOfOrder}
+                                    data-tooltip={hasPendingPointOfOrder ? 'A point of order is already pending' : 'Alert the chair that a rule is being broken'}
+                                    title={hasPendingPointOfOrder ? 'A point of order is already pending' : 'Alert the chair that a rule is being broken'}
+                                    style={{fontSize: '0.85rem', padding: '0.5rem', ...(hasPendingPointOfOrder ? disabledStyle : {})}}
+                                >
+                                    Point of Order
+                                </button>
+                                <button
+                                    onClick={onParliamentaryInquiry}
+                                    className="secondary"
+                                    data-tooltip="Ask the chair a question about procedure" title="Ask the chair a question about procedure"
+                                    style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                                >
+                                    Parl. Inquiry
+                                </button>
+                                <button
+                                    onClick={onRequestForInfo}
+                                    className="secondary"
+                                    data-tooltip="Ask a factual question relevant to the discussion" title="Ask a factual question relevant to the discussion"
+                                    style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                                >
+                                    Request Info
+                                </button>
+                                <button
+                                    onClick={appealEnabled ? onAppeal : undefined}
+                                    className="secondary"
+                                    disabled={!appealEnabled}
+                                    data-tooltip={!appealEnabled ? 'No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
+                                    title={!appealEnabled ? 'No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
+                                    style={{fontSize: '0.85rem', padding: '0.5rem', ...(!appealEnabled ? disabledStyle : {})}}
+                                >
+                                    Appeal Chair
+                                </button>
+                                <button
+                                    onClick={divisionEnabled ? onDivision : undefined}
+                                    className="secondary"
+                                    disabled={!divisionEnabled}
+                                    data-tooltip={!divisionEnabled ? 'Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
+                                    title={!divisionEnabled ? 'Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
+                                    style={{fontSize: '0.85rem', padding: '0.5rem', ...(!divisionEnabled ? disabledStyle : {})}}
+                                >
+                                    Division
+                                </button>
+                                <button
+                                    onClick={onSuspendRules}
+                                    className="secondary"
+                                    data-tooltip="Temporarily set aside the rules (requires 2/3 vote)" title="Temporarily set aside the rules (requires 2/3 vote)"
+                                    style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                                >
+                                    Suspend Rules
+                                </button>
+                                {motionStack.length > 0 && top?.mover === currentUser.name && top?.status !== 'pending_chair' && (
+                                    <button
+                                        onClick={onWithdrawMotion}
+                                        className="secondary"
+                                        data-tooltip="Request to take back your motion (requires consent)" title="Request to take back your motion (requires consent)"
+                                        style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                                    >
+                                        Withdraw Motion
+                                    </button>
+                                )}
+                                {onOrdersOfTheDay && !isChair && (stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && (
+                                    <button
+                                        onClick={onOrdersOfTheDay}
+                                        className="secondary"
+                                        data-tooltip="Demand the assembly return to the prescribed order of business" title="Demand the assembly return to the prescribed order of business"
+                                        style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                                    >
+                                        Orders of the Day
+                                    </button>
+                                )}
+                            </div>
+                        </details>
+                    </div>
+                );
+
                 return (
-                <div className="action-section" style={{ width: '100%' }}>
-                    <details>
-                        <summary>Incidental Motions</summary>
-                        <div className="action-grid">
-                            <button
-                                onClick={!hasPendingPointOfOrder ? onPointOfOrder : undefined}
-                                className="secondary"
-                                data-tooltip={hasPendingPointOfOrder ? 'Alert the chair that a rule is being broken — OUT OF ORDER: A point of order is already pending' : 'Alert the chair that a rule is being broken'}
-                                title={hasPendingPointOfOrder ? 'Alert the chair that a rule is being broken — OUT OF ORDER: A point of order is already pending' : 'Alert the chair that a rule is being broken'}
-                                style={{fontSize: '0.85rem', padding: '0.5rem', ...(hasPendingPointOfOrder ? disabledStyle : {})}}
-                                disabled={hasPendingPointOfOrder}
-                            >
-                                Point of Order
-                            </button>
-                            <button
-                                onClick={onParliamentaryInquiry}
-                                className="secondary"
-                                data-tooltip="Ask the chair a question about procedure" title="Ask the chair a question about procedure"
-                                style={{fontSize: '0.85rem', padding: '0.5rem'}}
-                            >
-                                Parl. Inquiry
-                            </button>
-                            <button
-                                onClick={onRequestForInfo}
-                                className="secondary"
-                                data-tooltip="Ask a factual question relevant to the discussion" title="Ask a factual question relevant to the discussion"
-                                style={{fontSize: '0.85rem', padding: '0.5rem'}}
-                            >
-                                Request Info
-                            </button>
-                            <button
-                                onClick={appealEnabled ? onAppeal : undefined}
-                                className="secondary"
-                                disabled={!appealEnabled}
-                                data-tooltip={!appealEnabled ? 'Challenge the chair\'s ruling — OUT OF ORDER: No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
-                                title={!appealEnabled ? 'Challenge the chair\'s ruling — OUT OF ORDER: No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
-                                style={{fontSize: '0.85rem', padding: '0.5rem', ...(!appealEnabled ? disabledStyle : {})}}
-                            >
-                                Appeal Chair
-                            </button>
-                            <button
-                                onClick={divisionEnabled ? onDivision : undefined}
-                                className="secondary"
-                                disabled={!divisionEnabled}
-                                data-tooltip={!divisionEnabled ? 'Request a counted vote — OUT OF ORDER: Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
-                                title={!divisionEnabled ? 'Request a counted vote — OUT OF ORDER: Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
-                                style={{fontSize: '0.85rem', padding: '0.5rem', ...(!divisionEnabled ? disabledStyle : {})}}
-                            >
-                                Division
-                            </button>
-                            <button
-                                onClick={onSuspendRules}
-                                className="secondary"
-                                data-tooltip="Temporarily set aside the rules (requires 2/3 vote)" title="Temporarily set aside the rules (requires 2/3 vote)"
-                                style={{fontSize: '0.85rem', padding: '0.5rem'}}
-                            >
-                                Suspend Rules
-                            </button>
-                            {motionStack.length > 0 && top?.mover === currentUser.name && top?.status !== 'pending_chair' && (
-                                <button
-                                    onClick={onWithdrawMotion}
-                                    className="secondary"
-                                    data-tooltip="Request to take back your motion (requires consent)" title="Request to take back your motion (requires consent)"
-                                    style={{fontSize: '0.85rem', padding: '0.5rem'}}
-                                >
-                                    Withdraw Motion
-                                </button>
-                            )}
-                            {onOrdersOfTheDay && !isChair && (stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && (
-                                <button
-                                    onClick={onOrdersOfTheDay}
-                                    className="secondary"
-                                    data-tooltip="Demand the assembly return to the prescribed order of business" title="Demand the assembly return to the prescribed order of business"
-                                    style={{fontSize: '0.85rem', padding: '0.5rem'}}
-                                >
-                                    Orders of the Day
-                                </button>
-                            )}
-                        </div>
-                    </details>
-                </div>
+                    <>
+                        {subsidiarySection}
+                        {privilegedSection}
+                        {incidentalButtons}
+                    </>
                 );
             })()}
         </div>

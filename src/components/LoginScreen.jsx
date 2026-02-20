@@ -8,6 +8,7 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
     const [meetingCode, setMeetingCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [activeTab, setActiveTab] = useState('join');
 
     const handleJoin = async (e) => {
         e.preventDefault();
@@ -64,50 +65,57 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
         }
     };
 
+    const handleCreate = () => {
+        if (!name) {
+            setError('Please enter your name first.');
+            return;
+        }
+        onCreateMeeting(name);
+    };
+
     return (
         <div className="app-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-            <div className="login-top-bar" aria-hidden="true" />
-            <div className="login-corner-mark top-left" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M0 8V0H8" stroke="hsl(4, 62%, 30%)" strokeWidth="1" opacity="0.15" /></svg>
-            </div>
-            <div className="login-corner-mark top-right" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M24 8V0H16" stroke="hsl(4, 62%, 30%)" strokeWidth="1" opacity="0.15" /></svg>
-            </div>
-            <div className="login-corner-mark bottom-left" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M0 16V24H8" stroke="hsl(4, 62%, 30%)" strokeWidth="1" opacity="0.15" /></svg>
-            </div>
-            <div className="login-corner-mark bottom-right" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M24 16V24H16" stroke="hsl(4, 62%, 30%)" strokeWidth="1" opacity="0.15" /></svg>
-            </div>
-            <div style={{ width: '100%', maxWidth: '460px' }}>
+            <div style={{ width: '100%', maxWidth: '400px', padding: '0 1rem' }}>
                 <header className="header">
                     <div className="logo-container">
                         <HatsellLogo />
                         <h1>Hatsell</h1>
                     </div>
                     <p className="subtitle">Parliamentary Meeting Assistant</p>
-                    <span className="header-badge">Based on Robert's Rules of Order</span>
                 </header>
 
-                <div className="login-container">
-                    <div className="login-section-heading">
-                        <span>Join Meeting</span>
+                {/* Tab toggle */}
+                <div className="login-tabs">
+                    <button
+                        className={`login-tab ${activeTab === 'join' ? 'active' : ''}`}
+                        onClick={() => { setActiveTab('join'); setError(null); }}
+                    >
+                        Join Meeting
+                    </button>
+                    <button
+                        className={`login-tab ${activeTab === 'create' ? 'active' : ''}`}
+                        onClick={() => { setActiveTab('create'); setError(null); }}
+                    >
+                        Create Meeting
+                    </button>
+                </div>
+
+                {error && (
+                    <div className="login-error" role="alert">
+                        {error}
                     </div>
+                )}
 
-                    {error && (
-                        <div className="login-error" role="alert">
-                            {error}
-                        </div>
-                    )}
-
+                {activeTab === 'join' && (
                     <form onSubmit={handleJoin}>
-                        <div className="form-group">
-                            <label>Your Name</label>
+                        <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                            <label className="login-label">Your Name</label>
                             <input
                                 type="text"
+                                className="login-input"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="e.g. Hon. Margaret Chen"
+                                placeholder="e.g. John Hatsell"
                                 required
                                 disabled={loading}
                                 autoFocus
@@ -115,40 +123,57 @@ export default function LoginScreen({ onLogin, onAbout, onCreateMeeting }) {
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label>Meeting Code</label>
-                            <div className="login-meeting-code-row">
-                                <input
-                                    type="text"
-                                    value={meetingCode}
-                                    onChange={(e) => setMeetingCode(e.target.value.toUpperCase())}
-                                    placeholder="E.g. XCGJAD"
-                                    disabled={loading}
-                                />
-                                <button type="submit" disabled={loading || !name || !meetingCode.trim()}>
-                                    {loading ? 'Joining...' : 'Join →'}
-                                </button>
-                            </div>
+                        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                            <label className="login-label">Meeting Code</label>
+                            <input
+                                type="text"
+                                className="login-input"
+                                value={meetingCode}
+                                onChange={(e) => setMeetingCode(e.target.value.toUpperCase())}
+                                placeholder="e.g. XKGLS"
+                                disabled={loading}
+                            />
                         </div>
+
+                        <button
+                            type="submit"
+                            className="login-submit"
+                            disabled={loading || !name || !meetingCode.trim()}
+                        >
+                            {loading ? 'Joining...' : 'Join Meeting'}
+                        </button>
                     </form>
+                )}
 
-                    <div className="login-divider">
-                        <span>or</span>
+                {activeTab === 'create' && (
+                    <div>
+                        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                            <label className="login-label">Your Name</label>
+                            <input
+                                type="text"
+                                className="login-input"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="e.g. John Hatsell"
+                                required
+                                disabled={loading}
+                                autoComplete="name"
+                            />
+                        </div>
+
+                        <button
+                            type="button"
+                            className="login-submit"
+                            onClick={handleCreate}
+                            disabled={loading || !name}
+                        >
+                            Create Meeting
+                        </button>
                     </div>
+                )}
 
-                    <button
-                        onClick={() => {
-                            if (!name) {
-                                setError('Please enter your name first.');
-                                return;
-                            }
-                            onCreateMeeting(name);
-                        }}
-                        className="login-create-btn"
-                        disabled={loading}
-                    >
-                        + Create a New Meeting
-                    </button>
+                <div style={{ textAlign: 'center' }}>
+                    <span className="header-badge">Based on Robert's Rules of Order</span>
                 </div>
 
                 <footer className="login-footer">

@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes, autoYield, onAutoYield }) {
+export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes, autoYield, onAutoYield, currentUser, onYield }) {
     const [elapsed, setElapsed] = useState(0);
     const hasAutoYielded = useRef(false);
 
@@ -43,32 +43,27 @@ export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes, auto
     };
 
     const timerClass = `speaking-timer${isOvertime ? ' expired' : totalSeconds && remaining <= 30 ? ' warning' : ''}`;
+    const isSpeaker = currentUser && currentSpeaker.participant === currentUser.name;
 
     return (
         <div className={timerClass} role="timer" aria-live="polite">
-            <div className="timer-label">
-                {currentSpeaker.participant} - {currentSpeaker.stance === 'pro' ? 'In Favor' : 'Against'}
+            <div className="speaking-timer-left">
+                <span className={`speaking-dot ${currentSpeaker.stance === 'pro' ? 'pro' : 'con'}`} />
+                <div>
+                    <div className="speaking-name">{currentSpeaker.participant}</div>
+                    <div className={`speaking-stance ${currentSpeaker.stance === 'pro' ? 'pro' : 'con'}`}>
+                        Speaking {currentSpeaker.stance === 'pro' ? 'in Favor' : 'Against'}
+                    </div>
+                </div>
             </div>
-
-            {isOvertime && (
-                <div className="timer-label" style={{ color: '#c0392b', fontWeight: 700 }}>
-                    {autoYield ? 'Floor yielded - time expired' : "Time's up"}
+            <div className="speaking-timer-right">
+                <div className="timer-display">
+                    {remaining !== null ? formatTime(remaining) : formatTime(elapsed)}
                 </div>
-            )}
-
-            <div className="timer-display">
-                {remaining !== null ? formatTime(remaining) : formatTime(elapsed)}
+                {isSpeaker && onYield && (
+                    <button onClick={onYield} className="ghost yield-btn">Yield</button>
+                )}
             </div>
-
-            {totalSeconds ? (
-                <div className="timer-label" style={{ marginTop: '0.25rem' }}>
-                    {isOvertime ? 'over time limit' : `of ${maxDurationMinutes} min`}
-                </div>
-            ) : (
-                <div className="timer-label" style={{ marginTop: '0.25rem' }}>
-                    elapsed (no time limit)
-                </div>
-            )}
         </div>
     );
 }

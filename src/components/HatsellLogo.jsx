@@ -44,21 +44,21 @@ export default function HatsellLogo({ small }) {
     ];
 
     const rings = [
-        { r: 38, seats: 5, size: 2.8, opacity: 0.25 },
-        { r: 48, seats: 7, size: 3, opacity: 0.3 },
-        { r: 58, seats: 8, size: 3.2, opacity: 0.3 },
-        { r: 68, seats: 10, size: 3.2, opacity: 0.28 },
-        { r: 78, seats: 11, size: 3.4, opacity: 0.25 },
+        { r: 38, seats: 5, size: 2.8, opacity: 0.4 },
+        { r: 48, seats: 7, size: 3, opacity: 0.45 },
+        { r: 58, seats: 8, size: 3.2, opacity: 0.45 },
+        { r: 68, seats: 10, size: 3.2, opacity: 0.42 },
+        { r: 78, seats: 11, size: 3.4, opacity: 0.38 },
     ];
 
     return (
         <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
             className={small ? 'logo-small' : undefined}>
-            <circle cx={cx} cy={cy} r="92" stroke={color} strokeWidth="1" opacity="0.18" />
-            <circle cx={cx} cy={cy} r="90" stroke={color} strokeWidth="0.5" opacity="0.1" />
-            <circle cx={cx} cy={cy} r="22" stroke={color} strokeWidth="1" opacity="0.2" fill={color} fillOpacity="0.04" />
-            <rect x={cx - 8} y={cy - 6} width="16" height="5" rx="1" stroke={color} strokeWidth="0.8" opacity="0.3" fill={color} fillOpacity="0.06" />
-            <rect x={cx - 3} y={cy + 4} width="6" height="4" rx="1" fill={color} opacity="0.2" />
+            <circle cx={cx} cy={cy} r="92" stroke={color} strokeWidth="1" opacity="0.28" />
+            <circle cx={cx} cy={cy} r="90" stroke={color} strokeWidth="0.5" opacity="0.15" />
+            <circle cx={cx} cy={cy} r="22" stroke={color} strokeWidth="1" opacity="0.3" fill={color} fillOpacity="0.06" />
+            <rect x={cx - 8} y={cy - 6} width="16" height="5" rx="1" stroke={color} strokeWidth="0.8" opacity="0.4" fill={color} fillOpacity="0.08" />
+            <rect x={cx - 3} y={cy + 4} width="6" height="4" rx="1" fill={color} opacity="0.3" />
 
             {sections.map((sec) => rings.map((ring) => (
                 <path
@@ -66,7 +66,7 @@ export default function HatsellLogo({ small }) {
                     d={arcPath(ring.r, sec.start, sec.end)}
                     stroke={color}
                     strokeWidth="0.6"
-                    opacity={0.12}
+                    opacity={0.18}
                     fill="none"
                 />
             )))}

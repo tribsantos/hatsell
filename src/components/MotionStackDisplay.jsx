@@ -24,7 +24,7 @@ const CATEGORY_LABELS = {
     bring_back: 'Bring Back',
 };
 
-function MotionCard({ motion, isTop, isChair, defaultExpanded }) {
+function MotionCard({ motion, isTop, isChair, defaultExpanded, stackPosition, totalInStack }) {
     const [expanded, setExpanded] = useState(defaultExpanded);
     const config = statusConfig[motion.status] || { cssClass: '', label: motion.status };
     const category = motion.category || '';
@@ -34,23 +34,37 @@ function MotionCard({ motion, isTop, isChair, defaultExpanded }) {
         <div className={`motion-card ${category} ${isTop ? 'active' : ''} ${expanded ? 'expanded' : ''}`}>
             <div className="motion-card-header" onClick={() => setExpanded(!expanded)}>
                 <span className="motion-card-chevron">{'\u25B6'}</span>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', minWidth: 0 }}>
-                    {motion.degree > 0 && (
-                        <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'uppercase', fontWeight: 700 }}>
-                            {motion.degree === 1 ? '1st' : '2nd'}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span className={`motion-status-badge ${config.cssClass}`}>{config.label}</span>
+                        {isTop && totalInStack > 1 && (
+                            <span style={{ fontWeight: 700, fontSize: '0.7rem', color: 'var(--h-fg)' }}>Highest Precedence</span>
+                        )}
+                        {!isTop && (
+                            <span style={{ fontSize: '0.7rem', color: '#888' }}>#{stackPosition} in stack</span>
+                        )}
+                    </div>
+                    <div style={{ marginTop: '0.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {motion.degree > 0 && (
+                            <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'uppercase', fontWeight: 700 }}>
+                                {motion.degree === 1 ? '1st' : '2nd'}
+                            </span>
+                        )}
+                        <span style={{ fontSize: '0.75rem', color: 'var(--h-crimson)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>
+                            {motion.displayName}
                         </span>
-                    )}
-                    <span className="motion-type-label" style={{ fontSize: '0.8rem' }}>{motion.displayName}</span>
-                    <span className={`motion-category-badge ${category}`}>{CATEGORY_LABELS[category] || category}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexShrink: 0 }}>
-                    <span className={`motion-status-badge ${config.cssClass}`}>{config.label}</span>
+                    </div>
                 </div>
             </div>
 
             {expanded && (
                 <div className="motion-card-body">
-                    <div className="motion-text" style={{ fontSize: '0.95rem' }}>
+                    <div className="motion-text" style={{
+                        fontSize: isTop ? '1.1rem' : '0.95rem',
+                        fontFamily: isTop ? 'var(--h-font-heading)' : undefined,
+                        fontStyle: isTop ? 'italic' : undefined,
+                        lineHeight: 1.6
+                    }}>
                         {motion.text}
                     </div>
 
@@ -62,8 +76,9 @@ function MotionCard({ motion, isTop, isChair, defaultExpanded }) {
                     )}
 
                     <div className="motion-meta" style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-                        <div>Moved by: {motion.mover}</div>
-                        {motion.seconder && <div>Seconded by: {motion.seconder}</div>}
+                        <span>Moved by <strong>{motion.mover}</strong></span>
+                        {motion.seconder && <span> &middot; Seconded by <strong>{motion.seconder}</strong></span>}
+                        {rules && <span style={{ fontStyle: 'italic', color: '#888' }}> &middot; Requires {getThresholdLabel(motion.voteRequired).toLowerCase()} vote</span>}
                     </div>
 
                     {motion.metadata?.amendmentHistory && motion.metadata.amendmentHistory.length > 0 && (
@@ -134,7 +149,7 @@ export default function MotionStackDisplay({ motionStack, isChair, decidedMotion
         <div className="panel motion-stack" aria-label={hasActiveMotions ? "Motions on the floor" : "Decided motions"}>
             {hasActiveMotions && (
                 <>
-                    <h3>Motions on the Floor</h3>
+                    <h3>Motion Stack ({sorted.length} Pending)</h3>
 
                     {activeCategories.length > 1 && (
                         <div className="motion-legend">
@@ -154,6 +169,8 @@ export default function MotionStackDisplay({ motionStack, isChair, decidedMotion
                             isTop={idx === 0}
                             isChair={isChair}
                             defaultExpanded={idx === 0}
+                            stackPosition={idx + 1}
+                            totalInStack={sorted.length}
                         />
                     ))}
                 </>

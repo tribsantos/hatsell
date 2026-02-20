@@ -559,7 +559,26 @@ export default function MeetingView({
                         maxDurationMinutes={getDebateConstraints(motionStack, meetingState.orgProfile).maxSpeechDuration || null}
                         autoYield={!!meetingState.meetingSettings?.autoYieldOnTimeExpired}
                         onAutoYield={onFinishSpeaking}
+                        currentUser={currentUser}
+                        onYield={onFinishSpeaking}
                     />
+                )}
+
+                {/* Next Speaker — chair only, same position as member speak buttons */}
+                {isChair && !meetingState.currentSpeaker &&
+                 meetingState.stage === MEETING_STAGES.MOTION_DISCUSSION &&
+                 (meetingState.speakingQueue || []).length > 0 && (
+                    <div style={{ marginBottom: '1rem' }}>
+                        <button
+                            onClick={onRecognizeSpeaker}
+                            className="speak-btn-favor"
+                            style={{ width: '100%' }}
+                            data-tooltip="Give the floor to the next person in queue"
+                            title="Give the floor to the next person in queue"
+                        >
+                            Next Speaker ({(meetingState.speakingQueue || []).length} in queue)
+                        </button>
+                    </div>
                 )}
 
                 {/* Recess Timer — visible to all participants */}
@@ -571,7 +590,7 @@ export default function MeetingView({
                 {isChair ? (
                     <details style={{ marginTop: '1rem' }}>
                         <summary>
-                            Member tools - use sparingly
+                            More... (use sparingly)
                         </summary>
                         <div style={{
                             padding: '0.5rem 1rem 0.75rem',
