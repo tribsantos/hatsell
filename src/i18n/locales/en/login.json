@@ -1,0 +1,20 @@
+{
+  "tab_join": "Join Meeting",
+  "tab_create": "Create Meeting",
+  "label_your_name": "Your Name",
+  "label_meeting_code": "Meeting Code",
+  "placeholder_name": "e.g. John Hatsell",
+  "placeholder_code": "e.g. XKGLS",
+  "button_join": "Join Meeting",
+  "button_joining": "Joining...",
+  "button_create": "Create Meeting",
+  "error_code_required": "Meeting code is required to join a meeting.",
+  "error_no_meeting": "No meeting found with that code. Check the code and try again.",
+  "error_join_failed": "Failed to join meeting. Please try again.",
+  "error_name_required": "Please enter your name first.",
+  "trust_copy_line1": "Hatsell runs entirely in your browser. No account required.",
+  "trust_copy_line2": "Meeting data is not stored on our servers.",
+  "link_about": "About Hatsell",
+  "link_tutorial": "First Time?",
+  "language_toggle": "Português"
+}

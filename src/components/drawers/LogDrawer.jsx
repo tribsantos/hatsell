@@ -1,31 +1,33 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { MEETING_STAGES } from '../../constants';
 import DrawerOverlay from '../DrawerOverlay';
 import { exportMinutes } from '../../services/minutesExport';
 
 export default function LogDrawer({ meetingState, onClose }) {
+    const { t } = useTranslation('meeting');
     const log = meetingState.log || [];
     const isAdjourned = meetingState.stage === MEETING_STAGES.ADJOURNED;
 
     return (
-        <DrawerOverlay title="Meeting Log" onClose={onClose}>
+        <DrawerOverlay title={t('drawer_meeting_log')} onClose={onClose}>
             {isAdjourned && (
                 <div style={{ marginBottom: '1rem' }}>
                     <button
                         onClick={() => exportMinutes(meetingState)}
                         className="secondary"
                         style={{ width: '100%', padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-                        data-tooltip="Download formal minutes as an editable Word document"
-                        title="Download formal minutes as an editable Word document"
+                        data-tooltip={t('drawer_export_minutes_tooltip')}
+                        title={t('drawer_export_minutes_tooltip')}
                     >
-                        Export Minutes (.docx)
+                        {t('drawer_export_minutes')}
                     </button>
                 </div>
             )}
 
             {log.length === 0 && (
                 <p style={{ color: 'var(--h-fg-dim)', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                    No log entries yet.
+                    {t('drawer_log_empty')}
                 </p>
             )}
 

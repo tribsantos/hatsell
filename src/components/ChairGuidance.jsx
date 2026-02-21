@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { MEETING_STAGES, ROLES } from '../constants';
 import { getCurrentPendingQuestion, getMainMotion } from '../engine/motionStack';
 import { getThresholdLabel } from '../engine/voteEngine';
 import { MOTION_TYPES } from '../constants/motionTypes';
 
 export default function ChairGuidance({ meetingState, currentUser, isChair, onAcknowledgeAnnouncement }) {
+    const { t } = useTranslation('guidance');
+
     if (!isChair) return null;
 
     const { stage, currentMotion, speakingQueue, currentSpeaker, pendingAmendments, motionStack = [] } = meetingState;
@@ -19,24 +22,24 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
         const isAmendment = displayName && displayName.toLowerCase().includes('amend');
         const hasMoreBusiness = motionStack.length > 0;
         const showDetails = meetingState.meetingSettings?.showVoteDetails && voteDetails && voteDetails.length > 0;
-        const buttonLabel = hasMoreBusiness ? 'Continue Debate' : 'Proceed to New Business';
+        const buttonLabel = hasMoreBusiness ? t('button_continue_debate') : t('button_proceed_new_business');
 
         if (result === 'adopted') {
             if (isAmendment) {
                 const mainText = mainMotion?.text || motionText;
                 guidance = {
-                    title: "Announce the Result",
-                    phrase: `The ayes have it and the amendment is adopted. Discussion continues on the motion as amended: "${mainText}".`,
-                    action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required.`,
+                    title: t('title_announce_result'),
+                    phrase: t('phrase_adopted_amendment', { text: mainText }),
+                    action: t('action_vote_count', { aye, nay, threshold: thresholdLabel }),
                     buttonLabel
                 };
             } else {
                 guidance = {
-                    title: "Announce the Result",
+                    title: t('title_announce_result'),
                     phrase: hasMoreBusiness
-                        ? `The ayes have it and the ${displayName || 'motion'} is adopted. Debate continues on the pending question.`
-                        : `The ayes have it and the motion is adopted: "${motionText}". Is there further business?`,
-                    action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required.`,
+                        ? t('phrase_adopted_more', { motionName: displayName || 'motion' })
+                        : t('phrase_adopted_final', { text: motionText }),
+                    action: t('action_vote_count', { aye, nay, threshold: thresholdLabel }),
                     buttonLabel
                 };
             }
@@ -44,18 +47,18 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
             if (isAmendment) {
                 const mainText = mainMotion?.text || motionText;
                 guidance = {
-                    title: "Announce the Result",
-                    phrase: `The amendment is lost. Discussion continues on the main motion: "${mainText}".`,
-                    action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required.`,
+                    title: t('title_announce_result'),
+                    phrase: t('phrase_defeated_amendment', { text: mainText }),
+                    action: t('action_vote_count', { aye, nay, threshold: thresholdLabel }),
                     buttonLabel
                 };
             } else {
                 guidance = {
-                    title: "Announce the Result",
+                    title: t('title_announce_result'),
                     phrase: hasMoreBusiness
-                        ? `The nays have it and the ${displayName || 'motion'} is lost. Debate continues on the pending question.`
-                        : `The nays have it and the motion is lost. Is there further business?`,
-                    action: `The vote was ${aye} ayes, ${nay} nays. ${thresholdLabel} was required.`,
+                        ? t('phrase_defeated_more', { motionName: displayName || 'motion' })
+                        : t('phrase_defeated_final'),
+                    action: t('action_vote_count', { aye, nay, threshold: thresholdLabel }),
                     buttonLabel
                 };
             }
@@ -66,38 +69,38 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
         }
     } else if (stage === MEETING_STAGES.CALL_TO_ORDER) {
         guidance = {
-            title: "Call to Order",
-            phrase: "The meeting will come to order.",
-            action: "Click 'Call Meeting to Order' when ready."
+            title: t('title_call_to_order'),
+            phrase: t('phrase_call_to_order'),
+            action: t('action_call_to_order')
         };
     } else if (stage === MEETING_STAGES.ROLL_CALL) {
         guidance = {
-            title: "Roll Call",
-            phrase: "The Secretary will call the roll.",
+            title: t('title_roll_call'),
+            phrase: t('phrase_roll_call'),
             action: currentUser.role === ROLES.SECRETARY
-                ? "Call each member's name. They will respond 'Present.'"
-                : "The Secretary is conducting roll call."
+                ? t('action_roll_call_secretary')
+                : t('action_roll_call_chair')
         };
     } else if (stage === MEETING_STAGES.APPROVE_MINUTES) {
         if (meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0) {
             guidance = {
-                title: "Minutes Corrections",
-                phrase: "A correction to the minutes has been proposed. Is there any objection?",
-                action: "If no objection, the minutes are corrected by unanimous consent. If a member objects, the correction is debated and put to a vote."
+                title: t('title_minutes_corrections'),
+                phrase: t('phrase_minutes_correction'),
+                action: t('action_minutes_correction')
             };
         } else {
             guidance = {
-                title: "Approval of Minutes",
-                phrase: "Are there any corrections to the minutes?",
-                action: "Pause for corrections. If none are offered: 'Hearing no corrections, the minutes stand approved as distributed.' If corrections are proposed, handle them before approving."
+                title: t('title_approval_of_minutes'),
+                phrase: t('phrase_minutes_no_corrections'),
+                action: t('action_minutes_no_corrections')
             };
         }
     } else if (stage === MEETING_STAGES.ADOPT_AGENDA) {
         const agendaItems = meetingState.meetingSettings?.agendaItems || [];
         guidance = {
-            title: "Adopt the Agenda",
-            phrase: `The proposed agenda contains ${agendaItems.length} item${agendaItems.length !== 1 ? 's' : ''}. Is there a motion to adopt the agenda as presented?`,
-            action: "Adopt by unanimous consent or entertain a motion to adopt."
+            title: t('title_adopt_agenda'),
+            phrase: t('phrase_adopt_agenda', { count: agendaItems.length, plural: agendaItems.length !== 1 ? 's' : '' }),
+            action: t('action_adopt_agenda')
         };
     } else if (stage === MEETING_STAGES.AGENDA_ITEM) {
         const agendaItems = meetingState.meetingSettings?.agendaItems || [];
@@ -106,93 +109,93 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
         if (item) {
             if (item.category === 'informational_report') {
                 guidance = {
-                    title: `Agenda Item ${idx + 1}: ${item.title}`,
+                    title: t('title_agenda_item', { index: idx + 1, title: item.title }),
                     phrase: item.owner
-                        ? `The chair recognizes ${item.owner} for a report on "${item.title}".`
-                        : `The next item of business is a report: "${item.title}".`,
-                    action: "After the report, ask if there are questions. When done, advance to the next item."
+                        ? t('phrase_agenda_report', { owner: item.owner, title: item.title })
+                        : t('phrase_agenda_report_no_owner', { title: item.title }),
+                    action: t('action_agenda_report')
                 };
             } else {
                 guidance = {
-                    title: `Agenda Item ${idx + 1}: ${item.title}`,
-                    phrase: `The next item of business is "${item.title}". Is there a motion?`,
-                    action: "Wait for a member to make a motion, or advance to the next item if no action is needed."
+                    title: t('title_agenda_item', { index: idx + 1, title: item.title }),
+                    phrase: t('phrase_agenda_motion', { title: item.title }),
+                    action: t('action_agenda_motion')
                 };
             }
         }
     } else if (stage === MEETING_STAGES.NEW_BUSINESS) {
         if (top && top.status === 'pending_second') {
             guidance = {
-                title: `${top.displayName} Awaiting Second`,
-                phrase: `It has been moved: "${top.text}". Is there a second?`,
-                action: `Wait for a member to second. ${top.requiresSecond ? 'A second is required.' : ''}`
+                title: t('title_awaiting_second', { motionName: top.displayName }),
+                phrase: t('phrase_moved_second', { text: top.text }),
+                action: t('action_wait_second_required', { extra: top.requiresSecond ? t('action_second_required') : '' })
             };
         } else if (currentMotion && currentMotion.needsSecond) {
             guidance = {
-                title: "Motion Awaiting Second",
-                phrase: `It has been moved that "${currentMotion.text}". Is there a second?`,
-                action: "Wait for a member to second the motion."
+                title: t('title_motion_awaiting_second'),
+                phrase: t('phrase_moved_that_second', { text: currentMotion.text }),
+                action: t('action_wait_second_motion')
             };
         } else if (!currentMotion && motionStack.length === 0) {
             guidance = {
-                title: "New Business",
-                phrase: "Is there any new business?",
-                action: "Wait for members to make motions, or adjourn if business is complete."
+                title: t('title_new_business'),
+                phrase: t('phrase_new_business'),
+                action: t('action_new_business')
             };
         }
     } else if (stage === MEETING_STAGES.MOTION_DISCUSSION) {
         if (meetingState.ordersOfTheDayDemand) {
             guidance = {
-                title: "Orders of the Day",
-                phrase: "A member has called for the Orders of the Day. The chair must either return to the prescribed order of business or put the question: 'Shall the assembly suspend the rules and continue with the current business?' (requires 2/3 vote)",
-                action: "Choose to comply or move to suspend the rules."
+                title: t('title_orders_of_the_day'),
+                phrase: t('phrase_orders_of_day'),
+                action: t('action_orders_of_day')
             };
         } else if (top && top.status === 'pending_chair') {
             guidance = {
-                title: "Motion Pending Recognition",
-                phrase: `A motion has been made by ${top.mover}: "${top.text}". Is there a second?`,
-                action: "Decide whether to recognize this motion or rule it out of order."
+                title: t('title_motion_pending_recognition'),
+                phrase: t('phrase_motion_pending', { mover: top.mover, text: top.text }),
+                action: t('action_recognize_or_reject')
             };
         } else if (top && top.status === 'pending_second') {
             guidance = {
-                title: `${top.displayName} Awaiting Second`,
-                phrase: `It has been moved: "${top.text}". Is there a second?`,
-                action: "Wait for a member to second."
+                title: t('title_awaiting_second', { motionName: top.displayName }),
+                phrase: t('phrase_moved_second', { text: top.text }),
+                action: t('action_wait_second')
             };
         } else if (pendingAmendments && pendingAmendments.length > 0) {
             guidance = {
-                title: "Pending Amendment",
-                phrase: `The chair recognizes ${pendingAmendments[0].proposer} to propose an amendment.`,
-                action: "Click 'Recognize Amendment' to hear the amendment, or 'Decline' to proceed with debate."
+                title: t('title_pending_amendment'),
+                phrase: t('phrase_pending_amendment', { proposer: pendingAmendments[0].proposer }),
+                action: t('action_recognize_amendment')
             };
         } else if (currentSpeaker) {
             guidance = {
-                title: "Member Speaking",
-                phrase: `The chair has recognized ${currentSpeaker.participant}.`,
-                action: "Allow the member to speak. When finished, they will yield the floor."
+                title: t('title_member_speaking'),
+                phrase: t('phrase_member_speaking', { name: currentSpeaker.participant }),
+                action: t('action_member_speaking')
             };
         } else if (speakingQueue.length > 0) {
             guidance = {
-                title: "Recognize Next Speaker",
-                phrase: `The chair recognizes ${speakingQueue[0].participant}.`,
-                action: "Click 'Recognize Next Speaker' to give them the floor."
+                title: t('title_recognize_next_speaker'),
+                phrase: t('phrase_recognize_next', { name: speakingQueue[0].participant }),
+                action: t('action_recognize_next')
             };
         } else if (top && !top.isDebatable) {
             guidance = {
-                title: `${top.displayName} - Not Debatable`,
-                phrase: `The question is on ${top.displayName}: "${top.text}".`,
-                action: `This motion is not debatable. ${getThresholdLabel(top.voteRequired)} required. Call the question to vote.`
+                title: t('title_not_debatable', { motionName: top.displayName }),
+                phrase: t('phrase_not_debatable', { motionName: top.displayName, text: top.text }),
+                action: t('action_not_debatable', { threshold: getThresholdLabel(top.voteRequired) })
             };
         } else {
             const questionText = top
-                ? `Are you ready for the question on ${top.displayName}?`
-                : "Are there any further speakers?";
+                ? t('phrase_ready_question_motion', { motionName: top.displayName })
+                : t('phrase_ready_question_default');
             guidance = {
-                title: "Ready for the Question",
-                phrase: `Are there any further speakers? [Pause] Hearing none, ${questionText}`,
+                title: t('title_ready_for_question'),
+                phrase: t('phrase_ready_question', { question: questionText }),
                 action: top
-                    ? `If no one requests to speak, call the question. ${getThresholdLabel(top.voteRequired)} required to adopt.`
-                    : "If no one requests to speak, click 'Call the Question (Vote)' to proceed to voting."
+                    ? t('action_ready_question', { threshold: getThresholdLabel(top.voteRequired) })
+                    : t('action_ready_question_default')
             };
         }
     } else if (stage === MEETING_STAGES.VOTING) {
@@ -205,28 +208,28 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
 
         if (!allVoted) {
             guidance = {
-                title: `Vote on ${motionName}`,
-                phrase: `The question is on ${motionName}: "${motionText}". All in favor, say aye. [Pause] All opposed, say no.`,
-                action: `${thresholdLabel} required. Abstentions do not count. Wait for all members to vote, then click 'Announce Result'.`
+                title: t('title_vote_on', { motionName }),
+                phrase: t('phrase_vote', { motionName, text: motionText }),
+                action: t('action_vote', { threshold: thresholdLabel })
             };
         } else {
             guidance = {
-                title: "Announce Result",
-                phrase: chairHasVoted ? "All votes have been cast." : "All members have voted. The chair may vote or announce the result.",
-                action: `${thresholdLabel} required. Click 'Announce Result' to declare the outcome.`
+                title: t('title_announce_result_short'),
+                phrase: chairHasVoted ? t('phrase_all_voted') : t('phrase_all_voted_chair'),
+                action: t('action_announce_result', { threshold: thresholdLabel })
             };
         }
     } else if (stage === MEETING_STAGES.RECESS) {
         guidance = {
-            title: "Meeting in Recess",
-            phrase: "The meeting is in recess.",
-            action: "Click 'Resume Meeting' when the recess period has ended."
+            title: t('title_meeting_in_recess'),
+            phrase: t('phrase_recess'),
+            action: t('action_recess')
         };
     } else if (stage === MEETING_STAGES.ADJOURNED) {
         guidance = {
-            title: "Meeting Adjourned",
-            phrase: "The meeting is adjourned.",
-            action: "The meeting has concluded."
+            title: t('title_meeting_adjourned'),
+            phrase: t('phrase_adjourned'),
+            action: t('action_adjourned')
         };
     }
 
@@ -234,7 +237,7 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
 
     return (
         <div className="chair-guidance" role="region" aria-live="polite" aria-label="Chair guidance">
-            <h4>Chair Guidance: {guidance.title}</h4>
+            <h4>{t('chair_guidance_label', { title: guidance.title })}</h4>
             <div className="script-text">"{guidance.phrase}"</div>
             <p className="guidance-instruction">{guidance.action}</p>
             {guidance.voteDetails && guidance.voteDetails.length > 0 && (
@@ -245,13 +248,13 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
                     borderRadius: '4px',
                     fontSize: '0.85rem'
                 }}>
-                    <div style={{ fontWeight: '600', marginBottom: '0.35rem', color: '#555' }}>Individual Votes:</div>
+                    <div style={{ fontWeight: '600', marginBottom: '0.35rem', color: '#555' }}>{t('individual_votes')}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 1rem' }}>
                         {guidance.voteDetails.map((v, i) => (
                             <span key={i} style={{
                                 color: v.vote === 'aye' ? '#27ae60' : v.vote === 'nay' ? '#c0392b' : '#888'
                             }}>
-                                {v.name}: {v.vote === 'aye' ? 'Aye' : v.vote === 'nay' ? 'Nay' : 'Abstain'}
+                                {v.name}: {v.vote === 'aye' ? t('vote_aye') : v.vote === 'nay' ? t('vote_nay') : t('vote_abstain')}
                             </span>
                         ))}
                     </div>

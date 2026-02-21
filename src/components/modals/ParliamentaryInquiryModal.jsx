@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function ParliamentaryInquiryModal({ onSubmit, onClose }) {
+    const { t } = useTranslation('modals');
     const [inquiry, setInquiry] = useState('');
 
     const handleSubmit = (e) => {
@@ -12,24 +14,23 @@ export default function ParliamentaryInquiryModal({ onSubmit, onClose }) {
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
-                <h3>Parliamentary Inquiry</h3>
+                <h3>{t('parl_inquiry_heading')}</h3>
                 <div className="info-box">
-                    A Parliamentary Inquiry asks the chair a question about procedure or the
-                    effect of a motion. The chair will respond to your inquiry.
+                    {t('parl_inquiry_desc')}
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>State Your Inquiry</label>
+                        <label>{t('parl_inquiry_label')}</label>
                         <textarea
                             value={inquiry}
                             onChange={(e) => setInquiry(e.target.value)}
-                            placeholder="I rise to a parliamentary inquiry: Is it in order to..."
+                            placeholder={t('parl_inquiry_placeholder')}
                             autoFocus
                         />
                     </div>
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-                        <button type="submit">Submit Inquiry</button>
+                        <button type="button" className="secondary" onClick={onClose}>{t('parl_inquiry_cancel')}</button>
+                        <button type="submit">{t('parl_inquiry_submit')}</button>
                     </div>
                 </form>
             </div>

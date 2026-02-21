@@ -1,55 +1,57 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MOTION_TYPES } from '../../constants/motionTypes';
 import { getRules } from '../../engine/motionRules';
 import RuleHintBox from '../RuleHintBox';
 
-const SUBSIDIARY_FIELDS = {
+const getSubsidiaryFields = (t) => ({
     [MOTION_TYPES.AMEND]: {
-        heading: 'Propose an Amendment',
-        textLabel: 'Amendment Text',
-        textPlaceholder: 'I move to amend by...',
+        heading: t('subsidiary_heading_amend'),
+        textLabel: t('subsidiary_amendment_text'),
+        textPlaceholder: t('subsidiary_amendment_placeholder'),
         showOriginal: true
     },
     [MOTION_TYPES.POSTPONE_INDEFINITELY]: {
-        heading: 'Postpone Indefinitely',
-        textLabel: 'Reason (optional)',
-        textPlaceholder: 'I move to postpone the question indefinitely',
-        defaultText: 'to postpone the question indefinitely'
+        heading: t('subsidiary_heading_postpone_indef'),
+        textLabel: t('subsidiary_reason_label'),
+        textPlaceholder: t('subsidiary_postpone_indef_text'),
+        defaultText: t('subsidiary_postpone_indef_motion')
     },
     [MOTION_TYPES.COMMIT]: {
-        heading: 'Refer to Committee',
+        heading: t('subsidiary_heading_commit'),
         noTextInput: true,
-        fixedText: 'to refer the pending question to a committee',
+        fixedText: t('subsidiary_commit_motion'),
         extraFields: ['committeeName', 'instructions']
     },
     [MOTION_TYPES.POSTPONE_DEFINITELY]: {
-        heading: 'Postpone to a Definite Time',
+        heading: t('subsidiary_heading_postpone_def'),
         noTextInput: true,
-        fixedText: 'to postpone the pending question to a definite time',
+        fixedText: t('subsidiary_postpone_def_motion'),
         extraFields: ['postponeTime']
     },
     [MOTION_TYPES.LIMIT_DEBATE]: {
-        heading: 'Limit or Extend Debate',
+        heading: t('subsidiary_heading_limit_debate'),
         noTextInput: true,
-        fixedText: 'to limit or extend the limits of debate',
+        fixedText: t('subsidiary_limit_debate_motion'),
         extraFields: ['timeLimit', 'speechLimit']
     },
     [MOTION_TYPES.PREVIOUS_QUESTION]: {
-        heading: 'Previous Question (Close Debate)',
+        heading: t('subsidiary_heading_previous_question'),
         textLabel: null,
-        defaultText: 'to close debate and immediately vote on the pending question',
+        defaultText: t('subsidiary_previous_question_motion'),
         noTextInput: true
     },
     [MOTION_TYPES.LAY_ON_TABLE]: {
-        heading: 'Lay on the Table',
+        heading: t('subsidiary_heading_lay_on_table'),
         textLabel: null,
-        defaultText: 'to lay the pending question on the table',
+        defaultText: t('subsidiary_lay_on_table_motion'),
         noTextInput: true
     }
-};
+});
 
 export default function SubsidiaryMotionModal({ motionType, currentMotionText, onSubmit, onClose }) {
-    const config = SUBSIDIARY_FIELDS[motionType];
+    const { t } = useTranslation('modals');
+    const config = getSubsidiaryFields(t)[motionType];
     const rules = getRules(motionType);
 
     const [text, setText] = useState(config?.defaultText || '');
@@ -91,13 +93,13 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-subsidiary" onClick={(e) => e.stopPropagation()}>
                 <h3>{config.heading}</h3>
-                <p className="modal-description">Subsidiary motion &mdash; applies to the pending question.</p>
+                <p className="modal-description">{t('subsidiary_desc')}</p>
 
                 <RuleHintBox rules={rules} />
 
                 {config.showOriginal && currentMotionText && (
                     <div className="info-box">
-                        <strong>Pending Question:</strong><br />
+                        <strong>{t('subsidiary_pending_question')}</strong><br />
                         {currentMotionText}
                     </div>
                 )}
@@ -124,20 +126,20 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
                     {motionType === MOTION_TYPES.COMMIT && (
                         <>
                             <div className="form-group">
-                                <label>Committee Name</label>
+                                <label>{t('subsidiary_committee_name')}</label>
                                 <input
                                     type="text"
                                     value={committeeName}
                                     onChange={(e) => setCommitteeName(e.target.value)}
-                                    placeholder="e.g., Finance Committee"
+                                    placeholder={t('subsidiary_committee_placeholder')}
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Instructions (optional)</label>
+                                <label>{t('subsidiary_instructions_label')}</label>
                                 <textarea
                                     value={instructions}
                                     onChange={(e) => setInstructions(e.target.value)}
-                                    placeholder="with instructions to..."
+                                    placeholder={t('subsidiary_instructions_placeholder')}
                                 />
                             </div>
                         </>
@@ -145,12 +147,12 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
 
                     {motionType === MOTION_TYPES.POSTPONE_DEFINITELY && (
                         <div className="form-group">
-                            <label>Postpone Until</label>
+                            <label>{t('subsidiary_postpone_until')}</label>
                             <input
                                 type="text"
                                 value={postponeTime}
                                 onChange={(e) => setPostponeTime(e.target.value)}
-                                placeholder="e.g., next meeting, 3:00 PM"
+                                placeholder={t('subsidiary_postpone_placeholder')}
                             />
                         </div>
                     )}
@@ -158,22 +160,22 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
                     {motionType === MOTION_TYPES.LIMIT_DEBATE && (
                         <>
                             <div className="form-group">
-                                <label>Time Limit per Speaker (minutes)</label>
+                                <label>{t('subsidiary_time_limit')}</label>
                                 <input
                                     type="number"
                                     value={timeLimit}
                                     onChange={(e) => setTimeLimit(e.target.value)}
-                                    placeholder="e.g., 3"
+                                    placeholder={t('subsidiary_time_placeholder')}
                                     min="1"
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Max Speeches per Member</label>
+                                <label>{t('subsidiary_max_speeches')}</label>
                                 <input
                                     type="number"
                                     value={speechLimit}
                                     onChange={(e) => setSpeechLimit(e.target.value)}
-                                    placeholder="e.g., 1"
+                                    placeholder={t('subsidiary_max_placeholder')}
                                     min="1"
                                 />
                             </div>
@@ -181,8 +183,8 @@ export default function SubsidiaryMotionModal({ motionType, currentMotionText, o
                     )}
 
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-                        <button type="submit">Make Motion</button>
+                        <button type="button" className="secondary" onClick={onClose}>{t('subsidiary_cancel')}</button>
+                        <button type="submit">{t('subsidiary_submit')}</button>
                     </div>
                 </form>
             </div>

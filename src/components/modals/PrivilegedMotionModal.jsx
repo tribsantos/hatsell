@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MOTION_TYPES } from '../../constants/motionTypes';
 import { getRules } from '../../engine/motionRules';
 import RuleHintBox from '../RuleHintBox';
 
 export default function PrivilegedMotionModal({ motionType, onSubmit, onClose }) {
+    const { t } = useTranslation('modals');
     const [recessDuration, setRecessDuration] = useState('');
     const [fixedTime, setFixedTime] = useState('');
     const [privilegeText, setPrivilegeText] = useState('');
@@ -43,12 +45,12 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
 
     const getHeading = () => {
         switch (motionType) {
-            case MOTION_TYPES.ADJOURN: return 'Move to Adjourn';
-            case MOTION_TYPES.RECESS: return 'Move to Recess';
-            case MOTION_TYPES.FIX_TIME_TO_ADJOURN: return 'Fix Time to Adjourn';
-            case MOTION_TYPES.QUESTION_OF_PRIVILEGE: return 'Question of Privilege';
-            case MOTION_TYPES.ORDERS_OF_DAY: return 'Call for Orders of the Day';
-            default: return 'Privileged Motion';
+            case MOTION_TYPES.ADJOURN: return t('privileged_heading_adjourn');
+            case MOTION_TYPES.RECESS: return t('privileged_heading_recess');
+            case MOTION_TYPES.FIX_TIME_TO_ADJOURN: return t('privileged_heading_fix_time');
+            case MOTION_TYPES.QUESTION_OF_PRIVILEGE: return t('privileged_heading_privilege');
+            case MOTION_TYPES.ORDERS_OF_DAY: return t('privileged_heading_orders');
+            default: return t('privileged_heading_default');
         }
     };
 
@@ -56,19 +58,19 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-privileged" onClick={(e) => e.stopPropagation()}>
                 <h3>{getHeading()}</h3>
-                <p className="modal-description">Privileged motion &mdash; takes precedence over all pending business.</p>
+                <p className="modal-description">{t('privileged_desc')}</p>
 
                 <RuleHintBox rules={rules} />
 
                 <form onSubmit={handleSubmit}>
                     {motionType === MOTION_TYPES.RECESS && (
                         <div className="form-group">
-                            <label>Recess Duration (minutes)</label>
+                            <label>{t('privileged_recess_duration')}</label>
                             <input
                                 type="number"
                                 value={recessDuration}
                                 onChange={(e) => setRecessDuration(e.target.value)}
-                                placeholder="10"
+                                placeholder={t('privileged_recess_placeholder')}
                                 min="1"
                                 autoFocus
                             />
@@ -77,12 +79,12 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
 
                     {motionType === MOTION_TYPES.FIX_TIME_TO_ADJOURN && (
                         <div className="form-group">
-                            <label>Date/Time for Next Meeting</label>
+                            <label>{t('privileged_fix_time_label')}</label>
                             <input
                                 type="text"
                                 value={fixedTime}
                                 onChange={(e) => setFixedTime(e.target.value)}
-                                placeholder="e.g., Thursday at 7:00 PM"
+                                placeholder={t('privileged_fix_time_placeholder')}
                                 autoFocus
                             />
                         </div>
@@ -90,11 +92,11 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
 
                     {motionType === MOTION_TYPES.QUESTION_OF_PRIVILEGE && (
                         <div className="form-group">
-                            <label>State the Matter of Privilege</label>
+                            <label>{t('privileged_privilege_label')}</label>
                             <textarea
                                 value={privilegeText}
                                 onChange={(e) => setPrivilegeText(e.target.value)}
-                                placeholder="I rise to a question of privilege affecting..."
+                                placeholder={t('privileged_privilege_placeholder')}
                                 autoFocus
                             />
                         </div>
@@ -103,15 +105,15 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
                     {(motionType === MOTION_TYPES.ADJOURN || motionType === MOTION_TYPES.ORDERS_OF_DAY) && (
                         <div className="info-box">
                             {motionType === MOTION_TYPES.ADJOURN
-                                ? 'This motion, if adopted, will immediately adjourn the meeting.'
-                                : 'This demand requires the assembly to conform to the agenda.'}
+                                ? t('privileged_adjourn_note')
+                                : t('privileged_orders_note')}
                         </div>
                     )}
 
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
+                        <button type="button" className="secondary" onClick={onClose}>{t('privileged_cancel')}</button>
                         <button type="submit">
-                            {motionType === MOTION_TYPES.ORDERS_OF_DAY ? 'Demand' : 'Make Motion'}
+                            {motionType === MOTION_TYPES.ORDERS_OF_DAY ? t('privileged_demand') : t('privileged_submit')}
                         </button>
                     </div>
                 </form>

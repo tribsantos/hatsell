@@ -1,4 +1,5 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { REQUEST_STATUS } from '../constants/motionTypes';
 import { REQUEST_FLOWS } from '../engine/pendingRequests';
 
@@ -12,6 +13,7 @@ export default function PendingRequestsPanel({
     onRuleOnPointOfOrder,
     onConvertToMotion
 }) {
+    const { t } = useTranslation('meeting');
     const [responseText, setResponseText] = useState({});
 
     if (!pendingRequests || pendingRequests.length === 0) return null;
@@ -36,7 +38,7 @@ export default function PendingRequestsPanel({
 
     return (
         <div className="panel" style={{ marginBottom: '1.25rem' }}>
-            <h3>Pending Requests ({activeRequests.length})</h3>
+            <h3>{t('pending_requests_title', { count: activeRequests.length })}</h3>
             {activeRequests.map((request) => {
                 const flow = REQUEST_FLOWS[request.type];
                 const isPointOfOrder = request.type === 'point_of_order';
@@ -47,7 +49,7 @@ export default function PendingRequestsPanel({
                             <div>
                                 <strong>{request.displayName}</strong>
                                 <span style={{ color: '#666', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
-                                    by {request.raisedBy}
+                                    {t('request_by', { name: request.raisedBy })}
                                 </span>
                             </div>
                             <span className="motion-status-badge pending_second" style={{ textTransform: 'capitalize' }}>
@@ -63,7 +65,7 @@ export default function PendingRequestsPanel({
 
                         {request.response && (
                             <div className="info-box" style={{ margin: '0.4rem 0 0 0' }}>
-                                <strong>Chair response:</strong> {request.response}
+                                <strong>{t('request_chair_response')}</strong> {request.response}
                             </div>
                         )}
 
@@ -72,19 +74,19 @@ export default function PendingRequestsPanel({
                                 {isPointOfOrder ? (
                                     <>
                                         <button type="button" onClick={() => onRuleOnPointOfOrder(request.id, 'sustained')} className="success">
-                                            Sustain
+                                            {t('request_sustain')}
                                         </button>
                                         <button type="button" onClick={() => onRuleOnPointOfOrder(request.id, 'not sustained')} className="ghost">
-                                            Not Sustained
+                                            {t('request_not_sustained')}
                                         </button>
                                     </>
                                 ) : (
                                     <>
                                         <button type="button" onClick={() => onAcceptRequest(request.id)} className="success">
-                                            Accept
+                                            {t('request_accept')}
                                         </button>
                                         <button type="button" onClick={() => onDismissRequest(request.id)} className="ghost">
-                                            Dismiss
+                                            {t('request_dismiss')}
                                         </button>
                                     </>
                                 )}
@@ -96,19 +98,19 @@ export default function PendingRequestsPanel({
                                 <textarea
                                     value={responseText[request.id] || ''}
                                     onChange={(e) => handleResponseChange(request.id, e.target.value)}
-                                    placeholder={flow.responsePlaceholder || 'Enter your response...'}
+                                    placeholder={flow.responsePlaceholder || t('request_placeholder')}
                                     style={{ marginBottom: '0.5rem' }}
                                 />
                                 <button type="button" onClick={() => handleSubmitResponse(request.id)} style={{ width: '100%' }}>
-                                    Send Response
+                                    {t('request_send_response')}
                                 </button>
                             </div>
                         )}
 
                         {!isChair && request.raisedBy === currentUser?.name && request.status === REQUEST_STATUS.ACCEPTED && (
                             <div className="info-box" style={{ marginTop: '0.6rem' }}>
-                                The chair has recognized your {request.displayName.toLowerCase()}.
-                                {flow?.chairResponseRequired && ' Awaiting the chair\'s response.'}
+                                {t('request_recognized', { type: request.displayName.toLowerCase() })}
+                                {flow?.chairResponseRequired && t('request_awaiting_response')}
                             </div>
                         )}
 
@@ -119,7 +121,7 @@ export default function PendingRequestsPanel({
                                 className="ghost"
                                 style={{ marginTop: '0.5rem', alignSelf: 'flex-start' }}
                             >
-                                Clear
+                                {t('request_clear')}
                             </button>
                         )}
                     </div>

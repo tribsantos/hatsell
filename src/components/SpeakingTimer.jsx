@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes, autoYield, onAutoYield, currentUser, onYield }) {
     const [elapsed, setElapsed] = useState(0);
     const hasAutoYielded = useRef(false);
+    const { t } = useTranslation('meeting');
 
     useEffect(() => {
         hasAutoYielded.current = false;
@@ -52,7 +54,7 @@ export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes, auto
                 <div>
                     <div className="speaking-name">{currentSpeaker.participant}</div>
                     <div className={`speaking-stance ${currentSpeaker.stance === 'pro' ? 'pro' : 'con'}`}>
-                        Speaking {currentSpeaker.stance === 'pro' ? 'in Favor' : 'Against'}
+                        {currentSpeaker.stance === 'pro' ? t('speaking_in_favor') : t('speaking_against')}
                     </div>
                 </div>
             </div>
@@ -61,7 +63,7 @@ export default function SpeakingTimer({ currentSpeaker, maxDurationMinutes, auto
                     {remaining !== null ? formatTime(remaining) : formatTime(elapsed)}
                 </div>
                 {isSpeaker && onYield && (
-                    <button onClick={onYield} className="ghost yield-btn">Yield</button>
+                    <button onClick={onYield} className="ghost yield-btn">{t('yield_button')}</button>
                 )}
             </div>
         </div>

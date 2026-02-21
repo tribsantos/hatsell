@@ -1,0 +1,20 @@
+{
+  "tab_join": "Entrar na Reunião",
+  "tab_create": "Criar Reunião",
+  "label_your_name": "Seu Nome",
+  "label_meeting_code": "Código da Reunião",
+  "placeholder_name": "ex. João Silva",
+  "placeholder_code": "ex. XKGLS",
+  "button_join": "Entrar na Reunião",
+  "button_joining": "Entrando...",
+  "button_create": "Criar Reunião",
+  "error_code_required": "O código da reunião é obrigatório para participar.",
+  "error_no_meeting": "Nenhuma reunião encontrada com esse código. Verifique e tente novamente.",
+  "error_join_failed": "Falha ao entrar na reunião. Tente novamente.",
+  "error_name_required": "Por favor, insira seu nome primeiro.",
+  "trust_copy_line1": "O Hatsell funciona inteiramente no seu navegador. Sem necessidade de conta.",
+  "trust_copy_line2": "Os dados da reunião não são armazenados em nossos servidores.",
+  "link_about": "Sobre o Hatsell",
+  "link_tutorial": "Primeira Vez?",
+  "language_toggle": "English"
+}

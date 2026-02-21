@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-
-const TEMPLATES = [
-    'Allow a non-member to address the assembly',
-    'Take up business out of scheduled order',
-    'Extend time for current speaker',
-    'Consider a matter without referral to committee'
-];
+import { useTranslation } from 'react-i18next';
 
 export default function SuspendRulesModal({ onSubmit, onClose }) {
+    const { t } = useTranslation('modals');
+    const TEMPLATES = [
+        t('suspend_rules_purpose_nonmember'),
+        t('suspend_rules_purpose_order'),
+        t('suspend_rules_purpose_time'),
+        t('suspend_rules_purpose_committee')
+    ];
     const [customPurpose, setCustomPurpose] = useState('');
 
     const handleTemplate = (purpose) => {
@@ -23,28 +24,27 @@ export default function SuspendRulesModal({ onSubmit, onClose }) {
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
-                <h3>Suspend the Rules</h3>
+                <h3>{t('suspend_rules_heading')}</h3>
                 <div className="info-box">
-                    <p>Suspend the Rules allows the assembly to do something that would
-                        otherwise be out of order under the standing rules.</p>
+                    <p>{t('suspend_rules_desc')}</p>
                     <p className="modal-intro" style={{ marginBottom: '0' }}>
-                        Requires a second. Not debatable. Two-thirds vote required.
+                        {t('suspend_rules_requirements')}
                     </p>
                 </div>
 
                 <div className="suspend-section">
                     <label className="suspend-label">
-                        Common Purposes
+                        {t('suspend_rules_common')}
                     </label>
                     <div className="modal-template-list">
-                        {TEMPLATES.map((t, i) => (
+                        {TEMPLATES.map((tmpl, i) => (
                             <button
                                 key={i}
                                 type="button"
                                 className="secondary modal-template-button"
-                                onClick={() => handleTemplate(t)}
+                                onClick={() => handleTemplate(tmpl)}
                             >
-                                {t}
+                                {tmpl}
                             </button>
                         ))}
                     </div>
@@ -52,16 +52,16 @@ export default function SuspendRulesModal({ onSubmit, onClose }) {
 
                 <form onSubmit={handleCustom}>
                     <div className="form-group">
-                        <label>Custom Purpose</label>
+                        <label>{t('suspend_rules_custom')}</label>
                         <textarea
                             value={customPurpose}
                             onChange={(e) => setCustomPurpose(e.target.value)}
-                            placeholder="I move to suspend the rules in order to..."
+                            placeholder={t('suspend_rules_placeholder')}
                         />
                     </div>
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-                        <button type="submit" disabled={!customPurpose.trim()}>Move to Suspend</button>
+                        <button type="button" className="secondary" onClick={onClose}>{t('suspend_rules_cancel')}</button>
+                        <button type="submit" disabled={!customPurpose.trim()}>{t('suspend_rules_submit')}</button>
                     </div>
                 </form>
             </div>

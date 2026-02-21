@@ -1,72 +1,74 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { MEETING_STAGES } from '../constants';
 
 export default function MeetingStage({ stage, currentMotion, motionStack, suspendedRulesPurpose, agendaItems, currentAgendaIndex }) {
+    const { t } = useTranslation('meeting');
     const top = motionStack && motionStack.length > 0 ? motionStack[motionStack.length - 1] : null;
 
     const stageInfo = {
         [MEETING_STAGES.NOT_STARTED]: {
-            title: 'Meeting Not Started',
-            description: 'Waiting for chair to call meeting to order',
-            subtitle: 'Members may join using their meeting code'
+            title: t('stage_not_started_title'),
+            description: t('stage_not_started_desc'),
+            subtitle: t('stage_not_started_subtitle')
         },
         [MEETING_STAGES.CALL_TO_ORDER]: {
-            title: 'Call to Order',
-            description: 'The chair will call the meeting to order'
+            title: t('stage_call_to_order_title'),
+            description: t('stage_call_to_order_desc')
         },
         [MEETING_STAGES.ROLL_CALL]: {
-            title: 'Roll Call',
-            description: 'Establishing quorum'
+            title: t('stage_roll_call_title'),
+            description: t('stage_roll_call_desc')
         },
         [MEETING_STAGES.APPROVE_MINUTES]: {
-            title: 'Approve Minutes',
-            description: 'Review and approve minutes from previous meeting',
-            subtitle: 'Corrections may be proposed before approval'
+            title: t('stage_approve_minutes_title'),
+            description: t('stage_approve_minutes_desc'),
+            subtitle: t('stage_approve_minutes_subtitle')
         },
         [MEETING_STAGES.ADOPT_AGENDA]: {
-            title: 'Adopt Agenda',
-            description: 'Review and adopt the proposed agenda'
+            title: t('stage_adopt_agenda_title'),
+            description: t('stage_adopt_agenda_desc')
         },
         [MEETING_STAGES.AGENDA_ITEM]: (() => {
             const items = agendaItems || [];
             const idx = currentAgendaIndex ?? 0;
             const item = items[idx];
             return {
-                title: item ? `Agenda Item ${idx + 1}: ${item.title}` : 'Agenda Item',
-                description: item ? `Item ${idx + 1} of ${items.length}` : 'Processing agenda items'
+                title: item ? t('stage_agenda_item_title', { index: idx + 1, title: item.title }) : t('stage_agenda_item_title_default'),
+                description: item ? t('stage_agenda_item_desc', { current: idx + 1, total: items.length }) : t('stage_agenda_item_desc_default')
             };
         })(),
         [MEETING_STAGES.NEW_BUSINESS]: {
-            title: top ? `${top.displayName} - Pending Second` : (currentMotion ? 'Motion Pending Second' : 'New Business'),
+            title: top ? t('stage_pending_second_title', { motionName: top.displayName }) : (currentMotion ? t('stage_motion_pending_second') : t('stage_new_business_title')),
             description: top
-                ? `${top.displayName} requires a second to proceed`
-                : (currentMotion ? 'Motion requires a second to proceed' : 'Members may introduce new motions'),
-            subtitle: top ? 'A second is required before debate may begin' : null
+                ? t('stage_pending_second_desc', { motionName: top.displayName })
+                : (currentMotion ? t('stage_motion_pending_second_desc') : t('stage_new_business_desc')),
+            subtitle: top ? t('stage_pending_second_subtitle') : null
         },
         [MEETING_STAGES.MOTION_DISCUSSION]: {
-            title: top ? `Discussion: ${top.displayName}` : 'Discussion',
+            title: top ? t('stage_discussion_title', { motionName: top.displayName }) : t('stage_discussion_default'),
             description: top
-                ? `Debating: "${top.text.substring(0, 80)}${top.text.length > 80 ? '...' : ''}"`
-                : 'Members debate the motion on the floor'
+                ? t('stage_discussion_desc', { text: top.text.substring(0, 80) + (top.text.length > 80 ? '...' : '') })
+                : t('stage_discussion_desc_default')
         },
         [MEETING_STAGES.VOTING]: {
-            title: top ? `Voting: ${top.displayName}` : 'Voting in Progress',
-            description: 'Members cast their votes'
+            title: top ? t('stage_voting_title', { motionName: top.displayName }) : t('stage_voting_default'),
+            description: t('stage_voting_desc')
         },
         [MEETING_STAGES.RECESS]: {
-            title: 'Meeting in Recess',
-            description: 'The meeting is temporarily recessed',
-            subtitle: 'Business resumes when the chair reconvenes'
+            title: t('stage_recess_title'),
+            description: t('stage_recess_desc'),
+            subtitle: t('stage_recess_subtitle')
         },
         [MEETING_STAGES.SUSPENDED_RULES]: {
-            title: 'RULES SUSPENDED',
-            description: suspendedRulesPurpose || 'Rules have been suspended',
-            subtitle: 'Normal parliamentary procedure is temporarily set aside'
+            title: t('stage_suspended_rules_title'),
+            description: suspendedRulesPurpose || t('stage_suspended_rules_desc_default'),
+            subtitle: t('stage_suspended_rules_subtitle')
         },
         [MEETING_STAGES.ADJOURNED]: {
-            title: 'Meeting Adjourned',
-            description: 'Meeting has concluded',
-            subtitle: 'Minutes may be exported for the record'
+            title: t('stage_adjourned_title'),
+            description: t('stage_adjourned_desc'),
+            subtitle: t('stage_adjourned_subtitle')
         }
     };
 
@@ -81,7 +83,7 @@ export default function MeetingStage({ stage, currentMotion, motionStack, suspen
             )}
             {motionStack && motionStack.length > 1 && (
                 <p className="stage-description" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                    {motionStack.length} motions on the stack
+                    {t('motions_on_stack', { count: motionStack.length })}
                 </p>
             )}
         </section>

@@ -1,13 +1,15 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { incidentalMainOptions } from '../../constants';
 
 export default function IncidentalMainModal({ onSelectTemplate, onClose }) {
+    const { t } = useTranslation('modals');
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-main" onClick={(e) => e.stopPropagation()}>
-                <h3>Incidental Main Motions</h3>
+                <h3>{t('incidental_main_heading')}</h3>
                 <p className="modal-intro">
-                    Choose an incidental main motion template. You can edit the text before introducing it.
+                    {t('incidental_main_desc')}
                 </p>
                 <div className="modal-template-list">
                     {incidentalMainOptions.map((opt) => (
@@ -22,7 +24,7 @@ export default function IncidentalMainModal({ onSelectTemplate, onClose }) {
                 </div>
                 <div className="modal-buttons">
                     <button type="button" className="secondary" onClick={onClose}>
-                        Close
+                        {t('incidental_main_close')}
                     </button>
                 </div>
             </div>

@@ -8,6 +8,7 @@ import { createRequest, acceptRequest, respondToRequest, dismissRequest, cleanup
 import { isDebateAllowed } from '../engine/debateEngine';
 import { handleDivision } from '../engine/voteEngine';
 import { resolveQuorum, formatQuorumRule } from '../engine/quorum';
+import i18n from '../i18n';
 
 const INITIAL_MEETING_STATE = {
     stage: MEETING_STAGES.NOT_STARTED,
@@ -132,7 +133,7 @@ export function useMeetingState() {
                 });
 
                 if (hasActivePresident) {
-                    alert('A meeting is already in progress with an active Chair. Please join as a participant or wait for it to end.');
+                    alert(i18n.t('meeting:alert_active_chair'));
                     MeetingConnection.disconnect();
                     setIsLoggedIn(false);
                     setCurrentUser(null);
@@ -172,7 +173,7 @@ export function useMeetingState() {
                 participants: [userWithTimestamp],
                 log: [{
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Meeting created by ${userData.name}`
+                    message: i18n.t('meeting:log_meeting_created', { name: userData.name })
                 }],
                 meetingCode: userData.meetingCode,
                 orgProfile: userData.orgProfile || null,
@@ -184,7 +185,7 @@ export function useMeetingState() {
             await MeetingConnection.broadcast(initialState);
         } else {
             if (!existingState) {
-                alert('No active meeting found. Please wait for the Chair to start the meeting.');
+                alert(i18n.t('meeting:alert_no_meeting'));
                 MeetingConnection.disconnect();
                 setIsLoggedIn(false);
                 setCurrentUser(null);
@@ -200,7 +201,7 @@ export function useMeetingState() {
                 // If the existing participant is still active (seen within 10s), this is a duplicate name
                 const isActive = existingParticipant.lastSeen && (Date.now() - existingParticipant.lastSeen) < 10000;
                 if (isActive && existingParticipant.role !== userData.role) {
-                    alert(`The name "${userData.name}" is already in use by an active participant. Please choose a different name.`);
+                    alert(i18n.t('meeting:alert_name_in_use', { name: userData.name }));
                     MeetingConnection.disconnect();
                     setIsLoggedIn(false);
                     setCurrentUser(null);
@@ -213,7 +214,7 @@ export function useMeetingState() {
                 const updatedParticipants = [...migratedState.participants, userWithTimestamp];
                 const newLog = [...migratedState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `${userData.name} joined as ${userData.role}`
+                    message: i18n.t('meeting:log_joined_as', { name: userData.name, role: userData.role })
                 }];
 
                 const newState = {
@@ -244,7 +245,7 @@ export function useMeetingState() {
             stage: MEETING_STAGES.ROLL_CALL,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'Meeting called to order'
+                message: i18n.t('meeting:log_called_to_order')
             }]
         });
     };
@@ -256,7 +257,7 @@ export function useMeetingState() {
             quorum: resolved,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Quorum set to ${formatQuorumRule(rule)} (${resolved} members required).`
+                message: i18n.t('meeting:log_quorum_set', { rule: formatQuorumRule(rule), count: resolved })
             }]
         });
     };
@@ -283,8 +284,8 @@ export function useMeetingState() {
 
         const quorumMet = totalPresent >= quorum;
         const quorumMsg = quorumRule
-            ? `Roll call complete. ${totalPresent} of ${totalMembers} members present. Quorum requirement: ${quorum}. ${quorumMet ? 'Quorum established.' : 'QUORUM NOT MET.'}`
-            : `Roll call complete. ${totalPresent} of ${totalMembers} members present. Quorum established.`;
+            ? i18n.t('meeting:log_roll_call_complete_quorum', { present: totalPresent, total: totalMembers, required: quorum, status: quorumMet ? i18n.t('meeting:log_quorum_established') : i18n.t('meeting:log_quorum_not_met') })
+            : i18n.t('meeting:log_roll_call_complete', { present: totalPresent, total: totalMembers });
 
         if (!quorumMet && quorumRule) {
             updateMeetingState({
@@ -294,7 +295,7 @@ export function useMeetingState() {
                     message: quorumMsg
                 }, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: 'Meeting cannot proceed without a quorum. Meeting adjourned.'
+                    message: i18n.t('meeting:log_no_quorum')
                 }],
                 stage: MEETING_STAGES.ADJOURNED
             });
@@ -319,7 +320,7 @@ export function useMeetingState() {
             },
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${memberName} called for roll.`
+                message: i18n.t('meeting:log_called_for_roll', { name: memberName })
             }]
         });
     };
@@ -332,7 +333,7 @@ export function useMeetingState() {
             },
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name}: Present.`
+                message: i18n.t('meeting:log_present', { name: currentUser.name })
             }]
         });
     };
@@ -345,7 +346,7 @@ export function useMeetingState() {
             },
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${memberName}: Present (confirmed by ${currentUser.name}).`
+                message: i18n.t('meeting:log_present_confirmed', { name: memberName, confirmedBy: currentUser.name })
             }]
         });
     };
@@ -358,13 +359,13 @@ export function useMeetingState() {
         let nextStage, logMsg;
         if (hasAgenda && isOrders) {
             nextStage = MEETING_STAGES.ADOPT_AGENDA;
-            logMsg = 'Minutes approved. Proceeding to adopt the agenda.';
+            logMsg = i18n.t('meeting:log_minutes_approved_adopt_agenda');
         } else if (hasAgenda) {
             nextStage = MEETING_STAGES.AGENDA_ITEM;
-            logMsg = 'Minutes approved. Proceeding to the first agenda item.';
+            logMsg = i18n.t('meeting:log_minutes_approved_agenda');
         } else {
             nextStage = MEETING_STAGES.NEW_BUSINESS;
-            logMsg = 'Minutes approved. Proceeding to New Business.';
+            logMsg = i18n.t('meeting:log_minutes_approved_new_business');
         }
 
         updateMeetingState({
@@ -384,7 +385,7 @@ export function useMeetingState() {
             currentAgendaIndex: 0,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'Agenda adopted. Proceeding to first agenda item.'
+                message: i18n.t('meeting:log_agenda_adopted')
             }]
         });
     };
@@ -400,7 +401,7 @@ export function useMeetingState() {
                 currentAgendaIndex: null,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Concluded agenda item: "${currentItem?.title}". All agenda items complete. Proceeding to New Business.`
+                    message: i18n.t('meeting:log_agenda_complete', { title: currentItem?.title })
                 }]
             });
         } else {
@@ -408,7 +409,7 @@ export function useMeetingState() {
                 currentAgendaIndex: nextIndex,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Concluded agenda item: "${currentItem?.title}". Moving to next item.`
+                    message: i18n.t('meeting:log_agenda_next', { title: currentItem?.title })
                 }]
             });
         }
@@ -428,7 +429,7 @@ export function useMeetingState() {
             updateMeetingState({
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Motion not in order: ${error}`
+                    message: i18n.t('meeting:log_motion_not_in_order', { error })
                 }]
             });
             return;
@@ -440,7 +441,7 @@ export function useMeetingState() {
             stage: getBaseStage(),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${mover} moved: "${motionText}"`
+                message: i18n.t('meeting:log_motion_moved', { name: mover, text: motionText })
             }]
         });
     };
@@ -457,7 +458,7 @@ export function useMeetingState() {
             motionStack: newStack,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `The chair recognizes the motion: "${top.displayName}". Is there a second?`
+                message: i18n.t('meeting:log_chair_recognizes', { name: top.displayName })
             }]
         });
     };
@@ -500,7 +501,7 @@ export function useMeetingState() {
             chairDecisionTime: Date.now(),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `The chair rules the motion "${top.text}" out of order.`
+                message: i18n.t('meeting:log_ruled_out_of_order', { text: top.text })
             }]
         });
     };
@@ -514,9 +515,10 @@ export function useMeetingState() {
         if (currentUser.name === top.mover && !isChairUser) return;
 
         const isOralConfirm = isChairUser && currentUser.name === top.mover;
+        const debateNote = top.isDebatable ? i18n.t('meeting:log_floor_open') : i18n.t('meeting:log_proceed_vote');
         const logMessage = isOralConfirm
-            ? `The chair confirmed a second for: ${top.displayName}.${top.isDebatable ? ' Floor is open for discussion.' : ' Proceeding to vote (not debatable).'}`
-            : `${top.displayName} seconded by ${currentUser.name}.${top.isDebatable ? ' Floor is open for discussion.' : ' Proceeding to vote (not debatable).'}`;
+            ? i18n.t('meeting:log_chair_confirmed_second', { name: top.displayName, debateNote })
+            : i18n.t('meeting:log_seconded_by', { name: top.displayName, seconder: currentUser.name, debateNote });
 
         const newStack = updateTopMotion(meetingState.motionStack, {
             seconder: isOralConfirm ? '(oral second)' : currentUser.name,
@@ -583,7 +585,7 @@ export function useMeetingState() {
             chairDecisionTime: Date.now(),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `The motion "${top.text}" falls for lack of a second.`
+                message: i18n.t('meeting:log_no_second', { text: top.text })
             }]
         });
     };
@@ -615,7 +617,7 @@ export function useMeetingState() {
                     updateMeetingState({
                         log: [...meetingState.log, {
                             timestamp: new Date().toLocaleTimeString(),
-                            message: `${rules.displayName} is out of order: a higher or equal priority motion is already pending.`
+                            message: i18n.t('meeting:log_motion_out_of_order_priority', { name: rules.displayName })
                         }]
                     });
                     return;
@@ -634,7 +636,7 @@ export function useMeetingState() {
                 pendingMotions: [...(meetingState.pendingMotions || []), pending],
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `${currentUser.name} proposes: ${rules.displayName} - "${text}" (queued — speaker has the floor)`
+                    message: i18n.t('meeting:log_motion_queued', { name: currentUser.name, motionName: rules.displayName, text })
                 }]
             });
             return;
@@ -669,7 +671,7 @@ export function useMeetingState() {
             pendingAmendments: meetingState.pendingAmendments,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name} moves: ${rules.displayName} - "${text}"`
+                message: i18n.t('meeting:log_motion_moves', { name: currentUser.name, motionName: rules.displayName, text })
             }]
         };
 
@@ -703,7 +705,7 @@ export function useMeetingState() {
                 updateMeetingState({
                     log: [...baseLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: 'No pending motion found at that index.'
+                        message: i18n.t('meeting:log_no_pending_motion')
                     }]
                 });
                 return;
@@ -723,7 +725,7 @@ export function useMeetingState() {
                 updateMeetingState({
                     log: [...baseLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `Could not create motion: ${entry.error}`
+                        message: i18n.t('meeting:log_motion_create_error', { error: entry.error })
                     }]
                 });
                 return;
@@ -742,7 +744,7 @@ export function useMeetingState() {
                 updateMeetingState({
                     log: [...baseLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `Chair could not recognize ${pending.displayName}: ${error}`
+                        message: i18n.t('meeting:log_chair_recognize_error', { name: pending.displayName, error })
                     }]
                 });
                 return;
@@ -766,7 +768,7 @@ export function useMeetingState() {
                 currentSpeaker: null,
                 log: [...baseLog, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Chair recognizes ${pending.displayName} by ${pending.proposer}: "${pending.text}". Is there a second?`
+                    message: i18n.t('meeting:log_chair_recognizes_pending', { motionName: pending.displayName, proposer: pending.proposer, text: pending.text })
                 }]
             });
         } finally {
@@ -783,7 +785,7 @@ export function useMeetingState() {
             pendingMotions: remaining,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Chair declines ${pending.displayName} by ${pending.proposer}`
+                message: i18n.t('meeting:log_chair_declines_pending', { motionName: pending.displayName, proposer: pending.proposer })
             }]
         });
     };
@@ -806,7 +808,7 @@ export function useMeetingState() {
             votedBy: [],
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `The chair calls the question on: ${top.displayName}. All in favor?`
+                message: i18n.t('meeting:log_calls_question', { name: top.displayName })
             }]
         });
     };
@@ -839,7 +841,7 @@ export function useMeetingState() {
             voteDetails: voteDetails,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name} voted`
+                message: i18n.t('meeting:log_voted', { name: currentUser.name })
             }]
         });
     };
@@ -862,7 +864,7 @@ export function useMeetingState() {
                 suspendedVoteThreshold: null,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Vote result: ${aye} ayes, ${nay} nays (${threshold.replace('_', '-')} required). Motion ${passed ? 'CARRIED' : 'FAILED'}.`
+                    message: i18n.t('meeting:log_vote_result', { aye, nay, threshold: threshold.replace('_', '-'), result: passed ? i18n.t('meeting:carried') : i18n.t('meeting:failed') })
                 }]
             });
             return;
@@ -876,7 +878,7 @@ export function useMeetingState() {
 
             const newLog = [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Vote on minutes correction: ${aye} ayes, ${nay} nays. The correction ${result}.`
+                message: i18n.t('meeting:log_minutes_correction_vote', { aye, nay, result })
             }];
             updateMeetingState({
                 stage: MEETING_STAGES.APPROVE_MINUTES,
@@ -922,7 +924,7 @@ export function useMeetingState() {
 
         const newLog = [...meetingState.log, {
             timestamp: new Date().toLocaleTimeString(),
-            message: `Vote on ${top.displayName}: ${description}: "${top.text}"`
+            message: i18n.t('meeting:log_vote_on', { motionName: top.displayName, description, text: top.text })
         }];
 
         // Handle the effect of adoption/defeat
@@ -948,7 +950,7 @@ export function useMeetingState() {
                 const dismissedNames = pending.map(pm => pm.displayName).join(', ');
                 newLog = [...newLog, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Pending motions auto-dismissed (object no longer exists): ${dismissedNames}`
+                    message: i18n.t('meeting:log_pending_auto_dismissed', { names: dismissedNames })
                 }];
                 // We'll clear pendingMotions in the update below
             }
@@ -989,7 +991,7 @@ export function useMeetingState() {
                 const dismissedNames = stalePending.map(pm => pm.displayName).join(', ');
                 newLog = [...newLog, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Pending motions auto-dismissed (no pending question): ${dismissedNames}`
+                    message: i18n.t('meeting:log_pending_auto_dismissed_no_question', { names: dismissedNames })
                 }];
             }
             updateMeetingState({
@@ -1109,7 +1111,7 @@ export function useMeetingState() {
                         savedSpeakingState,
                         log: [...currentLog, {
                             timestamp: new Date().toLocaleTimeString(),
-                            message: 'Amendment adopted. Debate continues on the motion as amended.'
+                            message: i18n.t('meeting:log_amendment_adopted')
                         }]
                     });
                     return true;
@@ -1146,7 +1148,7 @@ export function useMeetingState() {
                         savedSpeakingState,
                         log: [...currentLog, {
                             timestamp: new Date().toLocaleTimeString(),
-                            message: 'Previous question ordered. Debate is closed. Proceeding to immediate vote.'
+                            message: i18n.t('meeting:log_previous_question_ordered')
                         }]
                     });
                     return true;
@@ -1180,7 +1182,7 @@ export function useMeetingState() {
                     pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `Motion laid on the table: "${mainMotion?.text}"`
+                        message: i18n.t('meeting:log_laid_on_table', { text: mainMotion?.text })
                     }]
                 });
                 return true;
@@ -1213,7 +1215,7 @@ export function useMeetingState() {
                     pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `Motion postponed until ${motion.metadata?.postponeTime || 'a later time'}: "${mainMotion?.text}"`
+                        message: i18n.t('meeting:log_postponed_until', { time: motion.metadata?.postponeTime || i18n.t('meeting:a_later_time'), text: mainMotion?.text })
                     }]
                 });
                 return true;
@@ -1238,7 +1240,7 @@ export function useMeetingState() {
                     pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `Motion referred to ${motion.metadata?.committeeName || 'committee'}: "${mainMotion?.text}"`
+                        message: i18n.t('meeting:log_referred_to', { committee: motion.metadata?.committeeName || i18n.t('meeting:committee'), text: mainMotion?.text })
                     }]
                 });
                 return true;
@@ -1261,7 +1263,7 @@ export function useMeetingState() {
                     pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: 'Motion postponed indefinitely (killed).'
+                        message: i18n.t('meeting:log_postponed_indefinitely')
                     }]
                 });
                 return true;
@@ -1294,7 +1296,7 @@ export function useMeetingState() {
                         savedSpeakingState,
                         log: [...currentLog, {
                             timestamp: new Date().toLocaleTimeString(),
-                            message: 'Debate limits adopted and applied.'
+                            message: i18n.t('meeting:log_debate_limits_adopted')
                         }]
                     });
                     return true;
@@ -1318,7 +1320,7 @@ export function useMeetingState() {
                     pendingMotions: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: 'Motion to adjourn adopted. Meeting adjourned.'
+                        message: i18n.t('meeting:log_adjourn_adopted')
                     }]
                 });
                 return true;
@@ -1336,7 +1338,7 @@ export function useMeetingState() {
                     savedSpeakingState,
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `Meeting in recess for ${motion.metadata?.recessDuration || 10} minutes.`
+                        message: i18n.t('meeting:log_recess', { duration: motion.metadata?.recessDuration || 10 })
                     }]
                 });
                 return true;
@@ -1360,7 +1362,7 @@ export function useMeetingState() {
                     votedBy: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `Rules suspended: "${suspendedPurpose}"`
+                        message: i18n.t('meeting:log_rules_suspended', { purpose: suspendedPurpose })
                     }]
                 });
                 return true;
@@ -1419,7 +1421,7 @@ export function useMeetingState() {
             currentSpeaker: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Motion taken from the table: "${tabled.mainMotionText}"`
+                message: i18n.t('meeting:log_taken_from_table', { text: tabled.mainMotionText })
             }]
         });
     };
@@ -1439,7 +1441,7 @@ export function useMeetingState() {
                 updateMeetingState({
                     log: [...meetingState.log, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `${currentUser.name} cannot move to reconsider: only members who voted on the prevailing side (${prevailingSide}) may do so.`
+                        message: i18n.t('meeting:log_cannot_reconsider', { name: currentUser.name, side: prevailingSide })
                     }]
                 });
                 return;
@@ -1458,7 +1460,7 @@ export function useMeetingState() {
             currentMotion: { text: decided.text, mover: currentUser.name, needsSecond: true },
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name} moves to reconsider: "${decided.text}"`
+                message: i18n.t('meeting:log_moves_to_reconsider', { name: currentUser.name, text: decided.text })
             }]
         });
     };
@@ -1535,7 +1537,7 @@ export function useMeetingState() {
             speakingQueue: sortedQueue,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name} requested to speak (${stance})`
+                message: i18n.t('meeting:log_request_to_speak', { name: currentUser.name, stance })
             }]
         });
     };
@@ -1551,7 +1553,7 @@ export function useMeetingState() {
             speakingQueue: remainingQueue,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `The chair recognizes ${nextSpeaker.participant}`
+                message: i18n.t('meeting:log_chair_recognizes_speaker', { name: nextSpeaker.participant })
             }]
         });
     };
@@ -1596,10 +1598,10 @@ export function useMeetingState() {
                 suspendedSpeakingState: null,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `${speakerName} yields the floor`
+                    message: i18n.t('meeting:log_yields_floor', { name: speakerName })
                 }, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: 'Temporary speaking list completed. Resuming previous list.'
+                    message: i18n.t('meeting:log_temp_list_completed')
                 }]
             });
             return;
@@ -1623,7 +1625,7 @@ export function useMeetingState() {
             speakingQueue: sortedQueue,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${speakerName} yields the floor`
+                message: i18n.t('meeting:log_yields_floor', { name: speakerName })
             }]
         });
     };
@@ -1641,7 +1643,7 @@ export function useMeetingState() {
             pendingRequests: [...(meetingState.pendingRequests || []), request],
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name} raises: ${request.displayName}${content ? ` - "${content}"` : ''}`
+                message: i18n.t('meeting:log_raises_request', { name: currentUser.name, type: request.displayName, content: content ? ` - "${content}"` : '' })
             }]
         });
     };
@@ -1654,7 +1656,7 @@ export function useMeetingState() {
             pendingRequests: updated,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Chair accepts ${request?.displayName} from ${request?.raisedBy}`
+                message: i18n.t('meeting:log_chair_accepts', { type: request?.displayName, name: request?.raisedBy })
             }]
         });
     };
@@ -1672,7 +1674,7 @@ export function useMeetingState() {
             pendingRequests: withResponse,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Chair responds to ${request?.displayName}: "${response}"`
+                message: i18n.t('meeting:log_chair_responds', { type: request?.displayName, response })
             }]
         });
     };
@@ -1684,7 +1686,7 @@ export function useMeetingState() {
             pendingRequests: updated.filter(r => r.status !== 'dismissed'),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Request dismissed`
+                message: i18n.t('meeting:log_request_dismissed')
             }]
         });
     };
@@ -1707,7 +1709,7 @@ export function useMeetingState() {
             chairDecisionTime: Date.now(),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Chair rules: ${ruling}. Point of order by ${request.raisedBy} ${ruling === 'sustained' ? 'SUSTAINED' : 'NOT SUSTAINED'}.`
+                message: i18n.t('meeting:log_chair_rules_point', { ruling, name: request.raisedBy, result: ruling === 'sustained' ? i18n.t('meeting:sustained') : i18n.t('meeting:not_sustained') })
             }]
         });
     };
@@ -1729,7 +1731,7 @@ export function useMeetingState() {
                 pendingMotions,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `${currentUser.name} moves: ${rules.displayName} - "${text}" (queued — a member has the floor)`
+                    message: i18n.t('meeting:log_motion_queued_member', { name: currentUser.name, motionName: rules.displayName, text })
                 }]
             });
             return;
@@ -1749,7 +1751,7 @@ export function useMeetingState() {
             updateMeetingState({
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Motion could not be recognized: ${error}`
+                    message: i18n.t('meeting:log_motion_recognize_error', { error })
                 }]
             });
             return;
@@ -1774,7 +1776,7 @@ export function useMeetingState() {
             currentSpeaker: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name} moves: ${rules.displayName} - "${text}"`
+                message: i18n.t('meeting:log_motion_moves', { name: currentUser.name, motionName: rules.displayName, text })
             }]
         });
     };
@@ -1820,7 +1822,7 @@ export function useMeetingState() {
             motionStack: updatedStack,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${top.mover} reformulates the motion: "${newText}"`
+                message: i18n.t('meeting:log_reformulates', { name: top.mover, text: newText })
             }]
         });
     };
@@ -1856,7 +1858,7 @@ export function useMeetingState() {
             pendingAmendments: newStack.length === 0 ? [] : meetingState.pendingAmendments,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Motion withdrawn: "${top.text}"`
+                message: i18n.t('meeting:log_motion_withdrawn', { text: top.text })
             }]
         });
     };
@@ -1874,7 +1876,7 @@ export function useMeetingState() {
                 suspendedRulesPurpose: null,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: 'Rules resumed.'
+                    message: i18n.t('meeting:log_rules_resumed')
                 }]
             });
             return;
@@ -1899,7 +1901,7 @@ export function useMeetingState() {
             currentSpeaker: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'Rules resumed.'
+                message: i18n.t('meeting:log_rules_resumed')
             }]
         });
     };
@@ -1914,7 +1916,7 @@ export function useMeetingState() {
             suspendedVoteThreshold: threshold,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `The chair calls a vote (${threshold.replace('_', '-')} required).`
+                message: i18n.t('meeting:log_chair_calls_vote', { threshold: threshold.replace('_', '-') })
             }]
         });
     };
@@ -1937,8 +1939,8 @@ export function useMeetingState() {
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: hasSaved
-                    ? 'The chair opens a new temporary speaking list.'
-                    : 'The chair opens a temporary speaking list (previous list paused).'
+                    ? i18n.t('meeting:log_new_speaking_list')
+                    : i18n.t('meeting:log_temp_speaking_list')
             }]
         });
     };
@@ -1955,7 +1957,7 @@ export function useMeetingState() {
             suspendedSpeakingState: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'The chair resumes the previous speaking list.'
+                message: i18n.t('meeting:log_resume_speaking_list')
             }]
         });
     };
@@ -1978,7 +1980,7 @@ export function useMeetingState() {
             } : null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'Meeting resumed from recess.'
+                message: i18n.t('meeting:log_resumed_from_recess')
             }]
         });
     };
@@ -1995,10 +1997,10 @@ export function useMeetingState() {
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: returningToDebate
-                    ? 'Chair continues debate on the pending question.'
+                    ? i18n.t('meeting:log_continues_debate')
                     : baseStage === MEETING_STAGES.AGENDA_ITEM
-                        ? 'Chair continues with the current agenda item.'
-                        : 'Chair proceeded to New Business.'
+                        ? i18n.t('meeting:log_continues_agenda_item')
+                        : i18n.t('meeting:log_proceeded_new_business')
             }]
         });
     };
@@ -2010,7 +2012,7 @@ export function useMeetingState() {
                 stage: MEETING_STAGES.ADJOURNED,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: 'Meeting adjourned'
+                    message: i18n.t('meeting:log_meeting_adjourned')
                 }]
             });
         } else {
@@ -2065,7 +2067,7 @@ export function useMeetingState() {
             currentSpeaker: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Chair recognizes amendment by ${amendment.proposer}: "${amendment.text}". Is there a second?`
+                message: i18n.t('meeting:log_recognizes_amendment', { name: amendment.proposer, text: amendment.text })
             }]
         });
     };
@@ -2075,7 +2077,7 @@ export function useMeetingState() {
             pendingAmendments: (meetingState.pendingAmendments || []).filter(a => a !== amendment),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Chair declines to recognize amendment from ${amendment.proposer}`
+                message: i18n.t('meeting:log_declines_amendment', { name: amendment.proposer })
             }]
         });
     };
@@ -2100,7 +2102,7 @@ export function useMeetingState() {
             }],
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name} proposes correction to minutes: ${correction}`
+                message: i18n.t('meeting:log_proposes_correction', { name: currentUser.name, text: correction })
             }]
         });
     };
@@ -2112,7 +2114,7 @@ export function useMeetingState() {
             minutesCorrections: meetingState.minutesCorrections.slice(1),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'Objection raised to minutes correction. The correction is now before the assembly.'
+                message: i18n.t('meeting:log_objection_to_correction')
             }]
         });
     };
@@ -2123,7 +2125,7 @@ export function useMeetingState() {
             minutesCorrections: meetingState.minutesCorrections.slice(1),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `Minutes corrected by consent: ${correction.text}`
+                message: i18n.t('meeting:log_correction_by_consent', { text: correction.text })
             }]
         });
     };
@@ -2151,7 +2153,7 @@ export function useMeetingState() {
                 chairDecisionTime: Date.now(),
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `Chair rules: ${ruling}. Point of order by ${point.raisedBy} ${ruling === 'sustained' ? 'SUSTAINED' : 'NOT SUSTAINED'}.`
+                    message: i18n.t('meeting:log_chair_rules_point', { ruling, name: point.raisedBy, result: ruling === 'sustained' ? i18n.t('meeting:sustained') : i18n.t('meeting:not_sustained') })
                 }]
             });
         }
@@ -2174,7 +2176,7 @@ export function useMeetingState() {
             votedBy: [],
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: 'The chair puts the minutes correction to a vote.'
+                message: i18n.t('meeting:log_correction_vote')
             }]
         });
     };
@@ -2199,7 +2201,7 @@ export function useMeetingState() {
                 updateMeetingState({
                     log: [...meetingState.log, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `${currentUser.name} raises: ${incidentalType}`
+                        message: i18n.t('meeting:log_raises_incidental', { name: currentUser.name, type: incidentalType })
                     }]
                 });
         }
@@ -2220,7 +2222,7 @@ export function useMeetingState() {
                     participants: finalParticipants,
                     log: [...meetingState.log, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: `Chair ${currentUser.name} has left. Vice Chair ${viceChair.name} assumes the chair.`
+                        message: i18n.t('meeting:log_chair_left_vice', { chair: currentUser.name, vice: viceChair.name })
                     }]
                 });
             } else {
@@ -2231,7 +2233,7 @@ export function useMeetingState() {
                         stage: MEETING_STAGES.ADJOURNED,
                         log: [...meetingState.log, {
                             timestamp: new Date().toLocaleTimeString(),
-                            message: `Chair ${currentUser.name} has left. No members remain. Meeting automatically adjourned.`
+                            message: i18n.t('meeting:log_chair_left_adjourned', { name: currentUser.name })
                         }]
                     });
                 } else {
@@ -2245,7 +2247,7 @@ export function useMeetingState() {
                         participants: finalParticipants,
                         log: [...meetingState.log, {
                             timestamp: new Date().toLocaleTimeString(),
-                            message: `Chair ${currentUser.name} has left. ${newChair.name} has been randomly selected as Chair.`
+                            message: i18n.t('meeting:log_chair_left_random', { chair: currentUser.name, newChair: newChair.name })
                         }]
                     });
                 }
@@ -2256,7 +2258,7 @@ export function useMeetingState() {
                 participants: updatedParticipants,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: `${currentUser.name} has left the meeting.`
+                    message: i18n.t('meeting:log_left_meeting', { name: currentUser.name })
                 }]
             });
         }
@@ -2274,7 +2276,7 @@ export function useMeetingState() {
             ordersOfTheDayDemand: { demandedBy: currentUser.name, timestamp: Date.now() },
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: `${currentUser.name} calls for the Orders of the Day`
+                message: i18n.t('meeting:log_calls_orders', { name: currentUser.name })
             }]
         });
     };
@@ -2289,7 +2291,7 @@ export function useMeetingState() {
                 speakingQueue: [],
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: 'Chair returns to the Orders of the Day'
+                    message: i18n.t('meeting:log_returns_to_orders')
                 }]
             });
         } else {
@@ -2311,7 +2313,7 @@ export function useMeetingState() {
                     motionStack: newStack || meetingState.motionStack,
                     log: [...meetingState.log, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: 'Chair moves to suspend the rules to continue with current business (requires 2/3 vote). Is there a second?'
+                        message: i18n.t('meeting:log_suspend_to_continue')
                     }]
                 });
             } else {
@@ -2320,7 +2322,7 @@ export function useMeetingState() {
                     stage: getBaseStage(),
                     log: [...meetingState.log, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: 'Chair returns to the Orders of the Day (unable to initiate suspend the rules)'
+                        message: i18n.t('meeting:log_returns_to_orders_unable')
                     }]
                 });
             }
@@ -2328,7 +2330,7 @@ export function useMeetingState() {
     };
 
     const handleClearMeeting = async () => {
-        if (confirm('Are you sure you want to clear all meeting data? This will end the meeting for all participants.')) {
+        if (confirm(i18n.t('meeting:confirm_clear_meeting'))) {
             await MeetingConnection.clearState();
             sessionStorage.removeItem('hatsell_session');
             MeetingConnection.disconnect();

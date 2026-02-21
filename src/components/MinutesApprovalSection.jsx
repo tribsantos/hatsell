@@ -1,26 +1,28 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function MinutesApprovalSection({ currentUser, isChair, meetingState, onRequestReadMinutes, onRequestCorrection, onObjectToCorrection, onAcceptByConsent, onCallVoteOnCorrection, onReadMinutesResponse }) {
+  const { t } = useTranslation('meeting');
   const hasCorrections = meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0;
   const currentCorrection = hasCorrections ? meetingState.minutesCorrections[0] : null;
   const correctionBlocked = hasCorrections || !!meetingState.minutesCorrectionDebate;
 
   return (
     <section className="panel" aria-label="Minutes approval">
-      <h3>Approval of Minutes</h3>
+      <h3>{t('minutes_title')}</h3>
 
       {/* Minutes Read Request Banner */}
       {meetingState.minutesReadRequest && isChair && (
         <div className="warning-box" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <p style={{ fontWeight: 600 }}>
-            {meetingState.minutesReadRequest.requestedBy}{' requested the minutes to be read'}
+            {t('minutes_read_request', { name: meetingState.minutesReadRequest.requestedBy })}
           </p>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button type="button" onClick={() => onReadMinutesResponse && onReadMinutesResponse(true)} style={{ padding: '0.5rem 1rem' }}>
-              Read the Minutes
+              {t('minutes_read_button')}
             </button>
             <button type="button" onClick={() => onReadMinutesResponse && onReadMinutesResponse(false)} className="secondary" style={{ padding: '0.5rem 1rem' }}>
-              Dismiss
+              {t('minutes_dismiss_button')}
             </button>
           </div>
         </div>
@@ -29,18 +31,18 @@ export default function MinutesApprovalSection({ currentUser, isChair, meetingSt
       {/* Correction debate in progress */}
       {meetingState.minutesCorrectionDebate && (
         <div className="warning-box">
-          <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Correction Before the Assembly (Objection Raised):</p>
+          <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('minutes_correction_debate')}</p>
           <p style={{ fontStyle: 'italic', marginBottom: '0.25rem' }}>{meetingState.minutesCorrectionDebate.text}</p>
           <p style={{ fontSize: '0.8rem', color: 'var(--h-fg-muted, #666)' }}>
-            {'\u2014 Proposed by '}{meetingState.minutesCorrectionDebate.proposedBy}
+            {t('minutes_proposed_by', { name: meetingState.minutesCorrectionDebate.proposedBy })}
           </p>
           {isChair ? (
             <button type="button" onClick={onCallVoteOnCorrection} style={{ marginTop: '0.75rem' }}>
-              Call Vote on Correction
+              {t('minutes_call_vote_correction')}
             </button>
           ) : (
             <p style={{ fontSize: '0.85rem', color: 'var(--h-fg-muted, #666)', marginTop: '0.5rem' }}>
-              Debate the correction, then the chair may put it to a vote.
+              {t('minutes_debate_note')}
             </p>
           )}
         </div>
@@ -49,31 +51,31 @@ export default function MinutesApprovalSection({ currentUser, isChair, meetingSt
       {/* Current pending correction */}
       {currentCorrection ? (
         <div className="info-box">
-          <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Proposed Correction:</p>
+          <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('minutes_proposed_correction')}</p>
           <p style={{ fontStyle: 'italic', marginBottom: '0.25rem' }}>{currentCorrection.text}</p>
           <p style={{ fontSize: '0.8rem', color: 'var(--h-fg-muted, #666)' }}>
-            {'\u2014 Proposed by '}{currentCorrection.proposedBy}
+            {t('minutes_proposed_by', { name: currentCorrection.proposedBy })}
           </p>
           {isChair && (
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
               <button type="button" onClick={onAcceptByConsent} className="success">
-                Accept by Consent (No Objection)
+                {t('minutes_accept_consent')}
               </button>
               <button type="button" onClick={onObjectToCorrection} className="secondary">
-                Objection Raised
+                {t('minutes_objection_raised')}
               </button>
             </div>
           )}
           {!isChair && (
             <button type="button" onClick={onObjectToCorrection} className="secondary" style={{ marginTop: '0.75rem' }}>
-              I Object
+              {t('minutes_i_object')}
             </button>
           )}
         </div>
       ) : (
         <div style={{ padding: '0.5rem 0' }}>
           <p style={{ fontSize: '0.9rem', color: 'var(--h-fg-muted, #666)' }}>
-            The minutes from the previous meeting are before the assembly for approval.
+            {t('minutes_before_assembly')}
           </p>
         </div>
       )}
@@ -81,10 +83,10 @@ export default function MinutesApprovalSection({ currentUser, isChair, meetingSt
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
         <button type="button" onClick={onRequestReadMinutes} className="secondary" style={{ flex: 1 }}>
-          Request Minutes Be Read
+          {t('minutes_request_read')}
         </button>
         <button type="button" onClick={onRequestCorrection} className="secondary" disabled={correctionBlocked} style={{ flex: 1 }}>
-          Propose Correction
+          {t('minutes_propose_correction')}
         </button>
       </div>
     </section>

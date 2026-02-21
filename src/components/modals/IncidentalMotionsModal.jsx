@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { incidentalOptions } from '../../constants';
 
 const INCIDENTAL_INTERRUPTS = {
@@ -11,11 +12,12 @@ const INCIDENTAL_INTERRUPTS = {
 };
 
 export default function IncidentalMotionsModal({ onSubmit, onClose }) {
+    const { t } = useTranslation('modals');
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
-                <h3>Incidental Motions</h3>
-                <p className="modal-intro">Choose an incidental motion to bring before the chair.</p>
+                <h3>{t('incidental_motions_heading')}</h3>
+                <p className="modal-intro">{t('incidental_motions_desc')}</p>
                 <div className="modal-template-list">
                     {incidentalOptions.map((opt) => {
                         const interrupts = INCIDENTAL_INTERRUPTS[opt];
@@ -28,7 +30,7 @@ export default function IncidentalMotionsModal({ onSubmit, onClose }) {
                                 <span>{opt}</span>
                                 {interrupts !== undefined && (
                                     <span className={`modal-pill ${interrupts ? 'warn' : 'ok'}`}>
-                                        {interrupts ? 'Interrupts' : 'Does not interrupt'}
+                                        {interrupts ? t('incidental_motions_interrupts') : t('incidental_motions_no_interrupt')}
                                     </span>
                                 )}
                             </button>
@@ -36,7 +38,7 @@ export default function IncidentalMotionsModal({ onSubmit, onClose }) {
                     })}
                 </div>
                 <div className="modal-buttons">
-                    <button type="button" className="secondary" onClick={onClose}>Close</button>
+                    <button type="button" className="secondary" onClick={onClose}>{t('incidental_motions_close')}</button>
                 </div>
             </div>
         </div>

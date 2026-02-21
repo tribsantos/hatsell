@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function QuorumSettingSection({ onSetQuorum, currentRule }) {
+    const { t } = useTranslation('meeting');
     const [ruleType, setRuleType] = useState(currentRule?.type || 'number');
     const [numberValue, setNumberValue] = useState(currentRule?.type === 'number' ? currentRule.value : 3);
     const [fractionValue, setFractionValue] = useState(currentRule?.type === 'fraction' ? currentRule.value : 'majority');
@@ -15,7 +17,7 @@ export default function QuorumSettingSection({ onSetQuorum, currentRule }) {
 
     return (
         <div className="panel" style={{ marginBottom: '1rem' }} aria-label="Quorum settings">
-            <h3>Set Minimum Quorum</h3>
+            <h3>{t('quorum_set_title')}</h3>
 
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem', cursor: 'pointer' }}>
@@ -26,7 +28,7 @@ export default function QuorumSettingSection({ onSetQuorum, currentRule }) {
                         checked={ruleType === 'number'}
                         onChange={() => setRuleType('number')}
                     />
-                    Specific Number
+                    {t('quorum_specific_number')}
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem', cursor: 'pointer' }}>
                     <input
@@ -36,7 +38,7 @@ export default function QuorumSettingSection({ onSetQuorum, currentRule }) {
                         checked={ruleType === 'fraction'}
                         onChange={() => setRuleType('fraction')}
                     />
-                    Fraction of Members
+                    {t('quorum_fraction_label')}
                 </label>
             </div>
 
@@ -71,17 +73,17 @@ export default function QuorumSettingSection({ onSetQuorum, currentRule }) {
                             color: 'var(--h-fg, #1a1a1a)'
                         }}
                     >
-                        <option value="majority">Majority (more than half)</option>
-                        <option value="1/3">One-third</option>
-                        <option value="2/3">Two-thirds</option>
+                        <option value="majority">{t('quorum_majority')}</option>
+                        <option value="1/3">{t('quorum_one_third')}</option>
+                        <option value="2/3">{t('quorum_two_thirds')}</option>
                     </select>
                 )}
                 <button
                     onClick={handleSubmit}
                     style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-                    data-tooltip="Set the minimum attendance required to conduct business" title="Set the minimum attendance required to conduct business"
+                    data-tooltip={t('quorum_set_tooltip')} title={t('quorum_set_tooltip')}
                 >
-                    Set Quorum
+                    {t('quorum_set_button')}
                 </button>
             </div>
         </div>

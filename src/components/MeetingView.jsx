@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MEETING_STAGES, ROLES } from '../constants';
 import MeetingStage from './MeetingStage';
 import ChairGuidance from './ChairGuidance';
@@ -16,6 +17,7 @@ import { getRules } from '../engine/motionRules';
 import { getCategoryLabel } from '../constants/agenda';
 
 function FloatingNotifications({ notifications, onDismiss }) {
+    const { t } = useTranslation('meeting');
     useEffect(() => {
         if (!notifications || notifications.length === 0) return;
         const timers = notifications.map((n, i) => {
@@ -32,7 +34,7 @@ function FloatingNotifications({ notifications, onDismiss }) {
         <div className="floating-toasts">
             {notifications.map((n, i) => (
                 <div key={n.timestamp + n.name} className={`floating-toast ${n.type === 'join' ? 'join' : 'leave'}`}>
-                    {n.type === 'join' ? `${n.name} has joined` : `${n.name} has left`}
+                    {n.type === 'join' ? t('notification_joined', { name: n.name }) : t('notification_left', { name: n.name })}
                 </div>
             ))}
         </div>
@@ -40,6 +42,7 @@ function FloatingNotifications({ notifications, onDismiss }) {
 }
 
 function RecessTimer({ recessEnd }) {
+    const { t } = useTranslation('meeting');
     const [now, setNow] = useState(Date.now());
 
     useEffect(() => {
@@ -58,12 +61,12 @@ function RecessTimer({ recessEnd }) {
 
     return (
         <div className={`recess-card ${isOvertime ? 'overtime' : ''}`}>
-            <div className="recess-label">Recess</div>
+            <div className="recess-label">{t('recess_label')}</div>
             {isOvertime && (
-                <div className="recess-overtime">Recess time elapsed</div>
+                <div className="recess-overtime">{t('recess_overtime')}</div>
             )}
             <div className="recess-time">{display}</div>
-            <div className="recess-sub">{isOvertime ? 'over scheduled recess' : 'remaining'}</div>
+            <div className="recess-sub">{isOvertime ? t('recess_over') : t('recess_remaining')}</div>
         </div>
     );
 }
@@ -131,6 +134,7 @@ export default function MeetingView({
     onAdoptAgenda,
     onNextAgendaItem
 }) {
+    const { t } = useTranslation('meeting');
     const isChair = currentUser.role === ROLES.PRESIDENT || currentUser.role === ROLES.VICE_PRESIDENT;
     const motionStack = meetingState.motionStack || [];
     const pendingRequests = meetingState.pendingRequests || [];
@@ -163,7 +167,7 @@ export default function MeetingView({
                     const agendaItems = meetingState.meetingSettings?.agendaItems || [];
                     return (
                         <div className="info-box" style={{ marginBottom: '1.5rem' }}>
-                            <h4 style={{ color: '#2980b9', marginBottom: '0.75rem' }}>Proposed Agenda</h4>
+                            <h4 style={{ color: '#2980b9', marginBottom: '0.75rem' }}>{t('proposed_agenda')}</h4>
                             {agendaItems.map((item, idx) => (
                                 <div key={item.id || idx} style={{
                                     padding: '0.5rem 0.75rem', marginBottom: '0.35rem',
@@ -189,13 +193,13 @@ export default function MeetingView({
                         <div className="info-box" style={{ marginBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <h4 style={{ color: '#2980b9' }}>
-                                    Item {idx + 1} of {agendaItems.length}: {item.title}
+                                    {t('agenda_item_of', { index: idx + 1, total: agendaItems.length, title: item.title })}
                                 </h4>
                             </div>
                             <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
                                 {getCategoryLabel(item.category)}
                                 {item.owner && ` \u2014 ${item.owner}`}
-                                {item.timeTarget && ` (${item.timeTarget} min target)`}
+                                {item.timeTarget && ` ${t('agenda_min_target', { minutes: item.timeTarget })}`}
                             </div>
                             {item.notes && (
                                 <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#555', fontStyle: 'italic' }}>
@@ -255,7 +259,7 @@ export default function MeetingView({
                                 {r.displayName}
                             </h4>
                             <p style={{ color: '#333', marginBottom: '0.25rem' }}>
-                                Raised by <strong>{r.raisedBy}</strong>
+                                {t('interrupted_raised_by', { name: r.raisedBy })}
                             </p>
                             {r.content && (
                                 <p style={{ fontStyle: 'italic', color: '#555' }}>"{r.content}"</p>
@@ -269,7 +273,7 @@ export default function MeetingView({
                                     color: '#c0392b',
                                     fontWeight: '700'
                                 }}>
-                                    Please suspend your intervention. Your clock has been paused.
+                                    {t('interrupted_suspend')}
                                 </p>
                             )}
                         </div>
@@ -291,16 +295,16 @@ export default function MeetingView({
                 {/* Legacy Point of Order display */}
                 {meetingState.pendingPointOfOrder && (
                     <div className="warning-box" style={{marginBottom: '2rem'}}>
-                        <h4 style={{color: '#e67e22', marginBottom: '0.5rem'}}>POINT OF ORDER</h4>
-                        <p><strong>Raised by:</strong> {meetingState.pendingPointOfOrder.raisedBy}</p>
-                        <p><strong>Concern:</strong> {meetingState.pendingPointOfOrder.concern}</p>
+                        <h4 style={{color: '#e67e22', marginBottom: '0.5rem'}}>{t('point_of_order_banner')}</h4>
+                        <p><strong>{t('raised_by')}</strong> {meetingState.pendingPointOfOrder.raisedBy}</p>
+                        <p><strong>{t('concern_label')}</strong> {meetingState.pendingPointOfOrder.concern}</p>
                         {isChair && (
                             <div style={{display: 'flex', gap: '1rem', marginTop: '1rem'}}>
                                 <button onClick={() => onRuleOnPointOfOrder('sustained')} style={{flex: 1}}>
-                                    Sustain Point of Order
+                                    {t('sustain_point')}
                                 </button>
                                 <button onClick={() => onRuleOnPointOfOrder('not sustained')} className="secondary" style={{flex: 1}}>
-                                    Point Not Sustained
+                                    {t('point_not_sustained')}
                                 </button>
                             </div>
                         )}
@@ -314,17 +318,17 @@ export default function MeetingView({
 
                     return (
                     <div className="info-box" style={{marginBottom: '2rem', background: 'rgba(230, 126, 34, 0.08)'}}>
-                        <h4 style={{color: '#e67e22', marginBottom: '1rem'}}>Pending Amendments ({meetingState.pendingAmendments.length})</h4>
+                        <h4 style={{color: '#e67e22', marginBottom: '1rem'}}>{t('pending_amendments_title', { count: meetingState.pendingAmendments.length })}</h4>
                         {hasSpeaker ? (
                             <p style={{marginBottom: '1rem', color: '#999', fontWeight: '600', fontStyle: 'italic'}}>
-                                A member has the floor — wait for them to yield before recognizing amendments.
+                                {t('amend_wait_speaker')}
                             </p>
                         ) : isVoting ? (
                             <p style={{marginBottom: '1rem', color: '#999', fontWeight: '600', fontStyle: 'italic'}}>
-                                A vote is in progress — announce the result before recognizing amendments.
+                                {t('amend_wait_vote')}
                             </p>
                         ) : (
-                            <p style={{marginBottom: '1rem', color: '#e67e22', fontWeight: '600'}}>You must recognize or decline pending amendments before proceeding.</p>
+                            <p style={{marginBottom: '1rem', color: '#e67e22', fontWeight: '600'}}>{t('amend_must_recognize')}</p>
                         )}
                         {meetingState.pendingAmendments.map((amendment, idx) => (
                             <div key={idx} style={{
@@ -335,7 +339,7 @@ export default function MeetingView({
                                 borderLeft: '3px solid #e67e22',
                                 opacity: amendBlocked ? 0.7 : 1
                             }}>
-                                <p style={{marginBottom: '0.5rem'}}><strong>{amendment.proposer}</strong> wishes to propose:</p>
+                                <p style={{marginBottom: '0.5rem'}}>{t('amend_proposer_wishes', { name: amendment.proposer })}</p>
                                 <p style={{fontStyle: 'italic', marginBottom: '1rem', fontSize: '0.95rem'}}>"{amendment.text}"</p>
                                 <div style={{display: 'flex', gap: '0.5rem'}}>
                                     <button
@@ -343,7 +347,7 @@ export default function MeetingView({
                                         style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(amendBlocked ? {opacity: 0.45} : {})}}
                                         disabled={amendBlocked}
                                     >
-                                        Recognize Amendment
+                                        {t('recognize_amendment')}
                                     </button>
                                     <button
                                         onClick={() => !amendBlocked && onDismissAmendment(amendment)}
@@ -351,7 +355,7 @@ export default function MeetingView({
                                         disabled={amendBlocked}
                                         style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(amendBlocked ? {opacity: 0.45} : {})}}
                                     >
-                                        Decline
+                                        {t('decline_amendment')}
                                     </button>
                                 </div>
                             </div>
@@ -377,18 +381,18 @@ export default function MeetingView({
 
                     return (
                     <div className="info-box" style={{marginBottom: '2rem', background: 'rgba(52, 152, 219, 0.08)'}}>
-                        <h4 style={{color: '#2980b9', marginBottom: '1rem'}}>Pending Motions ({meetingState.pendingMotions.length})</h4>
+                        <h4 style={{color: '#2980b9', marginBottom: '1rem'}}>{t('pending_motions_title', { count: meetingState.pendingMotions.length })}</h4>
                         {meetingState.currentSpeaker ? (
                             <p style={{marginBottom: '1rem', color: '#999', fontWeight: '600', fontSize: '0.85rem', fontStyle: 'italic'}}>
-                                A member has the floor — wait for them to yield before recognizing motions.
+                                {t('pending_wait_speaker')}
                             </p>
                         ) : awaitingSecond ? (
                             <p style={{marginBottom: '1rem', color: '#e67e22', fontWeight: '600', fontSize: '0.85rem', fontStyle: 'italic'}}>
-                                Awaiting a second on the current motion before recognizing others.
+                                {t('pending_awaiting_second')}
                             </p>
                         ) : (
                             <p style={{marginBottom: '1rem', color: '#2980b9', fontWeight: '600', fontSize: '0.85rem'}}>
-                                These motions were proposed while a speaker had the floor. Resolve highest-priority first.
+                                {t('pending_resolve_priority')}
                             </p>
                         )}
                         {indexed.map(({ pm, originalIndex }, displayIdx) => {
@@ -408,7 +412,7 @@ export default function MeetingView({
                                 <p style={{marginBottom: '0.25rem', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.03em'}}>
                                     {pm.displayName}
                                 </p>
-                                <p style={{marginBottom: '0.5rem'}}><strong>{pm.proposer}</strong> moves: "{pm.text}"</p>
+                                <p style={{marginBottom: '0.5rem'}}>{t('pending_moves', { name: pm.proposer, text: pm.text })}</p>
                                 <div style={{display: 'flex', gap: '0.5rem'}}>
                                     <button
                                         onClick={() => {
@@ -426,10 +430,10 @@ export default function MeetingView({
                                         }}
                                         style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(blocked ? {opacity: 0.45} : {})}}
                                         disabled={blocked}
-                                        data-tooltip={!isHighest ? 'Resolve higher-priority motions first' : (meetingState.currentSpeaker ? 'Wait for speaker to yield' : 'Recognize this motion')}
-                                        title={!isHighest ? 'Resolve higher-priority motions first' : (meetingState.currentSpeaker ? 'Wait for speaker to yield' : 'Recognize this motion')}
+                                        data-tooltip={!isHighest ? t('tooltip_resolve_higher') : (meetingState.currentSpeaker ? t('tooltip_wait_speaker') : t('tooltip_recognize_motion'))}
+                                        title={!isHighest ? t('tooltip_resolve_higher') : (meetingState.currentSpeaker ? t('tooltip_wait_speaker') : t('tooltip_recognize_motion'))}
                                     >
-                                        Recognize
+                                        {t('recognize_button')}
                                     </button>
                                     <button
                                         onClick={() => {
@@ -439,10 +443,10 @@ export default function MeetingView({
                                         className="secondary"
                                         disabled={blocked}
                                         style={{flex: 1, padding: '0.5rem', fontSize: '0.9rem', ...(blocked ? {opacity: 0.45} : {})}}
-                                        data-tooltip={!isHighest ? 'Resolve higher-priority motions first' : awaitingSecond ? 'Awaiting second on current motion' : 'Dismiss this motion'}
-                                        title={!isHighest ? 'Resolve higher-priority motions first' : awaitingSecond ? 'Awaiting second on current motion' : 'Dismiss this motion'}
+                                        data-tooltip={!isHighest ? t('tooltip_resolve_higher') : awaitingSecond ? t('tooltip_awaiting_second') : t('tooltip_dismiss_motion')}
+                                        title={!isHighest ? t('tooltip_resolve_higher') : awaitingSecond ? t('tooltip_awaiting_second') : t('tooltip_dismiss_motion')}
                                     >
-                                        Dismiss
+                                        {t('dismiss_button')}
                                     </button>
                                 </div>
                             </div>
@@ -512,12 +516,12 @@ export default function MeetingView({
                 {/* Legacy current motion display (only if no stack but currentMotion exists for minutes correction) */}
                 {meetingState.currentMotion && motionStack.length === 0 && (
                     <div className="current-motion">
-                        <h4>Motion on the Floor</h4>
+                        <h4>{t('motion_on_floor')}</h4>
                         <div className="motion-text">{meetingState.currentMotion.text}</div>
                         <div className="motion-meta">
-                            <div>Moved by: {meetingState.currentMotion.mover}</div>
+                            <div>{t('moved_by_label', { name: meetingState.currentMotion.mover })}</div>
                             {meetingState.currentMotion.seconder && (
-                                <div>Seconded by: {meetingState.currentMotion.seconder}</div>
+                                <div>{t('seconded_by_label', { name: meetingState.currentMotion.seconder })}</div>
                             )}
                         </div>
                     </div>
@@ -541,13 +545,13 @@ export default function MeetingView({
                 {meetingState.stage === MEETING_STAGES.ADJOURNED && (
                     <div className="info-box" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
                         <p style={{ marginBottom: '1rem', fontWeight: '600', color: '#1e8449' }}>
-                            Meeting adjourned. You can export the minutes below.
+                            {t('adjourned_export_msg')}
                         </p>
                         <button
                             onClick={() => exportMinutes(meetingState)}
                             className="success"
                         >
-                            Export Minutes (.docx)
+                            {t('export_minutes_docx')}
                         </button>
                     </div>
                 )}
@@ -573,10 +577,10 @@ export default function MeetingView({
                             onClick={onRecognizeSpeaker}
                             className="speak-btn-favor"
                             style={{ width: '100%' }}
-                            data-tooltip="Give the floor to the next person in queue"
-                            title="Give the floor to the next person in queue"
+                            data-tooltip={t('tooltip_next_speaker')}
+                            title={t('tooltip_next_speaker')}
                         >
-                            Next Speaker ({(meetingState.speakingQueue || []).length} in queue)
+                            {t('next_speaker_queue', { count: (meetingState.speakingQueue || []).length })}
                         </button>
                     </div>
                 )}
@@ -590,7 +594,7 @@ export default function MeetingView({
                 {isChair ? (
                     <details style={{ marginTop: '1rem' }}>
                         <summary>
-                            More... (use sparingly)
+                            {t('chair_more')}
                         </summary>
                         <div style={{
                             padding: '0.5rem 1rem 0.75rem',
@@ -599,7 +603,7 @@ export default function MeetingView({
                             fontStyle: 'italic',
                             marginBottom: '0.5rem'
                         }}>
-                            The chair should remain impartial. Use these tools only when necessary, such as when the chair wishes to make a motion (after passing the gavel to the vice-chair).
+                            {t('chair_impartial_note')}
                         </div>
                         <MemberActions
                             meetingState={meetingState}

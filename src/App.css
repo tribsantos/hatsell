@@ -183,6 +183,7 @@ svg.logo-small {
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 1rem;
+  padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
   min-height: 48px;
 }
 .topbar-left {
@@ -214,18 +215,21 @@ svg.logo-small {
   flex-shrink: 0;
 }
 .topbar-center {
-  display: none;
+  display: block;
 }
 .topbar-stage-badge {
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: var(--h-fg-muted);
-  background: var(--h-bg-warm);
+  background: transparent;
   border: 1px solid var(--h-border-soft);
-  padding: 0.2rem 0.6rem;
+  padding: 0.3rem 0.6rem;
   border-radius: 3px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
   white-space: nowrap;
 }
 .topbar-right {
@@ -684,10 +688,8 @@ button.ghost:hover:not(:disabled) {
 /* === PANELS === */
 .panel {
   background: var(--h-bg-card);
-  border: 2px solid var(--h-border);
   border-radius: var(--h-radius);
   padding: 1.25rem;
-  box-shadow: var(--h-shadow);
 }
 .panel h3 {
   font-size: 0.9rem;
@@ -766,7 +768,6 @@ button.ghost:hover:not(:disabled) {
   text-align: center;
   padding: 1.5rem;
   background: var(--h-bg-card);
-  border: 3px solid var(--h-border);
   border-radius: var(--h-radius);
   margin-bottom: 1.25rem;
 }
@@ -1869,7 +1870,6 @@ details > section {
 @media (min-width: 1024px) {
   .app-container { padding: 2rem; }
   .header h1 { font-size: 3rem; }
-  .topbar-center { display: block; }
 }
 
 /* === RESPONSIVE: MOBILE OVERRIDES (<768px) === */
@@ -1892,13 +1892,23 @@ details > section {
   [data-tooltip]::after, [data-tooltip]::before { display: none; }
 
   /* TopBar mobile adjustments */
-  .topbar { padding: 0.4rem 0.5rem; gap: 0.375rem; }
+  .topbar { padding: 0.4rem 0.5rem; padding-top: calc(0.4rem + env(safe-area-inset-top, 0px)); gap: 0.25rem; }
+  .topbar-left { gap: 0.3rem; }
+  .topbar-center { display: none; }
+  .topbar-right { flex-shrink: 1; }
   .topbar-org-name { font-size: 0.85rem; }
   .topbar-meeting-code { display: none; }
-  .drawer-toggle { padding: 0.25rem 0.4rem; font-size: 0.65rem; }
+  .drawer-toggle { padding: 0.25rem 0.35rem; font-size: 0.6rem; letter-spacing: 0; }
+  .topbar-leave { padding: 0.25rem 0.4rem; font-size: 0.6rem; letter-spacing: 0; min-height: 28px; }
 
   /* Drawer near-full-width on mobile */
   .drawer-panel { width: calc(100vw - 2rem); max-width: none; }
+}
+
+/* Narrower phones: hide org name, left side becomes compact icon-only */
+@media (max-width: 480px) {
+  .topbar-org-name { display: none; }
+  .topbar-left { flex: 0 0 auto; }
 }
 
 /* === LOGIN DECORATIVE ELEMENTS === */

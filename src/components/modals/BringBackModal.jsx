@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MOTION_TYPES } from '../../constants/motionTypes';
 import { getRules } from '../../engine/motionRules';
 import RuleHintBox from '../RuleHintBox';
 
 export default function BringBackModal({ motionType, tabledMotions, decidedMotions, onSubmit, onClose }) {
+    const { t } = useTranslation('modals');
     const [selectedIndex, setSelectedIndex] = useState(0);
     const rules = getRules(motionType);
 
@@ -11,31 +13,31 @@ export default function BringBackModal({ motionType, tabledMotions, decidedMotio
 
     const getHeading = () => {
         switch (motionType) {
-            case MOTION_TYPES.TAKE_FROM_TABLE: return 'Take from the Table';
-            case MOTION_TYPES.RECONSIDER: return 'Reconsider';
-            case MOTION_TYPES.RESCIND: return 'Rescind/Amend Previously Adopted';
-            default: return 'Bring Back Motion';
+            case MOTION_TYPES.TAKE_FROM_TABLE: return t('bring_back_heading_take');
+            case MOTION_TYPES.RECONSIDER: return t('bring_back_heading_reconsider');
+            case MOTION_TYPES.RESCIND: return t('bring_back_heading_rescind');
+            default: return t('bring_back_heading_default');
         }
     };
 
     const getItems = () => {
         switch (motionType) {
             case MOTION_TYPES.TAKE_FROM_TABLE:
-                return (tabledMotions || []).map((t, i) => ({
+                return (tabledMotions || []).map((tm, i) => ({
                     index: i,
-                    label: t.mainMotionText || 'Tabled motion',
-                    detail: `Tabled at ${new Date(t.tabledAt).toLocaleTimeString()}`
+                    label: tm.mainMotionText || t('bring_back_tabled'),
+                    detail: `${t('bring_back_tabled_at')} ${new Date(tm.tabledAt).toLocaleTimeString()}`
                 }));
             case MOTION_TYPES.RECONSIDER:
                 return (decidedMotions || []).map((d, i) => ({
                     index: i,
-                    label: d.text || 'Decided motion',
-                    detail: `${d.result === 'adopted' ? 'Adopted' : 'Defeated'} - ${d.description || ''}`
+                    label: d.text || t('bring_back_decided'),
+                    detail: `${d.result === 'adopted' ? t('bring_back_adopted') : t('bring_back_defeated')} - ${d.description || ''}`
                 }));
             case MOTION_TYPES.RESCIND:
                 return (decidedMotions || []).filter((d) => d.result === 'adopted').map((d, i) => ({
                     index: i,
-                    label: d.text || 'Adopted motion',
+                    label: d.text || t('bring_back_adopted_motion'),
                     detail: d.description || ''
                 }));
             default:
@@ -60,16 +62,16 @@ export default function BringBackModal({ motionType, tabledMotions, decidedMotio
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-bring_back" onClick={(e) => e.stopPropagation()}>
                 <h3>{getHeading()}</h3>
-                <p className="modal-description">Bring-back motion &mdash; returns a previously decided or tabled question.</p>
+                <p className="modal-description">{t('bring_back_desc')}</p>
 
                 <RuleHintBox rules={rules} />
 
                 {items.length === 0 ? (
-                    <div className="info-box">No items available for this action.</div>
+                    <div className="info-box">{t('bring_back_no_items')}</div>
                 ) : (
                     <form onSubmit={handleSubmit}>
                         <div className="form-group">
-                            <label>Select a motion:</label>
+                            <label>{t('bring_back_select')}</label>
                             <div className="modal-choice-list">
                                 {items.map((item) => (
                                     <label key={item.index} className={`modal-choice-item ${selectedIndex === item.index ? 'selected' : ''}`}>
@@ -90,15 +92,15 @@ export default function BringBackModal({ motionType, tabledMotions, decidedMotio
                         </div>
 
                         <div className="modal-buttons">
-                            <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-                            <button type="submit">Make Motion</button>
+                            <button type="button" className="secondary" onClick={onClose}>{t('bring_back_cancel')}</button>
+                            <button type="submit">{t('bring_back_submit')}</button>
                         </div>
                     </form>
                 )}
 
                 {items.length === 0 && (
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>Close</button>
+                        <button type="button" className="secondary" onClick={onClose}>{t('bring_back_close')}</button>
                     </div>
                 )}
             </div>

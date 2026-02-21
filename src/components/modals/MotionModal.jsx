@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { specialOriginalOptions } from '../../constants';
 import { MOTION_TYPES } from '../../constants/motionTypes';
 import { getRules } from '../../engine/motionRules';
 import RuleHintBox from '../RuleHintBox';
 
-export default function MotionModal({ heading = 'Introduce a Motion', initialText = '', showSpecialOptions = true, previousNotice, onSubmit, onClose }) {
+export default function MotionModal({ heading, initialText = '', showSpecialOptions = true, previousNotice, onSubmit, onClose }) {
+    const { t } = useTranslation('modals');
     const [motionText, setMotionText] = useState(initialText || '');
     const mainRules = getRules(MOTION_TYPES.MAIN);
 
@@ -21,18 +23,18 @@ export default function MotionModal({ heading = 'Introduce a Motion', initialTex
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-main" onClick={(e) => e.stopPropagation()}>
-                <h3>{heading || 'Introduce a Motion'}</h3>
-                <p className="modal-description">Original main motion &mdash; introduces new business before the assembly.</p>
+                <h3>{heading || t('motion_heading')}</h3>
+                <p className="modal-description">{t('motion_desc')}</p>
 
                 <RuleHintBox rules={mainRules} />
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Motion Text</label>
+                        <label>{t('motion_label')}</label>
                         <textarea
                             value={motionText}
                             onChange={(e) => setMotionText(e.target.value)}
-                            placeholder="I move that..."
+                            placeholder={t('motion_placeholder')}
                             autoFocus
                         />
                     </div>
@@ -40,7 +42,7 @@ export default function MotionModal({ heading = 'Introduce a Motion', initialTex
                     {showSpecialOptions && (
                         <>
                             <p className="modal-intro" style={{ textAlign: 'center', marginTop: '0.25rem' }}>
-                                Special types of original main motions
+                                {t('motion_special_types')}
                             </p>
                             <div className="modal-template-list">
                                 {specialOriginalOptions.map((opt) => {
@@ -53,13 +55,13 @@ export default function MotionModal({ heading = 'Introduce a Motion', initialTex
                                             onClick={() => !needsNotice && setMotionText(opt.template)}
                                             disabled={needsNotice}
                                             style={needsNotice ? { opacity: 0.45 } : {}}
-                                            data-tooltip={needsNotice ? 'Requires previous notice' : ''}
-                                            title={needsNotice ? 'Requires previous notice' : ''}
+                                            data-tooltip={needsNotice ? t('motion_previous_notice') : ''}
+                                            title={needsNotice ? t('motion_previous_notice') : ''}
                                         >
                                             <span>{opt.label}</span>
                                             {needsNotice && (
                                                 <span className="modal-choice-meta" style={{ color: 'var(--h-red)', fontStyle: 'italic' }}>
-                                                    (requires previous notice)
+                                                    ({t('motion_previous_notice_tag')})
                                                 </span>
                                             )}
                                         </button>
@@ -70,8 +72,8 @@ export default function MotionModal({ heading = 'Introduce a Motion', initialTex
                     )}
 
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-                        <button type="submit">Introduce Motion</button>
+                        <button type="button" className="secondary" onClick={onClose}>{t('motion_cancel')}</button>
+                        <button type="submit">{t('motion_submit')}</button>
                     </div>
                 </form>
             </div>

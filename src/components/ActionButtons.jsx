@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MEETING_STAGES, ROLES } from '../constants';
 import { MOTION_TYPES, MOTION_CATEGORY } from '../constants/motionTypes';
 import { getAvailableMotions } from '../engine/inOrderCheck';
@@ -6,29 +7,29 @@ import { isDebateAllowed } from '../engine/debateEngine';
 import { getCurrentPendingQuestion } from '../engine/motionStack';
 import { getRules } from '../engine/motionRules';
 
-const MOTION_TYPE_TOOLTIPS = {
-    [MOTION_TYPES.POSTPONE_INDEFINITELY]: 'Kill the motion without a direct vote on it',
-    [MOTION_TYPES.AMEND]: 'Change the wording of the motion before voting',
-    [MOTION_TYPES.COMMIT]: 'Send the motion to a smaller group for study',
-    [MOTION_TYPES.POSTPONE_DEFINITELY]: 'Delay the motion to a specific time',
-    [MOTION_TYPES.LIMIT_DEBATE]: 'Set a time limit or speaker limit on debate',
-    [MOTION_TYPES.PREVIOUS_QUESTION]: 'End debate and vote immediately',
-    [MOTION_TYPES.LAY_ON_TABLE]: 'Set aside the motion temporarily for urgent business',
-    [MOTION_TYPES.ORDERS_OF_DAY]: 'Require the group to follow the agenda',
-    [MOTION_TYPES.QUESTION_OF_PRIVILEGE]: 'Address an urgent matter affecting the assembly',
-    [MOTION_TYPES.RECESS]: 'Take a short break',
-    [MOTION_TYPES.ADJOURN]: 'End the meeting',
-    [MOTION_TYPES.FIX_TIME_TO_ADJOURN]: 'Set when the next meeting will be',
-    [MOTION_TYPES.TAKE_FROM_TABLE]: 'Resume a motion that was set aside earlier',
-    [MOTION_TYPES.RECONSIDER]: 'Reopen a motion that was already voted on',
-    [MOTION_TYPES.RESCIND]: 'Cancel or reverse a previously adopted motion',
+const TOOLTIP_KEYS = {
+    [MOTION_TYPES.POSTPONE_INDEFINITELY]: 'tooltip_postpone_indefinitely',
+    [MOTION_TYPES.AMEND]: 'tooltip_amend',
+    [MOTION_TYPES.COMMIT]: 'tooltip_commit',
+    [MOTION_TYPES.POSTPONE_DEFINITELY]: 'tooltip_postpone_definitely',
+    [MOTION_TYPES.LIMIT_DEBATE]: 'tooltip_limit_debate',
+    [MOTION_TYPES.PREVIOUS_QUESTION]: 'tooltip_previous_question',
+    [MOTION_TYPES.LAY_ON_TABLE]: 'tooltip_lay_on_table',
+    [MOTION_TYPES.ORDERS_OF_DAY]: 'tooltip_orders_of_day_priv',
+    [MOTION_TYPES.QUESTION_OF_PRIVILEGE]: 'tooltip_question_privilege',
+    [MOTION_TYPES.RECESS]: 'tooltip_recess',
+    [MOTION_TYPES.ADJOURN]: 'tooltip_adjourn_priv',
+    [MOTION_TYPES.FIX_TIME_TO_ADJOURN]: 'tooltip_fix_time',
+    [MOTION_TYPES.TAKE_FROM_TABLE]: 'tooltip_take_from_table',
+    [MOTION_TYPES.RECONSIDER]: 'tooltip_reconsider',
+    [MOTION_TYPES.RESCIND]: 'tooltip_rescind',
 };
 
-const InterruptBadge = ({ motionType }) => {
+const InterruptBadge = ({ motionType, t }) => {
     const rules = getRules(motionType);
     if (!rules) return null;
     if (!rules.canInterrupt) return null;
-    return <span className="interrupts-badge">Interrupts</span>;
+    return <span className="interrupts-badge">{t('actions:label_interrupts')}</span>;
 };
 
 /**
@@ -61,6 +62,7 @@ export function ChairActions({
     onAdoptAgenda,
     onNextAgendaItem
 }) {
+    const { t } = useTranslation('actions');
     const {
         stage, motionStack = [], currentMotion, speakingQueue, currentSpeaker,
         rollCallStatus, pendingAmendments, pendingRequests = [],
@@ -119,18 +121,18 @@ export function ChairActions({
     if (stage === MEETING_STAGES.SUSPENDED_RULES) {
         return (
             <div className="action-buttons">
-                <button onClick={onNewSpeakingList} data-tooltip="Start a temporary speaking list" title="Start a temporary speaking list">New Speaking List</button>
+                <button onClick={onNewSpeakingList} data-tooltip={t('tooltip_new_speaking_list')} title={t('tooltip_new_speaking_list')}>{t('button_new_speaking_list')}</button>
                 {meetingState.suspendedSpeakingState && (
-                    <button onClick={onResumePreviousSpeakingList} className="secondary" data-tooltip="Resume the previous speaking list" title="Resume the previous speaking list">
-                        Resume Previous List
+                    <button onClick={onResumePreviousSpeakingList} className="secondary" data-tooltip={t('tooltip_resume_previous_list')} title={t('tooltip_resume_previous_list')}>
+                        {t('button_resume_previous_list')}
                     </button>
                 )}
                 {speakingQueue.length > 0 && !currentSpeaker && (
-                    <button onClick={onRecognizeSpeaker} data-tooltip="Give the floor to the next person in queue" title="Give the floor to the next person in queue">Recognize Next Speaker</button>
+                    <button onClick={onRecognizeSpeaker} data-tooltip={t('tooltip_recognize_next')} title={t('tooltip_recognize_next')}>{t('button_recognize_next')}</button>
                 )}
                 {currentSpeaker && currentSpeaker.participant !== currentUser.name && (
-                    <button onClick={onFinishSpeaking} className="secondary" data-tooltip="End the current speaker's time" title="End the current speaker's time">
-                        Speaker Yields Floor
+                    <button onClick={onFinishSpeaking} className="secondary" data-tooltip={t('tooltip_speaker_yields')} title={t('tooltip_speaker_yields')}>
+                        {t('button_speaker_yields')}
                     </button>
                 )}
                 <div style={{ width: '100%' }}>
@@ -144,17 +146,17 @@ export function ChairActions({
                                 color: '#1a1a1a', fontSize: '0.9rem'
                             }}
                         >
-                            <option value="majority">Majority</option>
-                            <option value="two_thirds">Two-Thirds</option>
-                            <option value="unanimous">Unanimous</option>
+                            <option value="majority">{t('label_majority')}</option>
+                            <option value="two_thirds">{t('label_two_thirds')}</option>
+                            <option value="unanimous">{t('label_unanimous')}</option>
                         </select>
                     </div>
-                    <button onClick={() => onSuspendedVote(suspendedThreshold)} data-tooltip="Put the matter to a vote" title="Put the matter to a vote" style={{ width: '100%' }}>
-                        Call Vote
+                    <button onClick={() => onSuspendedVote(suspendedThreshold)} data-tooltip={t('tooltip_call_vote_suspended')} title={t('tooltip_call_vote_suspended')} style={{ width: '100%' }}>
+                        {t('button_call_vote_suspended')}
                     </button>
                 </div>
-                <button onClick={onResumeFromSuspendedRules} className="danger" data-tooltip="Return to normal parliamentary procedure" title="Return to normal parliamentary procedure">
-                    Resume Regular Rules
+                <button onClick={onResumeFromSuspendedRules} className="danger" data-tooltip={t('tooltip_resume_regular_rules')} title={t('tooltip_resume_regular_rules')}>
+                    {t('button_resume_regular_rules')}
                 </button>
             </div>
         );
@@ -169,7 +171,7 @@ export function ChairActions({
                 borderRadius: '4px', textAlign: 'center', fontWeight: '700',
                 color: '#e67e22', fontSize: '0.9rem'
             }}>
-                Appeal window ({appealCountdown}s remaining)
+                {t('appeal_window', { count: appealCountdown })}
             </div>
         );
     }
@@ -177,7 +179,7 @@ export function ChairActions({
     // Call to Order
     if (stage === MEETING_STAGES.CALL_TO_ORDER) {
         buttons.push(
-            <button key="call-to-order" onClick={onCallToOrder} data-tooltip="Officially begin the meeting" title="Officially begin the meeting">Call Meeting to Order</button>
+            <button key="call-to-order" onClick={onCallToOrder} data-tooltip={t('tooltip_call_to_order')} title={t('tooltip_call_to_order')}>{t('button_call_to_order')}</button>
         );
     }
 
@@ -187,11 +189,11 @@ export function ChairActions({
             <button
                 key="complete-roll-call"
                 onClick={onRollCall}
-                data-tooltip={meetingState.quorumRule ? "Confirm attendance and establish quorum" : "Set a quorum requirement first (see Members drawer)"}
-                title={meetingState.quorumRule ? "Confirm attendance and establish quorum" : "Set a quorum requirement first (see Members drawer)"}
+                data-tooltip={meetingState.quorumRule ? t('tooltip_complete_roll_call') : t('tooltip_complete_roll_call_no_quorum')}
+                title={meetingState.quorumRule ? t('tooltip_complete_roll_call') : t('tooltip_complete_roll_call_no_quorum')}
                 disabled={!meetingState.quorumRule}
             >
-                Complete Roll Call
+                {t('button_complete_roll_call')}
             </button>
         );
     }
@@ -199,14 +201,14 @@ export function ChairActions({
     // Approve Minutes
     if (stage === MEETING_STAGES.APPROVE_MINUTES) {
         buttons.push(
-            <button key="approve-minutes" onClick={onApproveMinutes} data-tooltip="Accept the minutes of the last meeting as correct" title="Accept the minutes of the last meeting as correct">Approve Minutes</button>
+            <button key="approve-minutes" onClick={onApproveMinutes} data-tooltip={t('tooltip_approve_minutes')} title={t('tooltip_approve_minutes')}>{t('button_approve_minutes')}</button>
         );
     }
 
     // Adopt Agenda
     if (stage === MEETING_STAGES.ADOPT_AGENDA) {
         buttons.push(
-            <button key="adopt-agenda" onClick={onAdoptAgenda} data-tooltip="Adopt the proposed agenda as the order of business" title="Adopt the proposed agenda as the order of business">Adopt Agenda</button>
+            <button key="adopt-agenda" onClick={onAdoptAgenda} data-tooltip={t('tooltip_adopt_agenda')} title={t('tooltip_adopt_agenda')}>{t('button_adopt_agenda')}</button>
         );
     }
 
@@ -216,8 +218,8 @@ export function ChairActions({
         const idx = meetingState.currentAgendaIndex ?? 0;
         const isLast = idx >= agendaItems.length - 1;
         buttons.push(
-            <button key="next-agenda" onClick={onNextAgendaItem} data-tooltip={isLast ? "Conclude the last agenda item and proceed to New Business" : "Move to the next agenda item"} title={isLast ? "Conclude the last agenda item and proceed to New Business" : "Move to the next agenda item"}>
-                {isLast ? 'Conclude Agenda' : 'Next Agenda Item'}
+            <button key="next-agenda" onClick={onNextAgendaItem} data-tooltip={isLast ? t('tooltip_conclude_agenda') : t('tooltip_next_agenda')} title={isLast ? t('tooltip_conclude_agenda') : t('tooltip_next_agenda')}>
+                {isLast ? t('button_conclude_agenda') : t('button_next_agenda_item')}
             </button>
         );
     }
@@ -225,7 +227,7 @@ export function ChairActions({
     // Recess resume
     if (stage === MEETING_STAGES.RECESS) {
         buttons.push(
-            <button key="resume-recess" onClick={onResumeFromRecess} data-tooltip="End the break and continue the meeting" title="End the break and continue the meeting">Resume Meeting</button>
+            <button key="resume-recess" onClick={onResumeFromRecess} data-tooltip={t('tooltip_resume_recess')} title={t('tooltip_resume_recess')}>{t('button_resume_meeting')}</button>
         );
     }
 
@@ -237,14 +239,14 @@ export function ChairActions({
                     onClick={() => onOrdersOfTheDayResponse(true)}
                     style={{ flex: 1 }}
                 >
-                    Return to Orders of the Day
+                    {t('button_return_orders')}
                 </button>
                 <button
                     onClick={() => onOrdersOfTheDayResponse(false)}
                     className="secondary"
                     style={{ flex: 1 }}
                 >
-                    Move to Suspend the Rules
+                    {t('button_move_suspend')}
                 </button>
             </div>
         );
@@ -258,21 +260,21 @@ export function ChairActions({
                     <button
                         onClick={!appealWindowActive ? onChairAcceptMotion : undefined}
                         disabled={appealWindowActive}
-                        data-tooltip={appealWindowActive ? "Wait for appeal window to expire" : "Recognize this motion and open it for a second"}
-                        title={appealWindowActive ? "Wait for appeal window to expire" : "Recognize this motion and open it for a second"}
+                        data-tooltip={appealWindowActive ? t('tooltip_appeal_wait') : t('tooltip_recognize_motion')}
+                        title={appealWindowActive ? t('tooltip_appeal_wait') : t('tooltip_recognize_motion')}
                         style={{ flex: 1, ...(appealWindowActive ? { opacity: 0.45 } : {}) }}
                     >
-                        Recognize Motion
+                        {t('button_recognize_motion')}
                     </button>
                     <button
                         onClick={!appealWindowActive ? onChairRejectMotion : undefined}
                         disabled={appealWindowActive}
                         className="danger"
-                        data-tooltip={appealWindowActive ? "Wait for appeal window to expire" : "Rule this motion out of order"}
-                        title={appealWindowActive ? "Wait for appeal window to expire" : "Rule this motion out of order"}
+                        data-tooltip={appealWindowActive ? t('tooltip_appeal_wait') : t('tooltip_reject_motion')}
+                        title={appealWindowActive ? t('tooltip_appeal_wait') : t('tooltip_reject_motion')}
                         style={{ flex: 1, ...(appealWindowActive ? { opacity: 0.45 } : {}) }}
                     >
-                        Rule Out of Order
+                        {t('button_rule_out_of_order')}
                     </button>
                 </div>
             </div>
@@ -282,13 +284,13 @@ export function ChairActions({
     // Chair confirm second / declare no second
     if (top?.status === 'pending_second') {
         buttons.push(
-            <button key="confirm-second" onClick={onSecondMotion} className="secondary" data-tooltip="Confirm someone verbally seconded the motion" title="Confirm someone verbally seconded the motion">
-                Confirm Second (oral)
+            <button key="confirm-second" onClick={onSecondMotion} className="secondary" data-tooltip={t('tooltip_confirm_second')} title={t('tooltip_confirm_second')}>
+                {t('button_confirm_second')}
             </button>
         );
         buttons.push(
-            <button key="no-second" onClick={onDeclareNoSecond} className="danger" data-tooltip="Declare no one seconded — the motion dies" title="Declare no one seconded — the motion dies">
-                No Second — Motion Falls
+            <button key="no-second" onClick={onDeclareNoSecond} className="danger" data-tooltip={t('tooltip_no_second')} title={t('tooltip_no_second')}>
+                {t('button_no_second')}
             </button>
         );
     }
@@ -296,13 +298,13 @@ export function ChairActions({
     // Speaker Yields (chair can end speaker's time)
     if (currentSpeaker && currentSpeaker.participant !== currentUser.name) {
         buttons.push(
-            <button key="speaker-yields" onClick={onFinishSpeaking} className="secondary" data-tooltip="End the current speaker's time" title="End the current speaker's time">
-                Speaker Yields Floor
+            <button key="speaker-yields" onClick={onFinishSpeaking} className="secondary" data-tooltip={t('tooltip_speaker_yields')} title={t('tooltip_speaker_yields')}>
+                {t('button_speaker_yields')}
             </button>
         );
     }
 
-    // Call the Vote (only when no speakers waiting — chair must use Previous Question otherwise)
+    // Call the Vote (only when no speakers waiting)
     if (stage === MEETING_STAGES.MOTION_DISCUSSION && !currentSpeaker &&
         !(pendingAmendments && pendingAmendments.length > 0) &&
         (meetingState.pendingMotions || []).length === 0 && !hasPendingPointOfOrder &&
@@ -314,11 +316,11 @@ export function ChairActions({
                     key="call-vote"
                     onClick={!appealWindowActive ? onCallVote : undefined}
                     disabled={appealWindowActive}
-                    data-tooltip="End debate and put the motion to a vote"
-                    title="End debate and put the motion to a vote"
+                    data-tooltip={t('tooltip_call_vote')}
+                    title={t('tooltip_call_vote')}
                     style={appealWindowActive ? { opacity: 0.45 } : {}}
                 >
-                    Call the Vote
+                    {t('button_call_vote')}
                 </button>
             );
         }
@@ -327,7 +329,7 @@ export function ChairActions({
     // Adjourn (no business pending)
     if ((stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && motionStack.length === 0 && !currentMotion) {
         buttons.push(
-            <button key="adjourn" onClick={() => { if (window.confirm('Are you sure you want to adjourn the meeting?')) onAdjourn(); }} className="danger" data-tooltip="End the meeting" title="End the meeting">Adjourn Meeting</button>
+            <button key="adjourn" onClick={() => { if (window.confirm(t('confirm_adjourn'))) onAdjourn(); }} className="danger" data-tooltip={t('tooltip_adjourn')} title={t('tooltip_adjourn')}>{t('button_adjourn')}</button>
         );
     }
 
@@ -341,8 +343,7 @@ export function ChairActions({
 }
 
 /**
- * MemberActions: All member-facing buttons (propose motions, second, amendments, subsidiary, privileged, incidental, bring-back).
- * Also includes yield floor for the current speaker.
+ * MemberActions: All member-facing buttons.
  */
 export function MemberActions({
     meetingState,
@@ -367,6 +368,7 @@ export function MemberActions({
     onPreChairWithdraw,
     onOrdersOfTheDay
 }) {
+    const { t } = useTranslation('actions');
     const {
         stage, motionStack = [], currentMotion, speakingQueue, currentSpeaker,
         pendingAmendments, pendingRequests = [],
@@ -399,7 +401,7 @@ export function MemberActions({
         if (currentSpeaker && highestPendingPrecedence > 0) {
             const mRules = getRules(m.motionType);
             if (mRules && mRules.precedence !== null && mRules.precedence <= highestPendingPrecedence) {
-                return { ...m, enabled: false, reason: 'A higher or equal priority motion is already pending' };
+                return { ...m, enabled: false, reason: t('higher_priority_pending') };
             }
         }
         return m;
@@ -412,9 +414,10 @@ export function MemberActions({
     );
 
     const getMotionTooltip = (m) => {
-        const base = MOTION_TYPE_TOOLTIPS[m.motionType] || '';
-        if (!m.enabled && m.reason) return `${base} — OUT OF ORDER: ${m.reason}`;
-        if (!m.enabled) return `${base} — OUT OF ORDER`;
+        const key = TOOLTIP_KEYS[m.motionType];
+        const base = key ? t(key) : '';
+        if (!m.enabled && m.reason) return `${base} — ${t('out_of_order_reason', { reason: m.reason })}`;
+        if (!m.enabled) return `${base} — ${t('out_of_order')}`;
         return base;
     };
 
@@ -426,17 +429,17 @@ export function MemberActions({
             <div className="action-buttons">
                 {!speakingQueue.find(s => s.participant === currentUser.name) && (
                     <>
-                        <button onClick={() => onRequestToSpeak('pro')} className="speak-btn-favor" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support">
-                            Speak in Favor
+                        <button onClick={() => onRequestToSpeak('pro')} className="speak-btn-favor" data-tooltip={t('tooltip_speak_favor')} title={t('tooltip_speak_favor')}>
+                            {t('button_speak_favor')}
                         </button>
-                        <button onClick={() => onRequestToSpeak('con')} className="speak-btn-against" data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition">
-                            Speak Against
+                        <button onClick={() => onRequestToSpeak('con')} className="speak-btn-against" data-tooltip={t('tooltip_speak_against')} title={t('tooltip_speak_against')}>
+                            {t('button_speak_against')}
                         </button>
                     </>
                 )}
                 {currentSpeaker && currentSpeaker.participant === currentUser.name && (
-                    <button onClick={onFinishSpeaking} className="secondary" data-tooltip="Finish speaking and return the floor to the chair" title="Finish speaking and return the floor to the chair">
-                        Yield Floor
+                    <button onClick={onFinishSpeaking} className="secondary" data-tooltip={t('tooltip_yield_floor')} title={t('tooltip_yield_floor')}>
+                        {t('button_yield_floor')}
                     </button>
                 )}
             </div>
@@ -449,14 +452,14 @@ export function MemberActions({
             {(stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && motionStack.length === 0 && !currentMotion && (
                 <>
                     <div style={{display: 'flex', gap: '0.75rem', width: '100%'}}>
-                        <button onClick={onNewMotion} data-tooltip="Propose a new item for the group to consider" title="Propose a new item for the group to consider" style={{flex: 1}}>Original Motion</button>
-                        <button onClick={onIncidentalMainMotion} className="secondary" data-tooltip="Propose procedural business (e.g. adopt rules)" title="Propose procedural business (e.g. adopt rules)" style={{flex: 1}}>Incidental</button>
+                        <button onClick={onNewMotion} data-tooltip={t('tooltip_original_motion')} title={t('tooltip_original_motion')} style={{flex: 1}}>{t('button_original_motion')}</button>
+                        <button onClick={onIncidentalMainMotion} className="secondary" data-tooltip={t('tooltip_incidental_main')} title={t('tooltip_incidental_main')} style={{flex: 1}}>{t('button_incidental')}</button>
                     </div>
 
                     {bringBackMotions.length > 0 && (
                         <div className="action-section" style={{ width: '100%' }}>
                             <details>
-                                <summary>Bring Back Motions ({bringBackMotions.length})</summary>
+                                <summary>{t('summary_bring_back', { count: bringBackMotions.length })}</summary>
                                 <div className="action-grid">
                                     {bringBackMotions.map(m => (
                                         <button
@@ -468,7 +471,7 @@ export function MemberActions({
                                             title={getMotionTooltip(m)}
                                             style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
                                         >
-                                            {m.displayName}<InterruptBadge motionType={m.motionType} />
+                                            {m.displayName}<InterruptBadge motionType={m.motionType} t={t} />
                                         </button>
                                     ))}
                                 </div>
@@ -480,15 +483,15 @@ export function MemberActions({
 
             {/* Mover free withdraw/reformulate (before chair accepts) */}
             {top?.status === 'pending_chair' && top?.mover === currentUser.name && !isChair && (
-                <button onClick={onPreChairWithdraw} className="secondary" data-tooltip="Take back or revise your motion (no vote needed — chair hasn't accepted yet)" title="Take back or revise your motion (no vote needed — chair hasn't accepted yet)">
-                    Withdraw / Reformulate
+                <button onClick={onPreChairWithdraw} className="secondary" data-tooltip={t('tooltip_pre_chair_withdraw')} title={t('tooltip_pre_chair_withdraw')}>
+                    {t('button_withdraw_reformulate')}
                 </button>
             )}
 
             {/* === UNIVERSAL SECOND BUTTON === */}
             {top?.status === 'pending_second' && currentUser.name !== top.mover && (
-                <button onClick={onSecondMotion} data-tooltip="Support putting this motion up for discussion" title="Support putting this motion up for discussion">
-                    Second: {top.displayName || 'the Motion'}
+                <button onClick={onSecondMotion} data-tooltip={t('tooltip_second_motion')} title={t('tooltip_second_motion')}>
+                    {t('button_second', { motion: top.displayName || t('button_second_default') })}
                 </button>
             )}
 
@@ -496,11 +499,11 @@ export function MemberActions({
             {stage === MEETING_STAGES.MOTION_DISCUSSION && debateAllowed && !hasPendingPointOfOrder &&
              !speakingQueue.find(s => s.participant === currentUser.name) && (
                 <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                    <button onClick={() => onRequestToSpeak('pro')} className="speak-btn-favor" data-tooltip="Join the queue to speak in support" title="Join the queue to speak in support" style={{ flex: 1 }}>
-                        Speak in Favor
+                    <button onClick={() => onRequestToSpeak('pro')} className="speak-btn-favor" data-tooltip={t('tooltip_speak_favor')} title={t('tooltip_speak_favor')} style={{ flex: 1 }}>
+                        {t('button_speak_favor')}
                     </button>
-                    <button onClick={() => onRequestToSpeak('con')} className="speak-btn-against" data-tooltip="Join the queue to speak in opposition" title="Join the queue to speak in opposition" style={{ flex: 1 }}>
-                        Speak Against
+                    <button onClick={() => onRequestToSpeak('con')} className="speak-btn-against" data-tooltip={t('tooltip_speak_against')} title={t('tooltip_speak_against')} style={{ flex: 1 }}>
+                        {t('button_speak_against')}
                     </button>
                 </div>
             )}
@@ -512,11 +515,11 @@ export function MemberActions({
                 let amendReason = amendMotion?.reason || '';
                 if (amendEnabled && currentSpeaker && highestPendingPrecedence >= 2) {
                     amendEnabled = false;
-                    amendReason = 'A higher or equal priority motion is already pending';
+                    amendReason = t('higher_priority_pending');
                 }
                 const amendTooltip = !amendEnabled
-                    ? `Change the wording of the motion before voting — OUT OF ORDER: ${amendReason}`
-                    : 'Change the wording of the motion before voting';
+                    ? t('tooltip_propose_amendment_disabled', { reason: amendReason })
+                    : t('tooltip_propose_amendment');
                 return (
                     <button
                         onClick={amendEnabled ? onAmendMotion : undefined}
@@ -526,12 +529,12 @@ export function MemberActions({
                         title={amendTooltip}
                         style={!amendEnabled ? disabledStyle : {}}
                     >
-                        Propose Amendment
+                        {t('button_propose_amendment')}
                     </button>
                 );
             })()}
 
-            {/* === BOTTOM ACTIONS: Point of Order + More (members) / flat sections (chair) === */}
+            {/* === BOTTOM ACTIONS === */}
             {(() => {
                 const appealAvail = available.find(m => m.motionType === MOTION_TYPES.APPEAL);
                 const appealEnabled = appealAvail?.enabled ?? false;
@@ -541,7 +544,7 @@ export function MemberActions({
                 const subsidiarySection = stage === MEETING_STAGES.MOTION_DISCUSSION && subsidiaryMotions.length > 0 && !hasPendingPointOfOrder && (
                     <div className="action-section" style={{ width: '100%' }}>
                         <details>
-                            <summary>Subsidiary Motions ({subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).length})</summary>
+                            <summary>{t('summary_subsidiary', { count: subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).length })}</summary>
                             <div className="action-grid">
                                 {subsidiaryMotions.filter(m => m.motionType !== MOTION_TYPES.AMEND).map(m => (
                                     <button
@@ -553,7 +556,7 @@ export function MemberActions({
                                         title={getMotionTooltip(m)}
                                         style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
                                     >
-                                        {m.displayName}<InterruptBadge motionType={m.motionType} />
+                                        {m.displayName}<InterruptBadge motionType={m.motionType} t={t} />
                                     </button>
                                 ))}
                             </div>
@@ -565,7 +568,7 @@ export function MemberActions({
                     stage === MEETING_STAGES.AGENDA_ITEM || stage === MEETING_STAGES.VOTING) && privilegedMotions.length > 0 && (
                     <div className="action-section" style={{ width: '100%' }}>
                         <details>
-                            <summary>Privileged Motions ({privilegedMotions.length})</summary>
+                            <summary>{t('summary_privileged', { count: privilegedMotions.length })}</summary>
                             <div className="action-grid">
                                 {privilegedMotions.map(m => (
                                     <button
@@ -577,7 +580,7 @@ export function MemberActions({
                                         title={getMotionTooltip(m)}
                                         style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
                                     >
-                                        {m.displayName}<InterruptBadge motionType={m.motionType} />
+                                        {m.displayName}<InterruptBadge motionType={m.motionType} t={t} />
                                     </button>
                                 ))}
                             </div>
@@ -588,80 +591,80 @@ export function MemberActions({
                 const incidentalButtons = stage !== MEETING_STAGES.ADJOURNED && stage !== MEETING_STAGES.NOT_STARTED && (
                     <div className="action-section" style={{ width: '100%' }}>
                         <details>
-                            <summary>Incidental Motions</summary>
+                            <summary>{t('summary_incidental')}</summary>
                             <div className="action-grid">
                                 <button
                                     onClick={!hasPendingPointOfOrder ? onPointOfOrder : undefined}
                                     className="secondary"
                                     disabled={hasPendingPointOfOrder}
-                                    data-tooltip={hasPendingPointOfOrder ? 'A point of order is already pending' : 'Alert the chair that a rule is being broken'}
-                                    title={hasPendingPointOfOrder ? 'A point of order is already pending' : 'Alert the chair that a rule is being broken'}
+                                    data-tooltip={hasPendingPointOfOrder ? t('tooltip_point_of_order_pending') : t('tooltip_point_of_order')}
+                                    title={hasPendingPointOfOrder ? t('tooltip_point_of_order_pending') : t('tooltip_point_of_order')}
                                     style={{fontSize: '0.85rem', padding: '0.5rem', ...(hasPendingPointOfOrder ? disabledStyle : {})}}
                                 >
-                                    Point of Order
+                                    {t('button_point_of_order')}
                                 </button>
                                 <button
                                     onClick={onParliamentaryInquiry}
                                     className="secondary"
-                                    data-tooltip="Ask the chair a question about procedure" title="Ask the chair a question about procedure"
+                                    data-tooltip={t('tooltip_parl_inquiry')} title={t('tooltip_parl_inquiry')}
                                     style={{fontSize: '0.85rem', padding: '0.5rem'}}
                                 >
-                                    Parl. Inquiry
+                                    {t('button_parl_inquiry')}
                                 </button>
                                 <button
                                     onClick={onRequestForInfo}
                                     className="secondary"
-                                    data-tooltip="Ask a factual question relevant to the discussion" title="Ask a factual question relevant to the discussion"
+                                    data-tooltip={t('tooltip_request_info')} title={t('tooltip_request_info')}
                                     style={{fontSize: '0.85rem', padding: '0.5rem'}}
                                 >
-                                    Request Info
+                                    {t('button_request_info')}
                                 </button>
                                 <button
                                     onClick={appealEnabled ? onAppeal : undefined}
                                     className="secondary"
                                     disabled={!appealEnabled}
-                                    data-tooltip={!appealEnabled ? 'No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
-                                    title={!appealEnabled ? 'No recent chair ruling to appeal' : 'Challenge the chair\'s ruling — the group decides'}
+                                    data-tooltip={!appealEnabled ? t('tooltip_appeal_disabled') : t('tooltip_appeal_enabled')}
+                                    title={!appealEnabled ? t('tooltip_appeal_disabled') : t('tooltip_appeal_enabled')}
                                     style={{fontSize: '0.85rem', padding: '0.5rem', ...(!appealEnabled ? disabledStyle : {})}}
                                 >
-                                    Appeal Chair
+                                    {t('button_appeal_chair')}
                                 </button>
                                 <button
                                     onClick={divisionEnabled ? onDivision : undefined}
                                     className="secondary"
                                     disabled={!divisionEnabled}
-                                    data-tooltip={!divisionEnabled ? 'Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
-                                    title={!divisionEnabled ? 'Division can only be demanded during voting' : 'Request a counted vote instead of a voice vote'}
+                                    data-tooltip={!divisionEnabled ? t('tooltip_division_disabled') : t('tooltip_division_enabled')}
+                                    title={!divisionEnabled ? t('tooltip_division_disabled') : t('tooltip_division_enabled')}
                                     style={{fontSize: '0.85rem', padding: '0.5rem', ...(!divisionEnabled ? disabledStyle : {})}}
                                 >
-                                    Division
+                                    {t('button_division')}
                                 </button>
                                 <button
                                     onClick={onSuspendRules}
                                     className="secondary"
-                                    data-tooltip="Temporarily set aside the rules (requires 2/3 vote)" title="Temporarily set aside the rules (requires 2/3 vote)"
+                                    data-tooltip={t('tooltip_suspend_rules')} title={t('tooltip_suspend_rules')}
                                     style={{fontSize: '0.85rem', padding: '0.5rem'}}
                                 >
-                                    Suspend Rules
+                                    {t('button_suspend_rules')}
                                 </button>
                                 {motionStack.length > 0 && top?.mover === currentUser.name && top?.status !== 'pending_chair' && (
                                     <button
                                         onClick={onWithdrawMotion}
                                         className="secondary"
-                                        data-tooltip="Request to take back your motion (requires consent)" title="Request to take back your motion (requires consent)"
+                                        data-tooltip={t('tooltip_withdraw_motion')} title={t('tooltip_withdraw_motion')}
                                         style={{fontSize: '0.85rem', padding: '0.5rem'}}
                                     >
-                                        Withdraw Motion
+                                        {t('button_withdraw_motion')}
                                     </button>
                                 )}
                                 {onOrdersOfTheDay && !isChair && (stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && (
                                     <button
                                         onClick={onOrdersOfTheDay}
                                         className="secondary"
-                                        data-tooltip="Demand the assembly return to the prescribed order of business" title="Demand the assembly return to the prescribed order of business"
+                                        data-tooltip={t('tooltip_orders_of_day')} title={t('tooltip_orders_of_day')}
                                         style={{fontSize: '0.85rem', padding: '0.5rem'}}
                                     >
-                                        Orders of the Day
+                                        {t('button_orders_of_day')}
                                     </button>
                                 )}
                             </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { MEETING_STAGES, ROLES } from '../../constants';
 import DrawerOverlay from '../DrawerOverlay';
 import QuorumSettingSection from '../QuorumSettingSection';
@@ -7,6 +8,7 @@ import DecidedMotionsList from '../DecidedMotionsList';
 import { formatQuorumRule } from '../../engine/quorum';
 
 export default function MembersDrawer({ meetingState, currentUser, isChair, onSetQuorum, onClose }) {
+    const { t } = useTranslation('meeting');
     const participants = meetingState.participants || [];
 
     // Quorum display logic (same as old sidebar)
@@ -31,7 +33,7 @@ export default function MembersDrawer({ meetingState, currentUser, isChair, onSe
     );
 
     return (
-        <DrawerOverlay title={`Members (${participants.length})`} onClose={onClose}>
+        <DrawerOverlay title={t('drawer_members_title', { count: participants.length })} onClose={onClose}>
             <ul className="participants-list">
                 {participants.map((p, idx) => (
                     <li
@@ -54,10 +56,10 @@ export default function MembersDrawer({ meetingState, currentUser, isChair, onSe
 
             {meetingState.quorumRule && (
                 <div className={`quorum-indicator ${quorumMet ? 'met' : 'not-met'}`}>
-                    <strong>Quorum:</strong> {presentCount} present of {meetingState.quorum} required
+                    <strong>{t('quorum_label')}</strong> {t('quorum_present_of_required', { present: presentCount, required: meetingState.quorum })}
                     <br />
                     <span style={{ color: '#666', fontSize: '0.8rem' }}>
-                        Rule: {formatQuorumRule(meetingState.quorumRule)}
+                        {t('quorum_rule_label', { rule: formatQuorumRule(meetingState.quorumRule) })}
                     </span>
                 </div>
             )}

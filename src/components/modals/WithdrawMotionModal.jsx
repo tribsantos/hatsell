@@ -1,31 +1,30 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function WithdrawMotionModal({ motionText, mover, currentUser, onSubmit, onClose }) {
+    const { t } = useTranslation('modals');
     const isMover = currentUser === mover;
 
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
-                <h3>Withdraw a Motion</h3>
+                <h3>{t('withdraw_heading')}</h3>
                 <div className="info-box">
                     {isMover ? (
-                        <p>You are the mover of this motion. If there is no objection, the motion
-                            will be withdrawn by unanimous consent. If objected to, a majority vote
-                            is required.</p>
+                        <p>{t('withdraw_desc_mover')}</p>
                     ) : (
-                        <p>Only the mover may request to withdraw. This will ask the chair to
-                            request unanimous consent to withdraw the motion.</p>
+                        <p>{t('withdraw_desc_other')}</p>
                     )}
                 </div>
                 {motionText && (
                     <div className="modal-inline-note">
-                        <strong>Motion:</strong> {motionText}
-                        <div className="modal-choice-meta">Moved by: {mover}</div>
+                        <strong>{t('withdraw_motion_label')}</strong> {motionText}
+                        <div className="modal-choice-meta">{t('withdraw_mover_label')} {mover}</div>
                     </div>
                 )}
                 <div className="modal-buttons">
-                    <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-                    <button type="button" onClick={() => onSubmit()}>Request Withdrawal</button>
+                    <button type="button" className="secondary" onClick={onClose}>{t('withdraw_cancel')}</button>
+                    <button type="button" onClick={() => onSubmit()}>{t('withdraw_submit')}</button>
                 </div>
             </div>
         </div>

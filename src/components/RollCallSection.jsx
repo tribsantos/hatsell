@@ -1,7 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ROLES } from '../constants';
 
 export default function RollCallSection({ participants, rollCallStatus, currentUser, isChair, onCallMember, onRespondToRollCall, onMarkPresent }) {
+    const { t } = useTranslation('meeting');
     const myStatus = rollCallStatus[currentUser.name];
     const wasICalled = myStatus === 'called' || myStatus === 'present';
 
@@ -15,27 +17,27 @@ export default function RollCallSection({ participants, rollCallStatus, currentU
 
     return (
         <div className="panel" style={{ marginBottom: '1.5rem' }}>
-            <h3>Roll Call</h3>
+            <h3>{t('roll_call_title')}</h3>
 
             {canConductRollCall ? (
                 <div>
                     <div className="info-box" style={{ marginBottom: '1rem' }}>
-                        <strong>Note:</strong> Chair, Vice Chair, and Secretary are automatically present (officers conducting the meeting).
+                        {t('roll_call_officers_note')}
                     </div>
 
                     {membersToCall.length === 0 ? (
                         <div>
                             <p style={{ marginBottom: '0.5rem', color: '#444' }}>
-                                All officers are present. No members to call.
+                                {t('roll_call_all_officers')}
                             </p>
                             <p style={{ fontSize: '0.9rem', color: '#666' }}>
-                                Click "Complete Roll Call" to proceed.
+                                {t('roll_call_click_complete')}
                             </p>
                         </div>
                     ) : (
                         <div>
                             <p style={{ marginBottom: '0.75rem', color: '#444' }}>
-                                Call each member. Click "Complete Roll Call" when all have responded.
+                                {t('roll_call_instructions')}
                             </p>
 
                             <div className="roll-call-grid">
@@ -44,7 +46,7 @@ export default function RollCallSection({ participants, rollCallStatus, currentU
                                     const isPresent = status === 'present';
                                     const isCalled = status === 'called';
                                     const statusClass = isPresent ? 'status-present' : isCalled ? 'status-called' : '';
-                                    const statusLabel = isPresent ? 'Present' : isCalled ? 'Called \u2014 Click to Confirm' : 'Click to Call';
+                                    const statusLabel = isPresent ? t('roll_call_status_present') : isCalled ? t('roll_call_status_called') : t('roll_call_status_click');
                                     const initial = p.name ? p.name.charAt(0).toUpperCase() : '?';
 
                                     const handleClick = () => {
@@ -82,26 +84,26 @@ export default function RollCallSection({ participants, rollCallStatus, currentU
                 <div style={{ textAlign: 'center' }}>
                     {currentUser.role === ROLES.PRESIDENT || currentUser.role === ROLES.VICE_PRESIDENT ? (
                         <div className="info-box">
-                            <strong>As {currentUser.role}, you are automatically present (presiding officer).</strong>
-                            <p style={{ marginTop: '0.5rem' }}>The Secretary is conducting roll call.</p>
+                            <strong>{t('roll_call_auto_present_officer', { role: currentUser.role })}</strong>
+                            <p style={{ marginTop: '0.5rem' }}>{t('roll_call_secretary_conducting')}</p>
                         </div>
                     ) : currentUser.role === ROLES.SECRETARY ? (
                         <div className="info-box">
-                            <strong>As Secretary, you are automatically present (conducting roll call).</strong>
+                            <strong>{t('roll_call_auto_present_secretary')}</strong>
                         </div>
                     ) : !wasICalled ? (
-                        <p style={{ color: '#666' }}>Waiting for your name to be called...</p>
+                        <p style={{ color: '#666' }}>{t('roll_call_waiting')}</p>
                     ) : myStatus === 'present' ? (
                         <div className="info-box">
-                            <strong>You have responded to roll call.</strong>
+                            <strong>{t('roll_call_responded')}</strong>
                         </div>
                     ) : (
                         <div>
                             <div className="warning-box" style={{ marginBottom: '1rem' }}>
-                                <strong>Your name has been called!</strong>
+                                <strong>{t('roll_call_your_name_called')}</strong>
                             </div>
                             <button type="button" onClick={onRespondToRollCall} className="roll-call-respond-btn success">
-                                Present
+                                {t('roll_call_present_button')}
                             </button>
                         </div>
                     )}

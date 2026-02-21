@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ROLES } from '../constants';
 import * as MeetingConnection from '../services/MeetingConnection';
 import HatsellLogo from './HatsellLogo';
 
 export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeeting }) {
+    const { t, i18n } = useTranslation(['login', 'common']);
     const [name, setName] = useState('');
     const [meetingCode, setMeetingCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('join');
+
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'pt-BR' ? 'en' : 'pt-BR';
+        i18n.changeLanguage(newLang);
+        localStorage.setItem('hatsell_language', newLang);
+    };
 
     const handleJoin = async (e) => {
         e.preventDefault();
@@ -16,7 +24,7 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
 
         const code = meetingCode.trim();
         if (!code) {
-            setError('Meeting code is required to join a meeting.');
+            setError(t('login:error_code_required'));
             return;
         }
 
@@ -52,14 +60,14 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
             // Verify the meeting exists with the resolved base code
             const exists = await MeetingConnection.checkMeetingExists(actualCode);
             if (!exists) {
-                setError('No meeting found with that code. Check the code and try again.');
+                setError(t('login:error_no_meeting'));
                 setLoading(false);
                 return;
             }
 
             await onLogin({ name, role, meetingCode: actualCode });
         } catch (err) {
-            setError('Failed to join meeting. Please try again.');
+            setError(t('login:error_join_failed'));
         } finally {
             setLoading(false);
         }
@@ -67,7 +75,7 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
 
     const handleCreate = () => {
         if (!name) {
-            setError('Please enter your name first.');
+            setError(t('login:error_name_required'));
             return;
         }
         onCreateMeeting(name);
@@ -79,9 +87,9 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
                 <header className="header">
                     <div className="logo-container">
                         <HatsellLogo />
-                        <h1>Hatsell</h1>
+                        <h1>{t('common:app_name')}</h1>
                     </div>
-                    <p className="subtitle">Parliamentary Meeting Assistant</p>
+                    <p className="subtitle">{t('common:app_subtitle')}</p>
                 </header>
 
                 {/* Tab toggle */}
@@ -90,13 +98,13 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
                         className={`login-tab ${activeTab === 'join' ? 'active' : ''}`}
                         onClick={() => { setActiveTab('join'); setError(null); }}
                     >
-                        Join Meeting
+                        {t('login:tab_join')}
                     </button>
                     <button
                         className={`login-tab ${activeTab === 'create' ? 'active' : ''}`}
                         onClick={() => { setActiveTab('create'); setError(null); }}
                     >
-                        Create Meeting
+                        {t('login:tab_create')}
                     </button>
                 </div>
 
@@ -109,13 +117,13 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
                 {activeTab === 'join' && (
                     <form onSubmit={handleJoin}>
                         <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                            <label className="login-label">Your Name</label>
+                            <label className="login-label">{t('login:label_your_name')}</label>
                             <input
                                 type="text"
                                 className="login-input"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="e.g. John Hatsell"
+                                placeholder={t('login:placeholder_name')}
                                 required
                                 disabled={loading}
                                 autoFocus
@@ -124,13 +132,13 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
                         </div>
 
                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                            <label className="login-label">Meeting Code</label>
+                            <label className="login-label">{t('login:label_meeting_code')}</label>
                             <input
                                 type="text"
                                 className="login-input"
                                 value={meetingCode}
                                 onChange={(e) => setMeetingCode(e.target.value.toUpperCase())}
-                                placeholder="e.g. XKGLS"
+                                placeholder={t('login:placeholder_code')}
                                 disabled={loading}
                             />
                         </div>
@@ -140,7 +148,7 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
                             className="login-submit"
                             disabled={loading || !name || !meetingCode.trim()}
                         >
-                            {loading ? 'Joining...' : 'Join Meeting'}
+                            {loading ? t('login:button_joining') : t('login:button_join')}
                         </button>
                     </form>
                 )}
@@ -148,13 +156,13 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
                 {activeTab === 'create' && (
                     <div>
                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                            <label className="login-label">Your Name</label>
+                            <label className="login-label">{t('login:label_your_name')}</label>
                             <input
                                 type="text"
                                 className="login-input"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="e.g. John Hatsell"
+                                placeholder={t('login:placeholder_name')}
                                 required
                                 disabled={loading}
                                 autoComplete="name"
@@ -167,31 +175,46 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
                             onClick={handleCreate}
                             disabled={loading || !name}
                         >
-                            Create Meeting
+                            {t('login:button_create')}
                         </button>
                     </div>
                 )}
 
                 <div style={{ textAlign: 'center' }}>
-                    <span className="header-badge">Based on Robert's Rules of Order</span>
+                    <span className="header-badge">{t('common:based_on_ronr')}</span>
                 </div>
 
                 <footer className="login-footer">
                     <p className="login-trust-copy">
-                        Hatsell runs entirely in your browser. No account required.
+                        {t('login:trust_copy_line1')}
                         <br />
-                        Meeting data is not stored on our servers.
+                        {t('login:trust_copy_line2')}
                     </p>
                     <div className="login-footer-links">
                         {onAbout && (
-                            <button type="button" onClick={onAbout}>About Hatsell</button>
+                            <button type="button" onClick={onAbout}>{t('login:link_about')}</button>
                         )}
                         {onAbout && onTutorial && <span className="separator">|</span>}
                         {onTutorial && (
-                            <button type="button" onClick={onTutorial}>First Time?</button>
+                            <button type="button" onClick={onTutorial}>{t('login:link_tutorial')}</button>
                         )}
                     </div>
-                    <p className="login-version">v2.1.0</p>
+                    <button
+                        type="button"
+                        onClick={toggleLanguage}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--accent)',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            padding: '0.25rem 0.5rem',
+                            marginTop: '0.25rem'
+                        }}
+                    >
+                        {t('login:language_toggle')}
+                    </button>
+                    <p className="login-version">{t('common:label_version')}</p>
                 </footer>
             </div>
         </div>

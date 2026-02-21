@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function MinutesCorrectionModal({ onSubmit, onClose }) {
+    const { t } = useTranslation('modals');
     const [correction, setCorrection] = useState('');
 
     const handleSubmit = (e) => {
@@ -12,23 +14,23 @@ export default function MinutesCorrectionModal({ onSubmit, onClose }) {
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-main" onClick={(e) => e.stopPropagation()}>
-                <h3>Propose Correction to Minutes</h3>
+                <h3>{t('minutes_correction_heading')}</h3>
                 <div className="info-box">
-                    Describe the correction needed to the minutes from the previous meeting.
+                    {t('minutes_correction_desc')}
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Proposed Correction</label>
+                        <label>{t('minutes_correction_label')}</label>
                         <textarea
                             value={correction}
                             onChange={(e) => setCorrection(e.target.value)}
-                            placeholder="On page X, line Y should read..."
+                            placeholder={t('minutes_correction_placeholder')}
                             autoFocus
                         />
                     </div>
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-                        <button type="submit">Propose Correction</button>
+                        <button type="button" className="secondary" onClick={onClose}>{t('minutes_correction_cancel')}</button>
+                        <button type="submit">{t('minutes_correction_submit')}</button>
                     </div>
                 </form>
             </div>

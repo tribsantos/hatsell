@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as MeetingConnection from '../services/MeetingConnection';
 import HatsellLogo from './HatsellLogo';
 import { AGENDA_CATEGORIES, getCategoryLabel } from '../constants/agenda';
@@ -42,11 +43,13 @@ const DEFAULT_MEETING_SETTINGS = {
     },
     autoYieldOnTimeExpired: false,
     audioCues: false,
-    showVoteDetails: false
+    showVoteDetails: false,
+    language: 'en'
 };
 
 
 function AgendaItemForm({ initialItem, onSave, onCancel }) {
+    const { t } = useTranslation('settings');
     const [item, setItem] = useState(initialItem || { title: '', category: '', owner: '', timeTarget: '', notes: '' });
 
     const handleSubmit = () => {
@@ -68,37 +71,37 @@ function AgendaItemForm({ initialItem, onSave, onCancel }) {
         <div style={{ padding: '0.75rem', background: '#f9f8f5', border: '1px solid #ddd', borderRadius: '4px', marginTop: '0.5rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <div>
-                    <label style={{ fontSize: '0.78rem', color: '#666' }}>Title *</label>
-                    <input type="text" value={item.title} onChange={(e) => setItem(prev => ({ ...prev, title: e.target.value }))} placeholder="Agenda item title" style={fieldStyle} />
+                    <label style={{ fontSize: '0.78rem', color: '#666' }}>{t('agenda_title_label')}</label>
+                    <input type="text" value={item.title} onChange={(e) => setItem(prev => ({ ...prev, title: e.target.value }))} placeholder={t('agenda_placeholder_title')} style={fieldStyle} />
                 </div>
                 <div>
-                    <label style={{ fontSize: '0.78rem', color: '#666' }}>Category *</label>
+                    <label style={{ fontSize: '0.78rem', color: '#666' }}>{t('agenda_category_label')}</label>
                     <select value={item.category} onChange={(e) => setItem(prev => ({ ...prev, category: e.target.value }))} style={fieldStyle}>
-                        <option value="">Select category...</option>
+                        <option value="">{t('agenda_category_placeholder')}</option>
                         {AGENDA_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                     </select>
                 </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <div>
-                    <label style={{ fontSize: '0.78rem', color: '#666' }}>Owner</label>
-                    <input type="text" value={item.owner} onChange={(e) => setItem(prev => ({ ...prev, owner: e.target.value }))} placeholder="Who presents" style={fieldStyle} />
+                    <label style={{ fontSize: '0.78rem', color: '#666' }}>{t('agenda_owner_label')}</label>
+                    <input type="text" value={item.owner} onChange={(e) => setItem(prev => ({ ...prev, owner: e.target.value }))} placeholder={t('agenda_owner_placeholder')} style={fieldStyle} />
                 </div>
                 <div>
-                    <label style={{ fontSize: '0.78rem', color: '#666' }}>Time target (min)</label>
-                    <input type="number" value={item.timeTarget} onChange={(e) => setItem(prev => ({ ...prev, timeTarget: e.target.value }))} placeholder="Optional" style={fieldStyle} min="1" />
+                    <label style={{ fontSize: '0.78rem', color: '#666' }}>{t('agenda_time_label')}</label>
+                    <input type="number" value={item.timeTarget} onChange={(e) => setItem(prev => ({ ...prev, timeTarget: e.target.value }))} placeholder={t('agenda_time_placeholder')} style={fieldStyle} min="1" />
                 </div>
                 <div>
-                    <label style={{ fontSize: '0.78rem', color: '#666' }}>Notes</label>
-                    <input type="text" value={item.notes} onChange={(e) => setItem(prev => ({ ...prev, notes: e.target.value }))} placeholder="Optional" style={fieldStyle} />
+                    <label style={{ fontSize: '0.78rem', color: '#666' }}>{t('agenda_notes_label')}</label>
+                    <input type="text" value={item.notes} onChange={(e) => setItem(prev => ({ ...prev, notes: e.target.value }))} placeholder={t('agenda_notes_placeholder')} style={fieldStyle} />
                 </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={handleSubmit} disabled={!item.title.trim() || !item.category} style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
-                    {initialItem ? 'Save' : 'Add Item'}
+                    {initialItem ? t('agenda_save') : t('agenda_add')}
                 </button>
                 {onCancel && (
-                    <button onClick={onCancel} className="secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>Cancel</button>
+                    <button onClick={onCancel} className="secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>{t('button_cancel', { ns: 'common' })}</button>
                 )}
             </div>
         </div>
@@ -106,6 +109,7 @@ function AgendaItemForm({ initialItem, onSave, onCancel }) {
 }
 
 function AgendaItemRow({ item, index, total, onUpdate, onDelete, onMoveUp, onMoveDown }) {
+    const { t } = useTranslation('settings');
     const [editing, setEditing] = useState(false);
 
     if (editing) {
@@ -136,7 +140,7 @@ function AgendaItemRow({ item, index, total, onUpdate, onDelete, onMoveUp, onMov
             <div style={{ display: 'flex', gap: '0.25rem' }}>
                 <button onClick={() => onMoveUp(item.id)} disabled={index === 0} className="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>▲</button>
                 <button onClick={() => onMoveDown(item.id)} disabled={index === total - 1} className="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>▼</button>
-                <button onClick={() => setEditing(true)} className="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>Edit</button>
+                <button onClick={() => setEditing(true)} className="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>{t('agenda_edit')}</button>
                 <button onClick={() => onDelete(item.id)} className="danger" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>×</button>
             </div>
         </div>
@@ -148,8 +152,12 @@ function generateCode() {
 }
 
 export default function GeneralSettings({ userName, onConfirm, onCancel }) {
+    const { t, i18n } = useTranslation('settings');
     const [profile, setProfile] = useState(DEFAULT_PROFILE);
-    const [meetingSettings, setMeetingSettings] = useState(DEFAULT_MEETING_SETTINGS);
+    const [meetingSettings, setMeetingSettings] = useState({
+        ...DEFAULT_MEETING_SETTINGS,
+        language: i18n.language
+    });
     const [generatedCodes, setGeneratedCodes] = useState(null);
     const [showAddAgenda, setShowAddAgenda] = useState(false);
 
@@ -318,9 +326,9 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
             <header className="header">
                 <div className="logo-container">
                     <HatsellLogo />
-                    <h1>Hatsell</h1>
+                    <h1>{t('header_title')}</h1>
                 </div>
-                <p className="subtitle">General Settings</p>
+                <p className="subtitle">{t('header_subtitle')}</p>
             </header>
 
             <div style={{ maxWidth: '760px', margin: '0 auto', padding: '1.25rem 0.75rem' }}>
@@ -340,10 +348,10 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                             onClick={doGenerateCodes}
                             style={{ padding: '0.75rem 2rem', fontSize: '1rem', marginBottom: '0.5rem' }}
                         >
-                            Quick Start
+                            {t('quick_start')}
                         </button>
                         <div style={{ fontSize: '0.8rem', color: 'var(--h-fg-dim)' }}>
-                            Start a meeting immediately with default settings. Or customize below.
+                            {t('quick_start_desc')}
                         </div>
                     </div>
                 )}
@@ -359,16 +367,16 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         textAlign: 'center',
                         boxShadow: 'var(--h-shadow)'
                     }}>
-                        <h3 style={{ color: 'var(--h-green-dark)', marginBottom: '1rem' }}>Meeting Codes Generated</h3>
+                        <h3 style={{ color: 'var(--h-green-dark)', marginBottom: '1rem' }}>{t('codes_generated_title')}</h3>
                         <p style={{ fontSize: '0.85rem', color: 'var(--h-fg-muted)', marginBottom: '1rem' }}>
-                            Share these role-specific codes with participants:
+                            {t('codes_share')}
                         </p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', textAlign: 'left' }}>
                             {[
-                                { label: 'Chair', code: generatedCodes.chair },
-                                { label: 'Vice Chair', code: generatedCodes.viceChair },
-                                { label: 'Secretary', code: generatedCodes.secretary },
-                                { label: 'Member', code: generatedCodes.member }
+                                { label: t('code_label_chair'), code: generatedCodes.chair },
+                                { label: t('code_label_vice_chair'), code: generatedCodes.viceChair },
+                                { label: t('code_label_secretary'), code: generatedCodes.secretary },
+                                { label: t('code_label_member'), code: generatedCodes.member }
                             ].map(({ label, code }) => (
                                 <div key={label} style={{
                                     padding: '0.75rem',
@@ -400,13 +408,13 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                 className="secondary"
                                 style={{ padding: '0.5rem 1rem' }}
                             >
-                                Copy All Codes
+                                {t('copy_all_codes')}
                             </button>
                             <button
                                 onClick={handleStartMeeting}
                                 style={{ padding: '0.75rem 2rem', fontSize: '1rem' }}
                             >
-                                Start Meeting
+                                {t('start_meeting')}
                             </button>
                         </div>
                     </div>
@@ -414,51 +422,51 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
 
                 {/* Section 1: Organization Profile */}
                 <div style={sectionStyle}>
-                    <h3 style={{ marginBottom: '1rem', color: '#1a1a1a' }}>Organization Profile</h3>
+                    <h3 style={{ marginBottom: '1rem', color: '#1a1a1a' }}>{t('section_org_profile')}</h3>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle}>Organization Name</label>
+                        <label style={labelStyle}>{t('label_org_name')}</label>
                         <input
                             type="text"
                             value={profile.organizationName}
                             onChange={(e) => updateProfile('organizationName', e.target.value)}
-                            placeholder="e.g. Springfield Civic Association"
+                            placeholder={t('placeholder_org_name')}
                             style={inputStyle}
                         />
-                        <div style={hintStyle}>Appears in the top bar during the meeting and in exported minutes.</div>
+                        <div style={hintStyle}>{t('hint_org_name')}</div>
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle}>Total Membership (optional)</label>
+                        <label style={labelStyle}>{t('label_total_membership')}</label>
                         <input
                             type="number"
                             value={profile.totalMembership}
                             onChange={(e) => updateProfile('totalMembership', e.target.value)}
-                            placeholder="Total number of members"
+                            placeholder={t('placeholder_total_membership')}
                             style={inputStyle}
                             min="1"
                         />
-                        <div style={hintStyle}>Used to calculate quorum. Leave blank if unknown.</div>
+                        <div style={hintStyle}>{t('hint_total_membership')}</div>
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle}>Quorum</label>
+                        <label style={labelStyle}>{t('label_quorum')}</label>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <select
                                 value={profile.quorumType}
                                 onChange={(e) => updateProfile('quorumType', e.target.value)}
                                 style={{ ...inputStyle, flex: 1 }}
                             >
-                                <option value="default">Default (majority of membership)</option>
-                                <option value="fixed">Fixed Number</option>
-                                <option value="fraction">Fraction of Membership</option>
+                                <option value="default">{t('quorum_default')}</option>
+                                <option value="fixed">{t('quorum_fixed')}</option>
+                                <option value="fraction">{t('quorum_fraction')}</option>
                             </select>
                             {(profile.quorumType === 'fixed' || profile.quorumType === 'fraction') && (
                                 <input
                                     type="number"
                                     value={profile.quorumValue}
                                     onChange={(e) => updateProfile('quorumValue', e.target.value)}
-                                    placeholder={profile.quorumType === 'fixed' ? 'Number' : 'e.g. 0.5'}
+                                    placeholder={profile.quorumType === 'fixed' ? t('placeholder_quorum_number') : t('placeholder_quorum_fraction')}
                                     style={{ ...inputStyle, flex: 1 }}
                                     min={profile.quorumType === 'fraction' ? '0' : '1'}
                                     max={profile.quorumType === 'fraction' ? '1' : undefined}
@@ -466,19 +474,19 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                 />
                             )}
                         </div>
-                        <div style={hintStyle}>Default quorum is a majority of the total membership (RONR).</div>
+                        <div style={hintStyle}>{t('hint_quorum')}</div>
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle}>Voting Basis</label>
+                        <label style={labelStyle}>{t('label_voting_basis')}</label>
                         <div className="settings-vote-grid">
                             <div>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--h-fg-muted)', fontWeight: 600, marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Majority</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--h-fg-muted)', fontWeight: 600, marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('voting_majority')}</div>
                                 <div className="settings-option-group">
                                     {[
-                                        { value: 'votes_cast', label: 'Votes cast', tag: 'RONR default' },
-                                        { value: 'members_present', label: 'Members present' },
-                                        { value: 'entire_membership', label: 'Entire membership' }
+                                        { value: 'votes_cast', label: t('votes_cast'), tag: t('ronr_default') },
+                                        { value: 'members_present', label: t('members_present') },
+                                        { value: 'entire_membership', label: t('entire_membership') }
                                     ].map(opt => (
                                         <button
                                             key={opt.value}
@@ -494,12 +502,12 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                 </div>
                             </div>
                             <div>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--h-fg-muted)', fontWeight: 600, marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Two-Thirds</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--h-fg-muted)', fontWeight: 600, marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('voting_two_thirds')}</div>
                                 <div className="settings-option-group">
                                     {[
-                                        { value: 'votes_cast', label: 'Votes cast', tag: 'RONR default' },
-                                        { value: 'members_present', label: 'Members present' },
-                                        { value: 'entire_membership', label: 'Entire membership' }
+                                        { value: 'votes_cast', label: t('votes_cast'), tag: t('ronr_default') },
+                                        { value: 'members_present', label: t('members_present') },
+                                        { value: 'entire_membership', label: t('entire_membership') }
                                     ].map(opt => (
                                         <button
                                             key={opt.value}
@@ -515,14 +523,14 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                 </div>
                             </div>
                         </div>
-                        <div style={hintStyle}>How votes are counted for each threshold type. RONR default counts only votes actually cast.</div>
+                        <div style={hintStyle}>{t('hint_voting_basis')}</div>
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle}>Debate Limits</label>
+                        <label style={labelStyle}>{t('label_debate_limits')}</label>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                             <div>
-                                <label style={{ fontSize: '0.8rem', color: '#666' }}>Time per speech (min)</label>
+                                <label style={{ fontSize: '0.8rem', color: '#666' }}>{t('label_time_per_speech')}</label>
                                 <input
                                     type="number"
                                     value={profile.timePerSpeech}
@@ -532,7 +540,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                 />
                             </div>
                             <div>
-                                <label style={{ fontSize: '0.8rem', color: '#666' }}>Speeches per member</label>
+                                <label style={{ fontSize: '0.8rem', color: '#666' }}>{t('label_speeches_per_member')}</label>
                                 <input
                                     type="number"
                                     value={profile.speechesPerMember}
@@ -542,33 +550,33 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                 />
                             </div>
                             <div>
-                                <label style={{ fontSize: '0.8rem', color: '#666' }}>Total debate (min, opt.)</label>
+                                <label style={{ fontSize: '0.8rem', color: '#666' }}>{t('label_total_debate')}</label>
                                 <input
                                     type="number"
                                     value={profile.totalDebateTime}
                                     onChange={(e) => updateProfile('totalDebateTime', e.target.value)}
-                                    placeholder="No limit"
+                                    placeholder={t('placeholder_no_limit')}
                                     style={inputStyle}
                                     min="1"
                                 />
                             </div>
                         </div>
-                        <div style={hintStyle}>Leave total debate blank for no limit.</div>
+                        <div style={hintStyle}>{t('hint_debate_limits')}</div>
                     </div>
 
                     <div className="form-group">
-                        <label style={labelStyle}>Electronic Participation</label>
+                        <label style={labelStyle}>{t('label_electronic_participation')}</label>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                             <div>
-                                <label style={{ fontSize: '0.8rem', color: '#666' }}>Meeting Format</label>
+                                <label style={{ fontSize: '0.8rem', color: '#666' }}>{t('label_meeting_format')}</label>
                                 <select
                                     value={profile.meetingFormat}
                                     onChange={(e) => updateProfile('meetingFormat', e.target.value)}
                                     style={inputStyle}
                                 >
-                                    <option value="in_person">In Person</option>
-                                    <option value="electronic">Fully Electronic</option>
-                                    <option value="hybrid">Hybrid</option>
+                                    <option value="in_person">{t('format_in_person')}</option>
+                                    <option value="electronic">{t('format_electronic')}</option>
+                                    <option value="hybrid">{t('format_hybrid')}</option>
                                 </select>
                             </div>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', paddingTop: '1.25rem' }}>
@@ -577,7 +585,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                     checked={profile.electronicVoting}
                                     onChange={(e) => updateProfile('electronicVoting', e.target.checked)}
                                 />
-                                Electronic Voting
+                                {t('label_electronic_voting')}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', paddingTop: '1.25rem' }}>
                                 <input
@@ -585,46 +593,59 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                     checked={profile.proxyVoting}
                                     onChange={(e) => updateProfile('proxyVoting', e.target.checked)}
                                 />
-                                Proxy Voting
+                                {t('label_proxy_voting')}
                             </label>
                         </div>
-                        <div style={hintStyle}>Electronic and proxy voting must be authorized in your bylaws.</div>
+                        <div style={hintStyle}>{t('hint_electronic_participation')}</div>
                     </div>
                 </div>
 
                 {/* Section 2: Settings for this meeting */}
                 <div style={{ ...sectionStyle, borderLeft: '4px solid #2980b9' }}>
-                    <h3 style={{ marginBottom: '1rem', color: '#1a1a1a' }}>Settings for this meeting</h3>
+                    <h3 style={{ marginBottom: '1rem', color: '#1a1a1a' }}>{t('section_meeting_settings')}</h3>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle}>Meeting Name</label>
+                        <label style={labelStyle}>{t('label_meeting_name')}</label>
                         <input
                             type="text"
                             value={meetingSettings.meetingName}
                             onChange={(e) => updateMeetingSettings('meetingName', e.target.value)}
-                            placeholder="e.g. Regular Meeting, Annual Meeting"
+                            placeholder={t('placeholder_meeting_name')}
                             style={inputStyle}
                         />
-                        <div style={hintStyle}>Displayed in the top bar and used in minutes export.</div>
+                        <div style={hintStyle}>{t('hint_meeting_name')}</div>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                        <label style={labelStyle}>{t('label_language')}</label>
+                        <select
+                            value={meetingSettings.language}
+                            onChange={(e) => updateMeetingSettings('language', e.target.value)}
+                            style={inputStyle}
+                        >
+                            <option value="en">{t('language_en')}</option>
+                            <option value="pt-BR">{t('language_pt_br')}</option>
+                        </select>
+                        <div style={hintStyle}>{t('hint_language')}</div>
                     </div>
 
                     {/* A) Agenda */}
                     <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd' }}>
-                        <label style={labelStyle}>Agenda</label>
+                        <label style={labelStyle}>{t('label_agenda')}</label>
                         <div style={radioGroupStyle}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="radio" name="agendaStatus" value="guidance" checked={meetingSettings.agendaStatus === 'guidance'} onChange={() => updateMeetingSettings('agendaStatus', 'guidance')} />
-                                Guidance only (chair reference)
+                                {t('agenda_guidance')}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="radio" name="agendaStatus" value="orders_of_the_day" checked={meetingSettings.agendaStatus === 'orders_of_the_day'} onChange={() => updateMeetingSettings('agendaStatus', 'orders_of_the_day')} />
-                                Orders of the Day (adopted agenda)
+                                {t('agenda_orders')}
                             </label>
                         </div>
                         <div style={hintStyle}>
                             {meetingSettings.agendaStatus === 'guidance'
-                                ? 'Items listed here will guide the chair but are not binding.'
-                                : 'Items will be treated as adopted orders; deviating requires suspending the rules.'}
+                                ? t('hint_agenda_guidance')
+                                : t('hint_agenda_orders')}
                         </div>
 
                         {/* Agenda item list */}
@@ -653,144 +674,144 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                             />
                         ) : (
                             <button onClick={() => setShowAddAgenda(true)} className="secondary" style={{ marginTop: '0.5rem', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
-                                + Add Agenda Item
+                                {t('add_agenda_item')}
                             </button>
                         )}
                     </div>
 
                     {/* B) Previous Notice */}
                     <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd' }}>
-                        <label style={labelStyle}>Previous Notice</label>
+                        <label style={labelStyle}>{t('label_previous_notice')}</label>
                         <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>
-                            Check items for which previous notice has been given:
+                            {t('previous_notice_desc')}
                         </p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="checkbox" checked={meetingSettings.previousNotice.rescind} onChange={(e) => updateMeetingSettingsPreviousNotice('rescind', e.target.checked)} />
-                                Rescind / Amend Something Previously Adopted
+                                {t('notice_rescind')}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="checkbox" checked={meetingSettings.previousNotice.bylawAmendments} onChange={(e) => updateMeetingSettingsPreviousNotice('bylawAmendments', e.target.checked)} />
-                                Bylaw Amendments
+                                {t('notice_bylaws')}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="checkbox" checked={meetingSettings.previousNotice.dischargeCommittee} onChange={(e) => updateMeetingSettingsPreviousNotice('dischargeCommittee', e.target.checked)} />
-                                Discharge a Committee
+                                {t('notice_discharge')}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="checkbox" checked={meetingSettings.previousNotice.disciplinary} onChange={(e) => updateMeetingSettingsPreviousNotice('disciplinary', e.target.checked)} />
-                                Formal Disciplinary Procedure
+                                {t('notice_disciplinary')}
                             </label>
                         </div>
-                        <div style={hintStyle}>Checking these indicates notice was given, lowering the required vote to a majority.</div>
+                        <div style={hintStyle}>{t('hint_previous_notice')}</div>
                     </div>
 
                     {/* C) Meeting Type */}
                     <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd' }}>
-                        <label style={labelStyle}>Meeting Type</label>
+                        <label style={labelStyle}>{t('label_meeting_type')}</label>
                         <div style={radioGroupStyle}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="radio" name="meetingType" value="regular" checked={meetingSettings.meetingType === 'regular'} onChange={() => updateMeetingSettings('meetingType', 'regular')} />
-                                Regular Meeting
+                                {t('meeting_type_regular')}
                             </label>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="radio" name="meetingType" value="special" checked={meetingSettings.meetingType === 'special'} onChange={() => updateMeetingSettings('meetingType', 'special')} />
-                                Special Meeting
+                                {t('meeting_type_special')}
                             </label>
                         </div>
                         {meetingSettings.meetingType === 'special' && (
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', marginTop: '0.5rem', marginLeft: '1.5rem' }}>
                                 <input type="checkbox" checked={meetingSettings.specialMeetingRestrict} onChange={(e) => updateMeetingSettings('specialMeetingRestrict', e.target.checked)} />
-                                Restrict business to items specified in the call
+                                {t('special_restrict')}
                             </label>
                         )}
-                        <div style={hintStyle}>Special meetings may only consider business mentioned in the call (RONR).</div>
+                        <div style={hintStyle}>{t('hint_meeting_type')}</div>
                     </div>
 
                     {/* D) Electronic Meeting Procedures */}
                     {profile.meetingFormat !== 'in_person' && (
                         <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd' }}>
-                            <label style={labelStyle}>Electronic Meeting Procedures</label>
+                            <label style={labelStyle}>{t('label_electronic_procedures')}</label>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ fontSize: '0.8rem', color: '#666' }}>Recognition Method</label>
+                                    <label style={{ fontSize: '0.8rem', color: '#666' }}>{t('label_recognition_method')}</label>
                                     <select value={meetingSettings.electronicRules.recognitionMethod} onChange={(e) => updateElectronicRules('recognitionMethod', e.target.value)} style={inputStyle}>
-                                        <option value="queue_only">Queue Only</option>
-                                        <option value="chair">Chair Recognizes</option>
-                                        <option value="hybrid_recognition">Hybrid</option>
+                                        <option value="queue_only">{t('recognition_queue')}</option>
+                                        <option value="chair">{t('recognition_chair')}</option>
+                                        <option value="hybrid_recognition">{t('recognition_hybrid')}</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '0.8rem', color: '#666' }}>Chat Policy</label>
+                                    <label style={{ fontSize: '0.8rem', color: '#666' }}>{t('label_chat_policy')}</label>
                                     <select value={meetingSettings.electronicRules.chatPolicy} onChange={(e) => updateElectronicRules('chatPolicy', e.target.value)} style={inputStyle}>
-                                        <option value="informational_only">Informational Only</option>
-                                        <option value="motions_allowed">Motions Allowed</option>
+                                        <option value="informational_only">{t('chat_informational')}</option>
+                                        <option value="motions_allowed">{t('chat_motions')}</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '0.8rem', color: '#666' }}>Raise Hand Mechanism</label>
+                                    <label style={{ fontSize: '0.8rem', color: '#666' }}>{t('label_raise_hand')}</label>
                                     <select value={meetingSettings.electronicRules.raiseHandMechanism} onChange={(e) => updateElectronicRules('raiseHandMechanism', e.target.value)} style={inputStyle}>
-                                        <option value="button">Button</option>
-                                        <option value="chat_keyword">Chat Keyword</option>
+                                        <option value="button">{t('raise_hand_button')}</option>
+                                        <option value="chat_keyword">{t('raise_hand_chat')}</option>
                                     </select>
                                 </div>
                             </div>
-                            <div style={hintStyle}>Configure how electronic participation is managed during this meeting.</div>
+                            <div style={hintStyle}>{t('hint_electronic_procedures')}</div>
                         </div>
                     )}
 
                     {/* E) Opening Package */}
                     <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
-                        <label style={labelStyle}>Opening Package</label>
+                        <label style={labelStyle}>{t('label_opening_package')}</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                             <input type="checkbox" checked={meetingSettings.openingPackage.enabled} onChange={(e) => updateOpeningPackage('enabled', e.target.checked)} />
-                            Propose bundled adoption of opening items
+                            {t('opening_package_enable')}
                         </label>
                         {meetingSettings.openingPackage.enabled && (
                             <div style={{ marginTop: '0.5rem', marginLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
                                     <input type="checkbox" checked={meetingSettings.openingPackage.adoptAgenda} onChange={(e) => updateOpeningPackage('adoptAgenda', e.target.checked)} />
-                                    Adopt the agenda
+                                    {t('opening_adopt_agenda')}
                                 </label>
                                 {profile.meetingFormat !== 'in_person' && (
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
                                         <input type="checkbox" checked={meetingSettings.openingPackage.adoptElectronicRules} onChange={(e) => updateOpeningPackage('adoptElectronicRules', e.target.checked)} />
-                                        Adopt electronic meeting rules
+                                        {t('opening_adopt_electronic')}
                                     </label>
                                 )}
                             </div>
                         )}
-                        <div style={hintStyle}>If enabled, the chair will be prompted to propose adopting these items together at the start of the meeting.</div>
+                        <div style={hintStyle}>{t('hint_opening_package')}</div>
                     </div>
 
                     {/* F) Timer Enforcement */}
                     <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
-                        <label style={labelStyle}>Timer Enforcement</label>
+                        <label style={labelStyle}>{t('label_timer_enforcement')}</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                             <input type="checkbox" checked={meetingSettings.autoYieldOnTimeExpired} onChange={(e) => updateMeetingSettings('autoYieldOnTimeExpired', e.target.checked)} />
-                            Automatically yield the floor when speaking time expires
+                            {t('timer_auto_yield')}
                         </label>
-                        <div style={hintStyle}>If enabled, the speaker's floor is automatically yielded when the time limit is reached. Otherwise, the timer continues running past zero and the chair may allow the speaker to finish.</div>
+                        <div style={hintStyle}>{t('hint_timer_enforcement')}</div>
                     </div>
 
                     {/* G) Audio Cues */}
                     <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
-                        <label style={labelStyle}>Audio Notifications</label>
+                        <label style={labelStyle}>{t('label_audio_notifications')}</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                             <input type="checkbox" checked={meetingSettings.audioCues} onChange={(e) => updateMeetingSettings('audioCues', e.target.checked)} />
-                            Enable audio cues for key meeting events
+                            {t('audio_enable')}
                         </label>
-                        <div style={hintStyle}>Plays brief tones when voting opens, speaking time expires, motions are seconded, and other important events occur.</div>
+                        <div style={hintStyle}>{t('hint_audio_notifications')}</div>
                     </div>
 
                     {/* H) Vote Transparency */}
                     <div>
-                        <label style={labelStyle}>Vote Transparency</label>
+                        <label style={labelStyle}>{t('label_vote_transparency')}</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                             <input type="checkbox" checked={meetingSettings.showVoteDetails} onChange={(e) => updateMeetingSettings('showVoteDetails', e.target.checked)} />
-                            Display individual votes when results are announced
+                            {t('vote_show_details')}
                         </label>
-                        <div style={hintStyle}>When enabled, the chair will see how each member voted (by name) in the result announcement. By default, only aggregate totals are shown.</div>
+                        <div style={hintStyle}>{t('hint_vote_transparency')}</div>
                     </div>
                 </div>
 
@@ -803,10 +824,10 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         background: 'linear-gradient(to top, var(--h-bg) 60%, transparent)'
                     }}>
                         <button onClick={handleConfirm} style={{ padding: '0.75rem 2rem', fontSize: '1rem' }}>
-                            Confirm
+                            {t('button_confirm')}
                         </button>
                         <button onClick={onCancel} className="secondary" style={{ padding: '0.75rem 2rem', fontSize: '1rem' }}>
-                            Cancel
+                            {t('button_cancel')}
                         </button>
                     </div>
                 )}

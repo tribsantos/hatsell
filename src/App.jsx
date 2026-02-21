@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from './i18n';
 import { ROLES } from './constants';
 import { MOTION_TYPES } from './constants/motionTypes';
 import { useMeetingState } from './hooks/useMeetingState';
@@ -43,6 +45,8 @@ export default function App() {
     const [disclaimerChecked, setDisclaimerChecked] = useState(false);
     const [activeDrawer, setActiveDrawer] = useState(null);
     const [inactivityWarning, setInactivityWarning] = useState(false);
+
+    const { t } = useTranslation('meeting');
 
     const toggleDrawer = (name) => {
         setActiveDrawer(prev => prev === name ? null : name);
@@ -142,6 +146,14 @@ export default function App() {
     });
     useAudioCues(meetingState);
 
+    // Sync meeting language to i18n — all participants see the same language
+    useEffect(() => {
+        const meetingLang = meetingState?.meetingSettings?.language;
+        if (meetingLang && isLoggedIn && i18n.language !== meetingLang) {
+            i18n.changeLanguage(meetingLang);
+        }
+    }, [meetingState?.meetingSettings?.language, isLoggedIn]);
+
     if (activePage === 'tutorial') {
         return (
             <TutorialPage
@@ -219,26 +231,24 @@ export default function App() {
                 <header className="header">
                     <div className="logo-container">
                         <HatsellLogo />
-                        <h1>Hatsell</h1>
+                        <h1>{t('common:app_name', { ns: 'common' })}</h1>
                     </div>
-                    <p className="subtitle">Based on Robert's Rules of Order</p>
+                    <p className="subtitle">{t('based_on_ronr')}</p>
                 </header>
                 <div className="disclaimer-wrap">
                     <div className="modal disclaimer-modal">
-                        <h3>Disclaimer</h3>
+                        <h3>{t('disclaimer_title')}</h3>
                         <p className="modal-intro" style={{ marginBottom: '1rem' }}>
-                            Hatsell is a tool to help meetings using a parliamentary authority. It is
-                            not supposed to replace them. Any conflict between Hatsell and the chosen
-                            parliamentary authority should be decided in favor of the official text.
+                            {t('disclaimer_text')}
                         </p>
                         <div className="info-box">
-                            <strong>Data & Privacy</strong>
+                            <strong>{t('disclaimer_data_title')}</strong>
                             <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem', lineHeight: 1.6 }}>
-                                <li>Meeting data is transmitted via Firebase for real-time sync</li>
-                                <li>Organization profiles are stored locally in your browser (not sent to any server)</li>
-                                <li>Session data is cleared when the browser tab closes</li>
-                                <li>No personal data is collected or shared with third parties</li>
-                                <li>Meeting data in Firebase is temporary</li>
+                                <li>{t('disclaimer_data_firebase')}</li>
+                                <li>{t('disclaimer_data_local')}</li>
+                                <li>{t('disclaimer_data_session')}</li>
+                                <li>{t('disclaimer_data_no_personal')}</li>
+                                <li>{t('disclaimer_data_temp')}</li>
                             </ul>
                         </div>
 
@@ -248,7 +258,7 @@ export default function App() {
                                 checked={disclaimerChecked}
                                 onChange={(e) => setDisclaimerChecked(e.target.checked)}
                             />
-                            I agree
+                            {t('disclaimer_agree')}
                         </label>
                         <button
                             onClick={() => {
@@ -257,7 +267,7 @@ export default function App() {
                             }}
                             disabled={!disclaimerChecked}
                         >
-                            Continue to Meeting
+                            {t('disclaimer_continue')}
                         </button>
                     </div>
                 </div>
@@ -272,7 +282,7 @@ export default function App() {
 
     return (
         <div className="app-container" style={{ padding: 0 }}>
-            <a href="#main-content" className="skip-to-content">Skip to main content</a>
+            <a href="#main-content" className="skip-to-content">{t('skip_to_content')}</a>
             <TopBar
                 meetingState={meetingState}
                 currentUser={currentUser}
@@ -593,6 +603,7 @@ export default function App() {
 }
 
 function InactivityWarningModal({ lastActivityTime, onResume, onEnd }) {
+    const { t } = useTranslation('meeting');
     const [countdown, setCountdown] = useState(60);
     const countdownRef = useRef(null);
 
@@ -611,16 +622,16 @@ function InactivityWarningModal({ lastActivityTime, onResume, onEnd }) {
     return (
         <div className="modal-overlay">
             <div className="modal variant-warning" role="alertdialog" aria-labelledby="inactivity-heading">
-                <h3 id="inactivity-heading">Meeting Inactive</h3>
+                <h3 id="inactivity-heading">{t('inactivity_title')}</h3>
                 <p className="modal-intro">
-                    This meeting has been inactive for 30 minutes. It will automatically adjourn if no action is taken.
+                    {t('inactivity_text')}
                 </p>
                 <div className="inactivity-countdown">
                     {countdown}s
                 </div>
                 <div className="modal-buttons">
-                    <button onClick={onResume}>Resume Meeting</button>
-                    <button className="danger" onClick={onEnd}>End Meeting</button>
+                    <button onClick={onResume}>{t('inactivity_resume')}</button>
+                    <button className="danger" onClick={onEnd}>{t('inactivity_end')}</button>
                 </div>
             </div>
         </div>

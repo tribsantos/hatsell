@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function RequestForInfoModal({ onSubmit, onClose }) {
+    const { t } = useTranslation('modals');
     const [question, setQuestion] = useState('');
 
     const handleSubmit = (e) => {
@@ -12,24 +14,23 @@ export default function RequestForInfoModal({ onSubmit, onClose }) {
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
-                <h3>Request for Information</h3>
+                <h3>{t('request_info_heading')}</h3>
                 <div className="info-box">
-                    A Request for Information (Point of Information) asks a factual question
-                    about the business at hand. The chair or a designated member will respond.
+                    {t('request_info_desc')}
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>State Your Question</label>
+                        <label>{t('request_info_label')}</label>
                         <textarea
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
-                            placeholder="I rise for a point of information: ..."
+                            placeholder={t('request_info_placeholder')}
                             autoFocus
                         />
                     </div>
                     <div className="modal-buttons">
-                        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-                        <button type="submit">Submit Question</button>
+                        <button type="button" className="secondary" onClick={onClose}>{t('request_info_cancel')}</button>
+                        <button type="submit">{t('request_info_submit')}</button>
                     </div>
                 </form>
             </div>

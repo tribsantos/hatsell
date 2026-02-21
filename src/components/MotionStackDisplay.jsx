@@ -1,32 +1,41 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MOTION_STATUS } from '../constants/motionTypes';
 import { getThresholdLabel } from '../engine/voteEngine';
 import { getRules } from '../engine/motionRules';
 
-const statusConfig = {
-    [MOTION_STATUS.PENDING_CHAIR]: { cssClass: 'pending_second', label: 'Pending Chair' },
-    [MOTION_STATUS.PENDING_SECOND]: { cssClass: 'pending_second', label: 'Awaiting Second' },
-    [MOTION_STATUS.DEBATING]: { cssClass: 'debating', label: 'Under Debate' },
-    [MOTION_STATUS.VOTING]: { cssClass: 'voting', label: 'Voting' },
-    [MOTION_STATUS.ADOPTED]: { cssClass: 'adopted', label: 'Adopted' },
-    [MOTION_STATUS.DEFEATED]: { cssClass: 'defeated', label: 'Defeated' },
-    [MOTION_STATUS.WITHDRAWN]: { cssClass: 'tabled', label: 'Withdrawn' },
-    [MOTION_STATUS.TABLED]: { cssClass: 'tabled', label: 'Tabled' },
-    [MOTION_STATUS.POSTPONED]: { cssClass: 'tabled', label: 'Postponed' },
-    [MOTION_STATUS.COMMITTED]: { cssClass: 'tabled', label: 'Committed' },
-};
-
-const CATEGORY_LABELS = {
-    main: 'Main',
-    subsidiary: 'Subsidiary',
-    privileged: 'Privileged',
-    incidental: 'Incidental',
-    bring_back: 'Bring Back',
-};
-
 function MotionCard({ motion, isTop, isChair, defaultExpanded, stackPosition, totalInStack }) {
+    const { t } = useTranslation(['meeting', 'motions']);
     const [expanded, setExpanded] = useState(defaultExpanded);
-    const config = statusConfig[motion.status] || { cssClass: '', label: motion.status };
+
+    const statusKey = {
+        [MOTION_STATUS.PENDING_CHAIR]: 'status_pending_chair',
+        [MOTION_STATUS.PENDING_SECOND]: 'status_pending_second',
+        [MOTION_STATUS.DEBATING]: 'status_debating',
+        [MOTION_STATUS.VOTING]: 'status_voting',
+        [MOTION_STATUS.ADOPTED]: 'status_adopted',
+        [MOTION_STATUS.DEFEATED]: 'status_defeated',
+        [MOTION_STATUS.WITHDRAWN]: 'status_withdrawn',
+        [MOTION_STATUS.TABLED]: 'status_tabled',
+        [MOTION_STATUS.POSTPONED]: 'status_postponed',
+        [MOTION_STATUS.COMMITTED]: 'status_committed',
+    };
+
+    const statusCssClass = {
+        [MOTION_STATUS.PENDING_CHAIR]: 'pending_second',
+        [MOTION_STATUS.PENDING_SECOND]: 'pending_second',
+        [MOTION_STATUS.DEBATING]: 'debating',
+        [MOTION_STATUS.VOTING]: 'voting',
+        [MOTION_STATUS.ADOPTED]: 'adopted',
+        [MOTION_STATUS.DEFEATED]: 'defeated',
+        [MOTION_STATUS.WITHDRAWN]: 'tabled',
+        [MOTION_STATUS.TABLED]: 'tabled',
+        [MOTION_STATUS.POSTPONED]: 'tabled',
+        [MOTION_STATUS.COMMITTED]: 'tabled',
+    };
+
+    const cssClass = statusCssClass[motion.status] || '';
+    const label = statusKey[motion.status] ? t(`motions:${statusKey[motion.status]}`) : motion.status;
     const category = motion.category || '';
     const rules = getRules(motion.motionType);
 
@@ -36,18 +45,18 @@ function MotionCard({ motion, isTop, isChair, defaultExpanded, stackPosition, to
                 <span className="motion-card-chevron">{'\u25B6'}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <span className={`motion-status-badge ${config.cssClass}`}>{config.label}</span>
+                        <span className={`motion-status-badge ${cssClass}`}>{label}</span>
                         {isTop && totalInStack > 1 && (
-                            <span style={{ fontWeight: 700, fontSize: '0.7rem', color: 'var(--h-fg)' }}>Highest Precedence</span>
+                            <span style={{ fontWeight: 700, fontSize: '0.7rem', color: 'var(--h-fg)' }}>{t('meeting:highest_precedence')}</span>
                         )}
                         {!isTop && (
-                            <span style={{ fontSize: '0.7rem', color: '#888' }}>#{stackPosition} in stack</span>
+                            <span style={{ fontSize: '0.7rem', color: '#888' }}>{t('meeting:stack_position', { position: stackPosition })}</span>
                         )}
                     </div>
                     <div style={{ marginTop: '0.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {motion.degree > 0 && (
                             <span style={{ fontSize: '0.65rem', color: '#888', textTransform: 'uppercase', fontWeight: 700 }}>
-                                {motion.degree === 1 ? '1st' : '2nd'}
+                                {motion.degree === 1 ? t('meeting:degree_1st') : t('meeting:degree_2nd')}
                             </span>
                         )}
                         <span style={{ fontSize: '0.75rem', color: 'var(--h-crimson)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.03em' }}>
@@ -70,15 +79,15 @@ function MotionCard({ motion, isTop, isChair, defaultExpanded, stackPosition, to
 
                     {motion.metadata?.proposedText && (
                         <div className="amendment-proposed-text">
-                            <div className="amendment-proposed-label">If adopted, the motion would read:</div>
+                            <div className="amendment-proposed-label">{t('meeting:amendment_proposed_label')}</div>
                             <div>"{motion.metadata.proposedText}"</div>
                         </div>
                     )}
 
                     <div className="motion-meta" style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-                        <span>Moved by <strong>{motion.mover}</strong></span>
-                        {motion.seconder && <span> &middot; Seconded by <strong>{motion.seconder}</strong></span>}
-                        {rules && <span style={{ fontStyle: 'italic', color: '#888' }}> &middot; Requires {getThresholdLabel(motion.voteRequired).toLowerCase()} vote</span>}
+                        <span>{t('meeting:moved_by')} <strong>{motion.mover}</strong></span>
+                        {motion.seconder && <span> &middot; {t('meeting:seconded_by')} <strong>{motion.seconder}</strong></span>}
+                        {rules && <span style={{ fontStyle: 'italic', color: '#888' }}> &middot; {t('meeting:requires_vote', { threshold: getThresholdLabel(motion.voteRequired).toLowerCase() })}</span>}
                     </div>
 
                     {motion.metadata?.amendmentHistory && motion.metadata.amendmentHistory.length > 0 && (
@@ -91,14 +100,14 @@ function MotionCard({ motion, isTop, isChair, defaultExpanded, stackPosition, to
                             color: '#666'
                         }}>
                             <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: '#888', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.03em' }}>
-                                Amendment History
+                                {t('meeting:amendment_history')}
                             </div>
                             <div style={{ marginBottom: '0.15rem' }}>
-                                Original: "{motion.metadata.originalText}"
+                                {t('meeting:original_text', { text: motion.metadata.originalText })}
                             </div>
                             {motion.metadata.amendmentHistory.map((ah, ahIdx) => (
                                 <div key={ahIdx} style={{ marginBottom: '0.15rem' }}>
-                                    Amendment {ahIdx + 1}: "{ah.amendmentText}"
+                                    {t('meeting:amendment_number', { number: ahIdx + 1, text: ah.amendmentText })}
                                 </div>
                             ))}
                         </div>
@@ -106,17 +115,17 @@ function MotionCard({ motion, isTop, isChair, defaultExpanded, stackPosition, to
 
                     {rules && (
                         <div className="motion-card-properties">
-                            <div className="prop-item"><strong>{getThresholdLabel(motion.voteRequired)}</strong> to adopt</div>
-                            <div className="prop-item">Debatable: <strong>{rules.isDebatable ? 'Yes' : 'No'}</strong></div>
-                            <div className="prop-item">Amendable: <strong>{rules.isAmendable ? 'Yes' : 'No'}</strong></div>
-                            <div className="prop-item">Second: <strong>{rules.requiresSecond ? 'Required' : 'Not required'}</strong></div>
+                            <div className="prop-item"><strong>{getThresholdLabel(motion.voteRequired)}</strong> {t('meeting:to_adopt', { threshold: '' }).trim()}</div>
+                            <div className="prop-item">{t('meeting:debatable_label')} <strong>{rules.isDebatable ? t('meeting:yes') : t('meeting:no')}</strong></div>
+                            <div className="prop-item">{t('meeting:amendable_label')} <strong>{rules.isAmendable ? t('meeting:yes') : t('meeting:no')}</strong></div>
+                            <div className="prop-item">{t('meeting:second_label')} <strong>{rules.requiresSecond ? t('meeting:required') : t('meeting:not_required')}</strong></div>
                         </div>
                     )}
 
                     {isTop && isChair && motion.status === MOTION_STATUS.PENDING_SECOND && (
                         <div className="chair-guidance" style={{ marginTop: '0.75rem', padding: '0.75rem' }}>
                             <div className="script-text" style={{ margin: 0 }}>
-                                It has been moved: "{motion.text}". Is there a second?
+                                {t('meeting:chair_script_second', { text: motion.text })}
                             </div>
                         </div>
                     )}
@@ -127,10 +136,32 @@ function MotionCard({ motion, isTop, isChair, defaultExpanded, stackPosition, to
 }
 
 export default function MotionStackDisplay({ motionStack, isChair, decidedMotions }) {
+    const { t } = useTranslation(['meeting', 'motions']);
+
     if ((!motionStack || motionStack.length === 0) && (!decidedMotions || decidedMotions.length === 0)) return null;
 
+    const CATEGORY_LABELS = {
+        main: t('meeting:category_main'),
+        subsidiary: t('meeting:category_subsidiary'),
+        privileged: t('meeting:category_privileged'),
+        incidental: t('meeting:category_incidental'),
+        bring_back: t('meeting:category_bring_back'),
+    };
+
+    const statusKey = {
+        [MOTION_STATUS.PENDING_CHAIR]: 'status_pending_chair',
+        [MOTION_STATUS.PENDING_SECOND]: 'status_pending_second',
+        [MOTION_STATUS.DEBATING]: 'status_debating',
+        [MOTION_STATUS.VOTING]: 'status_voting',
+        [MOTION_STATUS.ADOPTED]: 'status_adopted',
+        [MOTION_STATUS.DEFEATED]: 'status_defeated',
+        [MOTION_STATUS.WITHDRAWN]: 'status_withdrawn',
+        [MOTION_STATUS.TABLED]: 'status_tabled',
+        [MOTION_STATUS.POSTPONED]: 'status_postponed',
+        [MOTION_STATUS.COMMITTED]: 'status_committed',
+    };
+
     // Sort by precedence (highest first), with stack index as tiebreaker
-    // (later on stack = higher priority when precedence is equal)
     const sorted = motionStack && motionStack.length > 0
         ? [...motionStack].map((m, i) => ({ ...m, _stackIdx: i })).sort((a, b) => {
             const aPrec = getRules(a.motionType)?.precedence ?? 0;
@@ -140,16 +171,14 @@ export default function MotionStackDisplay({ motionStack, isChair, decidedMotion
         })
         : [];
 
-    // Determine which categories are present for the legend
     const activeCategories = [...new Set(sorted.map(m => m.category).filter(Boolean))];
-
     const hasActiveMotions = sorted.length > 0;
 
     return (
-        <div className="panel motion-stack" aria-label={hasActiveMotions ? "Motions on the floor" : "Decided motions"}>
+        <div className="panel motion-stack" aria-label={hasActiveMotions ? t('meeting:motion_stack_label') : t('meeting:decided_motions_label')}>
             {hasActiveMotions && (
                 <>
-                    <h3>Motion Stack ({sorted.length} Pending)</h3>
+                    <h3>{t('meeting:motion_stack_title', { count: sorted.length })}</h3>
 
                     {activeCategories.length > 1 && (
                         <div className="motion-legend">
@@ -178,10 +207,18 @@ export default function MotionStackDisplay({ motionStack, isChair, decidedMotion
 
             {decidedMotions && decidedMotions.length > 0 && (
                 <details className="decided-motions-section" open={!hasActiveMotions}>
-                    <summary>Decided Motions ({decidedMotions.length})</summary>
+                    <summary>{t('meeting:decided_motions_title', { count: decidedMotions.length })}</summary>
                     <div>
                         {decidedMotions.map((dm, idx) => {
-                            const dmConfig = statusConfig[dm.status] || { cssClass: '', label: dm.status };
+                            const dmLabel = statusKey[dm.status] ? t(`motions:${statusKey[dm.status]}`) : dm.status;
+                            const dmCssClass = {
+                                [MOTION_STATUS.ADOPTED]: 'adopted',
+                                [MOTION_STATUS.DEFEATED]: 'defeated',
+                                [MOTION_STATUS.WITHDRAWN]: 'tabled',
+                                [MOTION_STATUS.TABLED]: 'tabled',
+                                [MOTION_STATUS.POSTPONED]: 'tabled',
+                                [MOTION_STATUS.COMMITTED]: 'tabled',
+                            }[dm.status] || '';
                             return (
                                 <div key={dm.id || idx} className="sidebar-list-item" style={{
                                     borderLeftColor: dm.status === MOTION_STATUS.ADOPTED ? 'var(--h-green)' : 'var(--h-red)',
@@ -191,11 +228,11 @@ export default function MotionStackDisplay({ motionStack, isChair, decidedMotion
                                         <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--h-crimson)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                                             {dm.displayName}
                                         </span>
-                                        <span className={`motion-status-badge ${dmConfig.cssClass}`}>{dmConfig.label}</span>
+                                        <span className={`motion-status-badge ${dmCssClass}`}>{dmLabel}</span>
                                     </div>
                                     <div style={{ fontSize: '0.85rem' }}>{dm.text}</div>
                                     <div className="sidebar-list-meta">
-                                        Moved by: {dm.mover}{dm.seconder ? ` | Seconded by: ${dm.seconder}` : ''}
+                                        {t('meeting:moved_by')}: {dm.mover}{dm.seconder ? ` | ${t('meeting:seconded_by')}: ${dm.seconder}` : ''}
                                     </div>
                                 </div>
                             );
