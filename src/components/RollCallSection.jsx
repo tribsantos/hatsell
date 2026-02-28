@@ -2,7 +2,17 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ROLES } from '../constants';
 
-export default function RollCallSection({ participants, rollCallStatus, currentUser, isChair, onCallMember, onRespondToRollCall, onMarkPresent }) {
+export default function RollCallSection({
+    participants,
+    rollCallStatus,
+    currentUser,
+    isChair,
+    quorumRequired,
+    hasQuorumRule,
+    onCallMember,
+    onRespondToRollCall,
+    onMarkPresent
+}) {
     const { t } = useTranslation('meeting');
     const myStatus = rollCallStatus[currentUser.name];
     const wasICalled = myStatus === 'called' || myStatus === 'present';
@@ -12,6 +22,15 @@ export default function RollCallSection({ participants, rollCallStatus, currentU
         p.role !== ROLES.VICE_PRESIDENT &&
         p.role !== ROLES.SECRETARY
     );
+    const officersPresent = participants.filter((p) =>
+        p.role === ROLES.PRESIDENT ||
+        p.role === ROLES.VICE_PRESIDENT ||
+        p.role === ROLES.SECRETARY
+    ).length;
+    const memberPresent = membersToCall.filter((p) => rollCallStatus[p.name] === 'present').length;
+    const totalPresent = officersPresent + memberPresent;
+    const quorumMet = !!hasQuorumRule && totalPresent >= (quorumRequired || 0);
+    const remainingForQuorum = hasQuorumRule ? Math.max(0, (quorumRequired || 0) - totalPresent) : null;
 
     const canConductRollCall = currentUser.role === ROLES.SECRETARY || isChair;
 
@@ -24,6 +43,21 @@ export default function RollCallSection({ participants, rollCallStatus, currentU
                     <div className="info-box" style={{ marginBottom: '1rem' }}>
                         {t('roll_call_officers_note')}
                     </div>
+                    {hasQuorumRule ? (
+                        <div className={`quorum-indicator ${quorumMet ? 'met' : 'not-met'}`} style={{ marginBottom: '1rem' }}>
+                            <strong>{t('quorum_label')}</strong>{' '}
+                            {t('quorum_present_of_required', { present: totalPresent, required: quorumRequired || 0 })}
+                            <div style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
+                                {quorumMet
+                                    ? t('roll_call_quorum_met_ready')
+                                    : t('roll_call_quorum_remaining', { count: remainingForQuorum })}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="info-box" style={{ marginBottom: '1rem' }}>
+                            {t('roll_call_quorum_unset_hint')}
+                        </div>
+                    )}
 
                     {membersToCall.length === 0 ? (
                         <div>

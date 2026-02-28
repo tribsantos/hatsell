@@ -53,6 +53,7 @@
 
   "tooltip_call_to_order": "Officially begin the meeting",
   "tooltip_complete_roll_call": "Confirm attendance and establish quorum",
+  "tooltip_complete_roll_call_quorum_ready": "Quorum is met. You can complete roll call now or continue checking attendance.",
   "tooltip_complete_roll_call_no_quorum": "Set a quorum requirement first (see Members drawer)",
   "tooltip_approve_minutes": "Accept the minutes of the last meeting as correct",
   "tooltip_adopt_agenda": "Adopt the proposed agenda as the order of business",

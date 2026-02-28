@@ -114,7 +114,7 @@
   "chair_order_title": "Call to order",
   "chair_order_desc": "The guidance box shows your opening script. Tap <strong>Call to Order</strong>. That's it \u2014 the meeting has begun.",
   "chair_roll_title": "Roll call",
-  "chair_roll_desc": "The secretary (or you, if there's no secretary) calls each member's name by tapping their card. Members tap <strong>Present</strong> on their own screens. Once everyone has responded, you'll see a button to <strong>Complete Roll Call</strong>.",
+  "chair_roll_desc": "The secretary (or you, if there's no secretary) calls each member's name by tapping their card. Members tap <strong>Present</strong> on their own screens. As soon as quorum is met, you can <strong>Complete Roll Call</strong>.",
   "chair_roll_callout": "If you set a quorum, Hatsell tells you whether quorum is met. If it's not, you can't proceed to business \u2014 the app will guide you.",
   "chair_minutes_title": "Approve minutes",
   "chair_minutes_desc": "If this isn't your first meeting, the guidance prompts you to ask for approval of the previous meeting's minutes. Members can submit corrections. You can accept corrections by general consent or put them to a vote.",

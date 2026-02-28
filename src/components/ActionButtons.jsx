@@ -111,9 +111,22 @@ export function ChairActions({
         p.role !== ROLES.VICE_PRESIDENT &&
         p.role !== ROLES.SECRETARY
     );
+    const officersPresent = meetingState.participants.filter(p =>
+        p.role === ROLES.PRESIDENT ||
+        p.role === ROLES.VICE_PRESIDENT ||
+        p.role === ROLES.SECRETARY
+    ).length;
+    const memberPresent = membersToCall.filter((p) => rollCallStatus[p.name] === 'present').length;
+    const totalPresent = officersPresent + memberPresent;
+    const quorumMet = !!meetingState.quorumRule && totalPresent >= (meetingState.quorum || 0);
     const allResponded = (rollCallStatus && membersToCall.length > 0 &&
         membersToCall.every(p => rollCallStatus[p.name] === 'present')) ||
         (membersToCall.length === 0);
+    const canConductRollCall =
+        currentUser.role === ROLES.SECRETARY ||
+        currentUser.role === ROLES.PRESIDENT ||
+        currentUser.role === ROLES.VICE_PRESIDENT;
+    const canCompleteRollCall = stage === MEETING_STAGES.ROLL_CALL && (allResponded || quorumMet);
 
     const buttons = [];
 
@@ -141,9 +154,9 @@ export function ChairActions({
                             value={suspendedThreshold}
                             onChange={(e) => setSuspendedThreshold(e.target.value)}
                             style={{
-                                flex: 1, padding: '0.5rem', background: '#f9f8f5',
-                                border: '2px solid #ddd', borderRadius: '3px',
-                                color: '#1a1a1a', fontSize: '0.9rem'
+                                flex: 1, padding: '0.5rem', background: 'var(--h-bg-warm)',
+                                border: '2px solid var(--h-border-soft)', borderRadius: '3px',
+                                color: 'var(--h-fg)', fontSize: '0.9rem'
                             }}
                         >
                             <option value="majority">{t('label_majority')}</option>
@@ -167,9 +180,9 @@ export function ChairActions({
         buttons.push(
             <div key="appeal-window" style={{
                 width: '100%', padding: '0.75rem',
-                background: 'rgba(230, 126, 34, 0.12)', border: '2px solid #e67e22',
+                background: 'var(--h-amber-light)', border: '2px solid var(--h-amber)',
                 borderRadius: '4px', textAlign: 'center', fontWeight: '700',
-                color: '#e67e22', fontSize: '0.9rem'
+                color: 'var(--h-amber)', fontSize: '0.9rem'
             }}>
                 {t('appeal_window', { count: appealCountdown })}
             </div>
@@ -184,13 +197,18 @@ export function ChairActions({
     }
 
     // Roll Call
-    if ((currentUser.role === ROLES.SECRETARY || true) && stage === MEETING_STAGES.ROLL_CALL && allResponded) {
+    if (canConductRollCall && canCompleteRollCall) {
+        const completeRollCallTooltip = !meetingState.quorumRule
+            ? t('tooltip_complete_roll_call_no_quorum')
+            : (quorumMet && !allResponded
+                ? t('tooltip_complete_roll_call_quorum_ready')
+                : t('tooltip_complete_roll_call'));
         buttons.push(
             <button
                 key="complete-roll-call"
                 onClick={onRollCall}
-                data-tooltip={meetingState.quorumRule ? t('tooltip_complete_roll_call') : t('tooltip_complete_roll_call_no_quorum')}
-                title={meetingState.quorumRule ? t('tooltip_complete_roll_call') : t('tooltip_complete_roll_call_no_quorum')}
+                data-tooltip={completeRollCallTooltip}
+                title={completeRollCallTooltip}
                 disabled={!meetingState.quorumRule}
             >
                 {t('button_complete_roll_call')}
@@ -368,7 +386,7 @@ export function MemberActions({
     onPreChairWithdraw,
     onOrdersOfTheDay
 }) {
-    const { t } = useTranslation('actions');
+    const { t } = useTranslation(['actions', 'motions']);
     const {
         stage, motionStack = [], currentMotion, speakingQueue, currentSpeaker,
         pendingAmendments, pendingRequests = [],
@@ -471,7 +489,7 @@ export function MemberActions({
                                             title={getMotionTooltip(m)}
                                             style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
                                         >
-                                            {m.displayName}<InterruptBadge motionType={m.motionType} t={t} />
+                                            {t(`motions:display_${m.motionType}`)}<InterruptBadge motionType={m.motionType} t={t} />
                                         </button>
                                     ))}
                                 </div>
@@ -556,7 +574,7 @@ export function MemberActions({
                                         title={getMotionTooltip(m)}
                                         style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
                                     >
-                                        {m.displayName}<InterruptBadge motionType={m.motionType} t={t} />
+                                        {t(`motions:display_${m.motionType}`)}<InterruptBadge motionType={m.motionType} t={t} />
                                     </button>
                                 ))}
                             </div>
@@ -580,7 +598,7 @@ export function MemberActions({
                                         title={getMotionTooltip(m)}
                                         style={{fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {})}}
                                     >
-                                        {m.displayName}<InterruptBadge motionType={m.motionType} t={t} />
+                                        {t(`motions:display_${m.motionType}`)}<InterruptBadge motionType={m.motionType} t={t} />
                                     </button>
                                 ))}
                             </div>

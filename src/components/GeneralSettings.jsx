@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as MeetingConnection from '../services/MeetingConnection';
 import HatsellLogo from './HatsellLogo';
-import { AGENDA_CATEGORIES, getCategoryLabel } from '../constants/agenda';
+import { AGENDA_CATEGORIES, getCategoryLabel, sortAgendaItemsByDefault } from '../constants/agenda';
 
 const DEFAULT_PROFILE = {
     organizationName: '',
@@ -22,6 +22,8 @@ const DEFAULT_PROFILE = {
 const DEFAULT_MEETING_SETTINGS = {
     meetingName: 'Regular Meeting',
     agendaItems: [],
+    agendaCustomSequence: false,
+    includeMinutesApproval: false,
     agendaStatus: 'guidance',
     previousNotice: {
         rescind: false,
@@ -47,15 +49,115 @@ const DEFAULT_MEETING_SETTINGS = {
     language: 'en'
 };
 
+const MEETING_TEMPLATES = {
+    community_association: {
+        profile: { quorumType: 'default', quorumValue: '', meetingFormat: 'in_person', electronicVoting: false, proxyVoting: false },
+        meetingSettings: {
+            meetingName: 'Community Association Meeting',
+            includeMinutesApproval: true,
+            agendaStatus: 'guidance',
+            agendaCustomSequence: false,
+            agendaItems: [
+                { title: 'Officer and Committee Reports', category: 'informational_report', owner: 'Officers', timeTarget: 15, notes: '' },
+                { title: 'Carryover Item from Last Meeting', category: 'unfinished_business', owner: 'Chair', timeTarget: 10, notes: '', unfinishedMotionText: 'to allocate up to $4,000 for park lighting improvements', unfinishedMotionMover: 'Amina Hassan', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
+                { title: 'Neighborhood Safety Proposal', category: 'general_business', owner: 'Safety Committee', timeTarget: 20, notes: '' }
+            ]
+        }
+    },
+    corporate_board: {
+        profile: { quorumType: 'fixed', quorumValue: '5', meetingFormat: 'hybrid', electronicVoting: true, proxyVoting: false },
+        meetingSettings: {
+            meetingName: 'Board of Directors Meeting',
+            includeMinutesApproval: true,
+            agendaStatus: 'orders_of_the_day',
+            agendaCustomSequence: false,
+            agendaItems: [
+                { title: 'Executive Reports', category: 'informational_report', owner: 'CEO / CFO', timeTarget: 20, notes: '' },
+                { title: 'Pending Capital Plan Motion', category: 'unfinished_business', owner: 'Finance Committee', timeTarget: 15, notes: '', unfinishedMotionText: 'to approve the FY26 capital allocation framework', unfinishedMotionMover: 'Luca Bianchi', unfinishedAmendmentText: 'by striking "$3.2M" and inserting "$2.8M"', unfinishedAmendmentMover: 'Sofia Petrova' },
+                { title: 'Risk and Compliance Resolution', category: 'general_business', owner: 'Audit Committee', timeTarget: 20, notes: '' }
+            ]
+        }
+    },
+    fraternity_chapter: {
+        profile: { quorumType: 'default', quorumValue: '', meetingFormat: 'in_person', electronicVoting: false, proxyVoting: false },
+        meetingSettings: {
+            meetingName: 'Chapter Meeting',
+            includeMinutesApproval: true,
+            agendaStatus: 'guidance',
+            agendaCustomSequence: false,
+            agendaItems: [
+                { title: 'Committee Reports', category: 'informational_report', owner: 'Committee Chairs', timeTarget: 15, notes: '' },
+                { title: 'Pending Philanthropy Motion', category: 'unfinished_business', owner: 'Service Chair', timeTarget: 10, notes: '', unfinishedMotionText: 'to set the annual philanthropy fundraising goal at $12,000', unfinishedMotionMover: 'Kenji Sato', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
+                { title: 'Event Budget Motion', category: 'financial', owner: 'Treasurer', timeTarget: 15, notes: '' }
+            ]
+        }
+    },
+    church_board: {
+        profile: { quorumType: 'default', quorumValue: '', meetingFormat: 'hybrid', electronicVoting: true, proxyVoting: false },
+        meetingSettings: {
+            meetingName: 'Church Council Meeting',
+            includeMinutesApproval: true,
+            agendaStatus: 'guidance',
+            agendaCustomSequence: false,
+            agendaItems: [
+                { title: 'Ministry Reports', category: 'informational_report', owner: 'Ministry Leaders', timeTarget: 20, notes: '' },
+                { title: 'Pending Facilities Motion', category: 'unfinished_business', owner: 'Facilities Committee', timeTarget: 15, notes: '', unfinishedMotionText: 'to approve the roof repair contract with Greenline Builders', unfinishedMotionMover: 'Priya Sharma', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
+                { title: 'Mission Support Allocation', category: 'financial', owner: 'Treasurer', timeTarget: 15, notes: '' }
+            ]
+        }
+    }
+};
+
+function createAgendaItemsForTemplate(items = []) {
+    const baseTime = Date.now();
+    return items.map((item, index) => ({
+        ...item,
+        id: baseTime + index,
+        createdAt: baseTime + index
+    }));
+}
+
 
 function AgendaItemForm({ initialItem, onSave, onCancel }) {
     const { t } = useTranslation('settings');
-    const [item, setItem] = useState(initialItem || { title: '', category: '', owner: '', timeTarget: '', notes: '' });
+    const [item, setItem] = useState(initialItem || {
+        title: '',
+        category: '',
+        owner: '',
+        timeTarget: '',
+        notes: '',
+        unfinishedMotionText: '',
+        unfinishedMotionMover: '',
+        unfinishedAmendmentText: '',
+        unfinishedAmendmentMover: ''
+    });
+    const [formError, setFormError] = useState('');
 
     const handleSubmit = () => {
         if (!item.title.trim() || !item.category) return;
+        if (item.category === 'unfinished_business' && !String(item.unfinishedMotionText || '').trim()) {
+            setFormError(t('agenda_unfinished_motion_required'));
+            return;
+        }
+        if (String(item.unfinishedAmendmentText || '').trim() && !String(item.unfinishedAmendmentMover || '').trim()) {
+            setFormError(t('agenda_unfinished_amendment_mover_required'));
+            return;
+        }
+        setFormError('');
         onSave(item);
-        if (!initialItem) setItem({ title: '', category: '', owner: '', timeTarget: '', notes: '' });
+        if (!initialItem) {
+            setItem({
+                title: '',
+                category: '',
+                owner: '',
+                timeTarget: '',
+                notes: '',
+                unfinishedMotionText: '',
+                unfinishedMotionMover: '',
+                unfinishedAmendmentText: '',
+                unfinishedAmendmentMover: ''
+            });
+        }
     };
 
     const fieldStyle = {
@@ -104,11 +206,61 @@ function AgendaItemForm({ initialItem, onSave, onCancel }) {
                     <button onClick={onCancel} className="secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>{t('button_cancel', { ns: 'common' })}</button>
                 )}
             </div>
+            {item.category === 'unfinished_business' && (
+                <div style={{ marginTop: '0.6rem', paddingTop: '0.6rem', borderTop: '1px dashed #ddd' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#666', marginBottom: '0.4rem' }}>{t('agenda_unfinished_seed_title')}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <div>
+                            <label style={{ fontSize: '0.78rem', color: '#666' }}>{t('agenda_unfinished_motion_label')}</label>
+                            <input
+                                type="text"
+                                value={item.unfinishedMotionText || ''}
+                                onChange={(e) => setItem(prev => ({ ...prev, unfinishedMotionText: e.target.value }))}
+                                placeholder={t('agenda_unfinished_motion_placeholder')}
+                                style={fieldStyle}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ fontSize: '0.78rem', color: '#666' }}>{t('agenda_unfinished_motion_mover_label')}</label>
+                            <input
+                                type="text"
+                                value={item.unfinishedMotionMover || ''}
+                                onChange={(e) => setItem(prev => ({ ...prev, unfinishedMotionMover: e.target.value }))}
+                                placeholder={t('agenda_unfinished_motion_mover_placeholder')}
+                                style={fieldStyle}
+                            />
+                        </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div>
+                            <label style={{ fontSize: '0.78rem', color: '#666' }}>{t('agenda_unfinished_amendment_label')}</label>
+                            <input
+                                type="text"
+                                value={item.unfinishedAmendmentText || ''}
+                                onChange={(e) => setItem(prev => ({ ...prev, unfinishedAmendmentText: e.target.value }))}
+                                placeholder={t('agenda_unfinished_amendment_placeholder')}
+                                style={fieldStyle}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ fontSize: '0.78rem', color: '#666' }}>{t('agenda_unfinished_amendment_mover_label')}</label>
+                            <input
+                                type="text"
+                                value={item.unfinishedAmendmentMover || ''}
+                                onChange={(e) => setItem(prev => ({ ...prev, unfinishedAmendmentMover: e.target.value }))}
+                                placeholder={t('agenda_unfinished_amendment_mover_placeholder')}
+                                style={fieldStyle}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+            {formError && <div style={{ marginTop: '0.5rem', color: '#b00020', fontSize: '0.78rem' }}>{formError}</div>}
         </div>
     );
 }
 
-function AgendaItemRow({ item, index, total, onUpdate, onDelete, onMoveUp, onMoveDown }) {
+function AgendaItemRow({ item, index, total, onUpdate, onDelete, onMoveUp, onMoveDown, allowReorder }) {
     const { t } = useTranslation('settings');
     const [editing, setEditing] = useState(false);
 
@@ -136,10 +288,16 @@ function AgendaItemRow({ item, index, total, onUpdate, onDelete, onMoveUp, onMov
                     {item.owner && ` — ${item.owner}`}
                     {item.timeTarget && ` (${item.timeTarget} min)`}
                 </div>
+                {item.category === 'unfinished_business' && item.unfinishedMotionText && (
+                    <div style={{ fontSize: '0.74rem', color: '#666', marginTop: '0.2rem' }}>
+                        {t('agenda_unfinished_seed_summary', { motion: item.unfinishedMotionText })}
+                        {item.unfinishedAmendmentText ? ` | ${t('agenda_unfinished_seed_amendment_summary', { amendment: item.unfinishedAmendmentText })}` : ''}
+                    </div>
+                )}
             </div>
             <div style={{ display: 'flex', gap: '0.25rem' }}>
-                <button onClick={() => onMoveUp(item.id)} disabled={index === 0} className="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>▲</button>
-                <button onClick={() => onMoveDown(item.id)} disabled={index === total - 1} className="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>▼</button>
+                <button onClick={() => onMoveUp(item.id)} disabled={index === 0 || !allowReorder} className="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>▲</button>
+                <button onClick={() => onMoveDown(item.id)} disabled={index === total - 1 || !allowReorder} className="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>▼</button>
                 <button onClick={() => setEditing(true)} className="secondary" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>{t('agenda_edit')}</button>
                 <button onClick={() => onDelete(item.id)} className="danger" style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}>×</button>
             </div>
@@ -160,13 +318,25 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
     });
     const [generatedCodes, setGeneratedCodes] = useState(null);
     const [showAddAgenda, setShowAddAgenda] = useState(false);
+    const [selectedTemplateId, setSelectedTemplateId] = useState('');
+
+    const normalizeAgendaItems = (items, customSequence) => {
+        if (customSequence) return items;
+        return sortAgendaItemsByDefault(items);
+    };
 
     const updateProfile = (field, value) => {
         setProfile(prev => ({ ...prev, [field]: value }));
     };
 
     const updateMeetingSettings = (field, value) => {
-        setMeetingSettings(prev => ({ ...prev, [field]: value }));
+        setMeetingSettings(prev => {
+            const next = { ...prev, [field]: value };
+            if (field === 'agendaCustomSequence' && value === false) {
+                next.agendaItems = normalizeAgendaItems(prev.agendaItems, false);
+            }
+            return next;
+        });
     };
 
     const updateMeetingSettingsPreviousNotice = (field, value) => {
@@ -191,17 +361,24 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
     };
 
     const addAgendaItem = (item) => {
-        setMeetingSettings(prev => ({
-            ...prev,
-            agendaItems: [...prev.agendaItems, { ...item, id: Date.now() }]
-        }));
+        setMeetingSettings(prev => {
+            const createdAt = Date.now();
+            const updatedItems = [...prev.agendaItems, { ...item, id: createdAt, createdAt }];
+            return {
+                ...prev,
+                agendaItems: normalizeAgendaItems(updatedItems, prev.agendaCustomSequence)
+            };
+        });
     };
 
     const updateAgendaItem = (id, updates) => {
-        setMeetingSettings(prev => ({
-            ...prev,
-            agendaItems: prev.agendaItems.map(a => a.id === id ? { ...a, ...updates } : a)
-        }));
+        setMeetingSettings(prev => {
+            const updatedItems = prev.agendaItems.map(a => a.id === id ? { ...a, ...updates } : a);
+            return {
+                ...prev,
+                agendaItems: normalizeAgendaItems(updatedItems, prev.agendaCustomSequence)
+            };
+        });
     };
 
     const deleteAgendaItem = (id) => {
@@ -213,6 +390,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
 
     const reorderAgendaItem = (id, direction) => {
         setMeetingSettings(prev => {
+            if (!prev.agendaCustomSequence) return prev;
             const items = [...prev.agendaItems];
             const idx = items.findIndex(a => a.id === id);
             const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
@@ -223,7 +401,56 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
     };
 
     const handleConfirm = () => {
+        const invalidUnfinished = meetingSettings.agendaItems.find(
+            (item) => item.category === 'unfinished_business' && !String(item.unfinishedMotionText || '').trim()
+        );
+        if (invalidUnfinished) {
+            alert(t('agenda_unfinished_motion_required'));
+            return;
+        }
+        const invalidUnfinishedAmendment = meetingSettings.agendaItems.find(
+            (item) => String(item.unfinishedAmendmentText || '').trim() && !String(item.unfinishedAmendmentMover || '').trim()
+        );
+        if (invalidUnfinishedAmendment) {
+            alert(t('agenda_unfinished_amendment_mover_required'));
+            return;
+        }
         doGenerateCodes();
+    };
+
+    const hasConfiguredData = () => {
+        return Boolean(
+            profile.organizationName ||
+            profile.totalMembership ||
+            meetingSettings.agendaItems.length > 0 ||
+            meetingSettings.meetingName !== DEFAULT_MEETING_SETTINGS.meetingName ||
+            meetingSettings.includeMinutesApproval !== DEFAULT_MEETING_SETTINGS.includeMinutesApproval
+        );
+    };
+
+    const applyMeetingTemplate = () => {
+        if (!selectedTemplateId) return;
+        const template = MEETING_TEMPLATES[selectedTemplateId];
+        if (!template) return;
+
+        if (hasConfiguredData()) {
+            const confirmed = window.confirm(t('template_apply_confirm'));
+            if (!confirmed) return;
+        }
+
+        const nextAgendaItems = createAgendaItemsForTemplate(template.meetingSettings.agendaItems || []);
+
+        setProfile(prev => ({
+            ...prev,
+            ...template.profile
+        }));
+
+        setMeetingSettings(prev => ({
+            ...prev,
+            ...template.meetingSettings,
+            language: prev.language,
+            agendaItems: normalizeAgendaItems(nextAgendaItems, !!template.meetingSettings.agendaCustomSequence)
+        }));
     };
 
     const doGenerateCodes = async () => {
@@ -279,6 +506,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
         onConfirm({ profile, meetingSettings, codes: generatedCodes, userName });
     };
 
+
     const sectionStyle = {
         marginBottom: '2rem',
         padding: '1.25rem 1.25rem 1rem',
@@ -332,7 +560,6 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
             </header>
 
             <div style={{ maxWidth: '760px', margin: '0 auto', padding: '1.25rem 0.75rem' }}>
-
                 {/* Quick Start */}
                 {!generatedCodes && (
                     <div style={{
@@ -605,6 +832,33 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                     <h3 style={{ marginBottom: '1rem', color: '#1a1a1a' }}>{t('section_meeting_settings')}</h3>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
+                        <label style={labelStyle}>{t('label_meeting_template')}</label>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <select
+                                value={selectedTemplateId}
+                                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                                style={{ ...inputStyle, flex: 1 }}
+                            >
+                                <option value="">{t('template_select_placeholder')}</option>
+                                <option value="community_association">{t('template_community_label')}</option>
+                                <option value="corporate_board">{t('template_board_label')}</option>
+                                <option value="fraternity_chapter">{t('template_fraternity_label')}</option>
+                                <option value="church_board">{t('template_church_label')}</option>
+                            </select>
+                            <button
+                                type="button"
+                                onClick={applyMeetingTemplate}
+                                className="secondary"
+                                disabled={!selectedTemplateId}
+                                style={{ whiteSpace: 'nowrap', padding: '0.5rem 0.9rem' }}
+                            >
+                                {t('template_apply_button')}
+                            </button>
+                        </div>
+                        <div style={hintStyle}>{t('template_helper')}</div>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
                         <label style={labelStyle}>{t('label_meeting_name')}</label>
                         <input
                             type="text"
@@ -632,6 +886,15 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                     {/* A) Agenda */}
                     <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd' }}>
                         <label style={labelStyle}>{t('label_agenda')}</label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+                            <input
+                                type="checkbox"
+                                checked={!!meetingSettings.includeMinutesApproval}
+                                onChange={(e) => updateMeetingSettings('includeMinutesApproval', e.target.checked)}
+                            />
+                            {t('minutes_step_enable')}
+                        </label>
+                        <div style={hintStyle}>{t('minutes_step_hint')}</div>
                         <div style={radioGroupStyle}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                                 <input type="radio" name="agendaStatus" value="guidance" checked={meetingSettings.agendaStatus === 'guidance'} onChange={() => updateMeetingSettings('agendaStatus', 'guidance')} />
@@ -647,6 +910,15 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                 ? t('hint_agenda_guidance')
                                 : t('hint_agenda_orders')}
                         </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                            <input
+                                type="checkbox"
+                                checked={!!meetingSettings.agendaCustomSequence}
+                                onChange={(e) => updateMeetingSettings('agendaCustomSequence', e.target.checked)}
+                            />
+                            {t('agenda_custom_sequence')}
+                        </label>
+                        <div style={hintStyle}>{t('agenda_custom_sequence_hint')}</div>
 
                         {/* Agenda item list */}
                         {meetingSettings.agendaItems.length > 0 && (
@@ -661,6 +933,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                         onDelete={deleteAgendaItem}
                                         onMoveUp={(id) => reorderAgendaItem(id, 'up')}
                                         onMoveDown={(id) => reorderAgendaItem(id, 'down')}
+                                        allowReorder={!!meetingSettings.agendaCustomSequence}
                                     />
                                 ))}
                             </div>
@@ -835,3 +1108,4 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
         </div>
     );
 }
+

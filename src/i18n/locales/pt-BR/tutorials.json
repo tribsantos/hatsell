@@ -114,7 +114,7 @@
   "chair_order_title": "Abrir a sessão",
   "chair_order_desc": "A caixa de orientação mostra seu roteiro de abertura. Toque em <strong>Abrir a Sessão</strong>. Pronto — a reunião começou.",
   "chair_roll_title": "Chamada",
-  "chair_roll_desc": "O secretário (ou você, se não houver secretário) chama cada membro tocando no cartão dele. Os membros tocam <strong>Presente</strong> em suas próprias telas. Quando todos tiverem respondido, você verá um botão para <strong>Concluir a Chamada</strong>.",
+  "chair_roll_desc": "O secretário (ou você, se não houver secretário) chama cada membro tocando no cartão dele. Os membros tocam <strong>Presente</strong> em suas próprias telas. Assim que o quórum for atingido, você pode <strong>Concluir a Chamada</strong>.",
   "chair_roll_callout": "Se você definiu um quórum, o Hatsell informa se ele foi atingido. Se não foi, não é possível prosseguir para a ordem do dia — o aplicativo orientará você.",
   "chair_minutes_title": "Aprovação da ata",
   "chair_minutes_desc": "Se esta não é sua primeira reunião, a orientação solicita que você peça a aprovação da ata da reunião anterior. Os membros podem enviar correções. Você pode aceitar correções por consenso geral ou submetê-las a votação.",

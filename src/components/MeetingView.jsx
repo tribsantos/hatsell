@@ -100,6 +100,8 @@ export default function MeetingView({
     setShowModal,
     handleObjectToCorrection,
     handleAcceptCorrectionByConsent,
+    handleRecognizeCorrection,
+    handleReturnCorrection,
     onCallVoteOnMinutesCorrection,
     onAcknowledgeAnnouncement,
     onIncidentalMainMotion,
@@ -167,15 +169,15 @@ export default function MeetingView({
                     const agendaItems = meetingState.meetingSettings?.agendaItems || [];
                     return (
                         <div className="info-box" style={{ marginBottom: '1.5rem' }}>
-                            <h4 style={{ color: '#2980b9', marginBottom: '0.75rem' }}>{t('proposed_agenda')}</h4>
+                            <h4 style={{ color: 'var(--h-blue)', marginBottom: '0.75rem' }}>{t('proposed_agenda')}</h4>
                             {agendaItems.map((item, idx) => (
                                 <div key={item.id || idx} style={{
                                     padding: '0.5rem 0.75rem', marginBottom: '0.35rem',
                                     background: 'rgba(0,0,0,0.03)', borderRadius: '3px',
-                                    borderLeft: '3px solid #2980b9'
+                                    borderLeft: '3px solid var(--h-blue)'
                                 }}>
                                     <span style={{ fontWeight: 600 }}>{idx + 1}. {item.title}</span>
-                                    <span style={{ color: '#888', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+                                    <span style={{ color: 'var(--h-fg-dim)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
                                         {getCategoryLabel(item.category)}
                                     </span>
                                 </div>
@@ -192,17 +194,17 @@ export default function MeetingView({
                     return (
                         <div className="info-box" style={{ marginBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <h4 style={{ color: '#2980b9' }}>
+                                <h4 style={{ color: 'var(--h-blue)' }}>
                                     {t('agenda_item_of', { index: idx + 1, total: agendaItems.length, title: item.title })}
                                 </h4>
                             </div>
-                            <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--h-fg-muted)', marginTop: '0.25rem' }}>
                                 {getCategoryLabel(item.category)}
                                 {item.owner && ` \u2014 ${item.owner}`}
                                 {item.timeTarget && ` ${t('agenda_min_target', { minutes: item.timeTarget })}`}
                             </div>
                             {item.notes && (
-                                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#555', fontStyle: 'italic' }}>
+                                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--h-fg-muted)', fontStyle: 'italic' }}>
                                     {item.notes}
                                 </div>
                             )}
@@ -255,22 +257,22 @@ export default function MeetingView({
                     const isSpeaker = meetingState.currentSpeaker?.participant === currentUser.name;
                     return (
                         <div key={r.id} className="warning-box" style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                            <h4 style={{ color: '#e67e22', marginBottom: '0.5rem', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            <h4 style={{ color: 'var(--h-amber)', marginBottom: '0.5rem', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 {r.displayName}
                             </h4>
-                            <p style={{ color: '#333', marginBottom: '0.25rem' }}>
+                            <p style={{ color: 'var(--h-fg)', marginBottom: '0.25rem' }}>
                                 {t('interrupted_raised_by', { name: r.raisedBy })}
                             </p>
                             {r.content && (
-                                <p style={{ fontStyle: 'italic', color: '#555' }}>"{r.content}"</p>
+                                <p style={{ fontStyle: 'italic', color: 'var(--h-fg-muted)' }}>"{r.content}"</p>
                             )}
                             {isSpeaker && (
                                 <p style={{
                                     marginTop: '0.75rem',
                                     padding: '0.75rem',
-                                    background: 'rgba(192, 57, 43, 0.08)',
+                                    background: 'var(--h-red-light)',
                                     borderRadius: '4px',
-                                    color: '#c0392b',
+                                    color: 'var(--h-red)',
                                     fontWeight: '700'
                                 }}>
                                     {t('interrupted_suspend')}
@@ -295,7 +297,7 @@ export default function MeetingView({
                 {/* Legacy Point of Order display */}
                 {meetingState.pendingPointOfOrder && (
                     <div className="warning-box" style={{marginBottom: '2rem'}}>
-                        <h4 style={{color: '#e67e22', marginBottom: '0.5rem'}}>{t('point_of_order_banner')}</h4>
+                        <h4 style={{color: 'var(--h-amber)', marginBottom: '0.5rem'}}>{t('point_of_order_banner')}</h4>
                         <p><strong>{t('raised_by')}</strong> {meetingState.pendingPointOfOrder.raisedBy}</p>
                         <p><strong>{t('concern_label')}</strong> {meetingState.pendingPointOfOrder.concern}</p>
                         {isChair && (
@@ -318,17 +320,17 @@ export default function MeetingView({
 
                     return (
                     <div className="info-box" style={{marginBottom: '2rem', background: 'rgba(230, 126, 34, 0.08)'}}>
-                        <h4 style={{color: '#e67e22', marginBottom: '1rem'}}>{t('pending_amendments_title', { count: meetingState.pendingAmendments.length })}</h4>
+                        <h4 style={{color: 'var(--h-amber)', marginBottom: '1rem'}}>{t('pending_amendments_title', { count: meetingState.pendingAmendments.length })}</h4>
                         {hasSpeaker ? (
-                            <p style={{marginBottom: '1rem', color: '#999', fontWeight: '600', fontStyle: 'italic'}}>
+                            <p style={{marginBottom: '1rem', color: 'var(--h-fg-dim)', fontWeight: '600', fontStyle: 'italic'}}>
                                 {t('amend_wait_speaker')}
                             </p>
                         ) : isVoting ? (
-                            <p style={{marginBottom: '1rem', color: '#999', fontWeight: '600', fontStyle: 'italic'}}>
+                            <p style={{marginBottom: '1rem', color: 'var(--h-fg-dim)', fontWeight: '600', fontStyle: 'italic'}}>
                                 {t('amend_wait_vote')}
                             </p>
                         ) : (
-                            <p style={{marginBottom: '1rem', color: '#e67e22', fontWeight: '600'}}>{t('amend_must_recognize')}</p>
+                            <p style={{marginBottom: '1rem', color: 'var(--h-amber)', fontWeight: '600'}}>{t('amend_must_recognize')}</p>
                         )}
                         {meetingState.pendingAmendments.map((amendment, idx) => (
                             <div key={idx} style={{
@@ -336,7 +338,7 @@ export default function MeetingView({
                                 padding: '1rem',
                                 marginBottom: idx < meetingState.pendingAmendments.length - 1 ? '0.75rem' : '0',
                                 borderRadius: '4px',
-                                borderLeft: '3px solid #e67e22',
+                                borderLeft: '3px solid var(--h-amber)',
                                 opacity: amendBlocked ? 0.7 : 1
                             }}>
                                 <p style={{marginBottom: '0.5rem'}}>{t('amend_proposer_wishes', { name: amendment.proposer })}</p>
@@ -380,18 +382,18 @@ export default function MeetingView({
                     const awaitingSecond = topOfStack?.status === 'pending_second';
 
                     return (
-                    <div className="info-box" style={{marginBottom: '2rem', background: 'rgba(52, 152, 219, 0.08)'}}>
-                        <h4 style={{color: '#2980b9', marginBottom: '1rem'}}>{t('pending_motions_title', { count: meetingState.pendingMotions.length })}</h4>
+                    <div className="info-box" style={{marginBottom: '2rem', background: 'var(--h-blue-light)'}}>
+                        <h4 style={{color: 'var(--h-blue)', marginBottom: '1rem'}}>{t('pending_motions_title', { count: meetingState.pendingMotions.length })}</h4>
                         {meetingState.currentSpeaker ? (
-                            <p style={{marginBottom: '1rem', color: '#999', fontWeight: '600', fontSize: '0.85rem', fontStyle: 'italic'}}>
+                            <p style={{marginBottom: '1rem', color: 'var(--h-fg-dim)', fontWeight: '600', fontSize: '0.85rem', fontStyle: 'italic'}}>
                                 {t('pending_wait_speaker')}
                             </p>
                         ) : awaitingSecond ? (
-                            <p style={{marginBottom: '1rem', color: '#e67e22', fontWeight: '600', fontSize: '0.85rem', fontStyle: 'italic'}}>
+                            <p style={{marginBottom: '1rem', color: 'var(--h-amber)', fontWeight: '600', fontSize: '0.85rem', fontStyle: 'italic'}}>
                                 {t('pending_awaiting_second')}
                             </p>
                         ) : (
-                            <p style={{marginBottom: '1rem', color: '#2980b9', fontWeight: '600', fontSize: '0.85rem'}}>
+                            <p style={{marginBottom: '1rem', color: 'var(--h-blue)', fontWeight: '600', fontSize: '0.85rem'}}>
                                 {t('pending_resolve_priority')}
                             </p>
                         )}
@@ -406,10 +408,10 @@ export default function MeetingView({
                                 padding: '1rem',
                                 marginBottom: displayIdx < indexed.length - 1 ? '0.75rem' : '0',
                                 borderRadius: '4px',
-                                borderLeft: `3px solid ${isHighest ? '#2980b9' : 'rgba(102,102,102,0.3)'}`,
+                                borderLeft: `3px solid ${isHighest ? 'var(--h-blue)' : 'rgba(102,102,102,0.3)'}`,
                                 opacity: isHighest ? 1 : 0.7
                             }}>
-                                <p style={{marginBottom: '0.25rem', fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.03em'}}>
+                                <p style={{marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--h-fg-muted)', textTransform: 'uppercase', letterSpacing: '0.03em'}}>
                                     {pm.displayName}
                                 </p>
                                 <p style={{marginBottom: '0.5rem'}}>{t('pending_moves', { name: pm.proposer, text: pm.text })}</p>
@@ -462,6 +464,8 @@ export default function MeetingView({
                         rollCallStatus={meetingState.rollCallStatus || {}}
                         currentUser={currentUser}
                         isChair={isChair}
+                        quorumRequired={meetingState.quorum}
+                        hasQuorumRule={!!meetingState.quorumRule}
                         onCallMember={onCallMember}
                         onMarkPresent={onMarkPresent}
                         onRespondToRollCall={onRespondToRollCall}
@@ -487,6 +491,8 @@ export default function MeetingView({
                         }}
                         onObjectToCorrection={handleObjectToCorrection}
                         onAcceptByConsent={handleAcceptCorrectionByConsent}
+                        onRecognizeCorrection={handleRecognizeCorrection}
+                        onReturnCorrection={handleReturnCorrection}
                         onCallVoteOnCorrection={onCallVoteOnMinutesCorrection}
                         onReadMinutesResponse={(doRead) => {
                             if (doRead) {
@@ -544,7 +550,7 @@ export default function MeetingView({
 
                 {meetingState.stage === MEETING_STAGES.ADJOURNED && (
                     <div className="info-box" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-                        <p style={{ marginBottom: '1rem', fontWeight: '600', color: '#1e8449' }}>
+                        <p style={{ marginBottom: '1rem', fontWeight: '600', color: 'var(--h-green-dark)' }}>
                             {t('adjourned_export_msg')}
                         </p>
                         <button
@@ -599,7 +605,7 @@ export default function MeetingView({
                         <div style={{
                             padding: '0.5rem 1rem 0.75rem',
                             fontSize: '0.8rem',
-                            color: '#999',
+                            color: 'var(--h-fg-dim)',
                             fontStyle: 'italic',
                             marginBottom: '0.5rem'
                         }}>

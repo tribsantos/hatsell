@@ -53,6 +53,7 @@
 
   "tooltip_call_to_order": "Iniciar oficialmente a sessão",
   "tooltip_complete_roll_call": "Confirmar presença e estabelecer quórum",
+  "tooltip_complete_roll_call_quorum_ready": "Quórum atingido. Você pode concluir a chamada agora ou continuar confirmando presenças.",
   "tooltip_complete_roll_call_no_quorum": "Defina um requisito de quórum primeiro (veja o painel de Membros)",
   "tooltip_approve_minutes": "Aceitar a ata da última sessão como correta",
   "tooltip_adopt_agenda": "Adotar a pauta proposta como ordem dos trabalhos",
