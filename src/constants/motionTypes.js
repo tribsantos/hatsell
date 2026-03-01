@@ -4,7 +4,8 @@ export const MOTION_CATEGORY = {
     SUBSIDIARY: 'subsidiary',
     PRIVILEGED: 'privileged',
     INCIDENTAL: 'incidental',
-    BRING_BACK: 'bring_back'
+    BRING_BACK: 'bring_back',
+    EXPERT: 'expert'
 };
 
 // All motion type constants
@@ -35,6 +36,7 @@ export const MOTION_TYPES = {
     PARLIAMENTARY_INQUIRY: 'parliamentary_inquiry',
     REQUEST_FOR_INFO: 'request_for_info',
     DIVISION_OF_ASSEMBLY: 'division_of_assembly',
+    DIVISION_OF_QUESTION: 'division_of_question',
     SUSPEND_RULES: 'suspend_rules',
     WITHDRAW_MOTION: 'withdraw_motion',
     OBJECTION_TO_CONSIDERATION: 'objection_to_consideration',
@@ -42,7 +44,12 @@ export const MOTION_TYPES = {
     // Bring-back motions
     TAKE_FROM_TABLE: 'take_from_table',
     RECONSIDER: 'reconsider',
-    RESCIND: 'rescind'
+    RECONSIDER_ENTER_MINUTES: 'reconsider_enter_minutes',
+    DISCHARGE_COMMITTEE: 'discharge_committee',
+    RESCIND: 'rescind',
+
+    // Expert motions
+    UNLISTED_MOTION: 'unlisted_motion'
 };
 
 // Vote threshold types

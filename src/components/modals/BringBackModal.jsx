@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MOTION_TYPES } from '../../constants/motionTypes';
 import { getRules } from '../../engine/motionRules';
@@ -15,6 +15,8 @@ export default function BringBackModal({ motionType, tabledMotions, decidedMotio
         switch (motionType) {
             case MOTION_TYPES.TAKE_FROM_TABLE: return t('bring_back_heading_take');
             case MOTION_TYPES.RECONSIDER: return t('bring_back_heading_reconsider');
+            case MOTION_TYPES.RECONSIDER_ENTER_MINUTES: return t('bring_back_heading_reconsider_enter_minutes');
+            case MOTION_TYPES.DISCHARGE_COMMITTEE: return t('bring_back_heading_discharge_committee');
             case MOTION_TYPES.RESCIND: return t('bring_back_heading_rescind');
             default: return t('bring_back_heading_default');
         }
@@ -34,6 +36,21 @@ export default function BringBackModal({ motionType, tabledMotions, decidedMotio
                     label: d.text || t('bring_back_decided'),
                     detail: `${d.result === 'adopted' ? t('bring_back_adopted') : t('bring_back_defeated')} - ${d.description || ''}`
                 }));
+            case MOTION_TYPES.RECONSIDER_ENTER_MINUTES:
+                return (decidedMotions || []).map((d, i) => ({
+                    index: i,
+                    label: d.text || t('bring_back_decided'),
+                    detail: `${d.result === 'adopted' ? t('bring_back_adopted') : t('bring_back_defeated')} - ${d.description || ''}`
+                }));
+            case MOTION_TYPES.DISCHARGE_COMMITTEE:
+                return (decidedMotions || [])
+                    .map((d, i) => ({ d, i }))
+                    .filter(({ d }) => d.motionType === MOTION_TYPES.COMMIT && d.result === 'adopted')
+                    .map(({ d, i }) => ({
+                        index: i,
+                        label: d.metadata?.committedQuestionText || t('bring_back_committed_question'),
+                        detail: d.metadata?.committeeName || ''
+                    }));
             case MOTION_TYPES.RESCIND:
                 return (decidedMotions || []).filter((d) => d.result === 'adopted').map((d, i) => ({
                     index: i,
@@ -47,6 +64,12 @@ export default function BringBackModal({ motionType, tabledMotions, decidedMotio
 
     const items = getItems();
 
+    useEffect(() => {
+        if (items.length > 0) {
+            setSelectedIndex(items[0].index);
+        }
+    }, [motionType, items.length]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
         if (items.length === 0) return;
@@ -54,13 +77,17 @@ export default function BringBackModal({ motionType, tabledMotions, decidedMotio
             ? `to take from the table: "${items[selectedIndex]?.label}"`
             : motionType === MOTION_TYPES.RECONSIDER
                 ? `to reconsider the vote on: "${items[selectedIndex]?.label}"`
+                : motionType === MOTION_TYPES.RECONSIDER_ENTER_MINUTES
+                    ? `to reconsider and enter on the minutes: "${items[selectedIndex]?.label}"`
+                    : motionType === MOTION_TYPES.DISCHARGE_COMMITTEE
+                        ? `to discharge the committee from: "${items[selectedIndex]?.label}"`
                 : `to rescind: "${items[selectedIndex]?.label}"`;
         onSubmit(motionType, text, { selectedIndex });
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal variant-bring_back" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+            <div className="modal variant-bring_back" role="dialog" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <h3>{getHeading()}</h3>
                 <p className="modal-description">{t('bring_back_desc')}</p>
 
@@ -107,4 +134,5 @@ export default function BringBackModal({ motionType, tabledMotions, decidedMotio
         </div>
     );
 }
+
 

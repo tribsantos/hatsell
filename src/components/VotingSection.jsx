@@ -103,18 +103,23 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
 
             {top && (
                 <div className="info-box" style={{ marginBottom: '1rem' }}>
-                    <div style={{ color: '#e67e22', fontWeight: 600 }}>
+                    <div style={{ color: 'var(--h-amber)', fontWeight: 600 }}>
                         {top.displayName}: "{top.text}"
                     </div>
                     {top.metadata?.amendmentHistory && top.metadata.amendmentHistory.length > 0 && (
-                        <div style={{ color: '#888', marginTop: '0.25rem', fontSize: '0.8rem' }}>
+                        <div style={{ color: 'var(--h-fg-dim)', marginTop: '0.25rem', fontSize: '0.8rem' }}>
                             <div>{t('vote_original', { text: top.metadata.originalText })}</div>
                             {top.metadata.amendmentHistory.map((ah, i) => (
-                                <div key={i}>{t('vote_amendment_num', { num: i + 1, text: ah.amendmentText })}</div>
+                                <div key={i} style={{ marginTop: '0.2rem' }}>
+                                    <div>{t('vote_amendment_num', { num: i + 1, text: ah.amendmentText })}</div>
+                                    {ah.proposedText && ah.proposedText !== ah.amendmentText && (
+                                        <div>{t('amended_text_line', { text: ah.proposedText })}</div>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     )}
-                    <div style={{ color: '#666', marginTop: '0.25rem' }}>{thresholdDesc}</div>
+                    <div style={{ color: 'var(--h-fg-muted)', marginTop: '0.25rem' }}>{thresholdDesc}</div>
                 </div>
             )}
 
@@ -174,7 +179,7 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
                     )}
 
                     {announceReason && (
-                        <div style={{ textAlign: 'center', marginTop: '0.75rem', fontSize: '0.8rem', color: announceDisabled ? '#e67e22' : '#27ae60', fontWeight: 600 }}>
+                        <div style={{ textAlign: 'center', marginTop: '0.75rem', fontSize: '0.8rem', color: announceDisabled ? 'var(--h-amber)' : 'var(--h-green)', fontWeight: 600 }}>
                             {announceReason}
                         </div>
                     )}
@@ -195,7 +200,7 @@ export default function VotingSection({ votes, isChair, onVote, onAnnounceResult
                     </div>
                 </>
             ) : (
-                <div style={{ marginTop: '1rem', textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>
+                <div style={{ marginTop: '1rem', textAlign: 'center', color: 'var(--h-fg-muted)', fontSize: '0.9rem' }}>
                     {t('vote_threshold_required', { threshold: thresholdLabel })}
                 </div>
             )}

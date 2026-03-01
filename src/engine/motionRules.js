@@ -270,6 +270,18 @@ export const MOTION_RULES = {
         appliesTo: [],
         subjectTo: []
     },
+    [MOTION_TYPES.DIVISION_OF_QUESTION]: {
+        category: MOTION_CATEGORY.INCIDENTAL,
+        displayName: 'Division of a Question',
+        requiresSecond: true,
+        isDebatable: false,
+        isAmendable: true,
+        voteRequired: VOTE_THRESHOLDS.MAJORITY,
+        canInterrupt: false,
+        precedence: null,
+        appliesTo: [MOTION_TYPES.MAIN, MOTION_TYPES.MAIN_INCIDENTAL],
+        subjectTo: [MOTION_TYPES.AMEND]
+    },
     [MOTION_TYPES.SUSPEND_RULES]: {
         category: MOTION_CATEGORY.INCIDENTAL,
         displayName: 'Suspend the Rules',
@@ -332,6 +344,33 @@ export const MOTION_RULES = {
         appliesTo: [],
         subjectTo: []
     },
+    [MOTION_TYPES.RECONSIDER_ENTER_MINUTES]: {
+        category: MOTION_CATEGORY.BRING_BACK,
+        displayName: 'Reconsider and Enter on the Minutes',
+        requiresSecond: true,
+        isDebatable: true,
+        isAmendable: false,
+        voteRequired: VOTE_THRESHOLDS.MAJORITY,
+        canInterrupt: true,
+        precedence: null,
+        appliesTo: [],
+        subjectTo: []
+    },
+    [MOTION_TYPES.DISCHARGE_COMMITTEE]: {
+        category: MOTION_CATEGORY.BRING_BACK,
+        displayName: 'Discharge a Committee',
+        requiresSecond: true,
+        isDebatable: true,
+        isAmendable: true,
+        voteRequired: VOTE_THRESHOLDS.TWO_THIRDS,
+        canInterrupt: false,
+        precedence: 0,
+        appliesTo: [],
+        subjectTo: [
+            MOTION_TYPES.AMEND, MOTION_TYPES.PREVIOUS_QUESTION,
+            MOTION_TYPES.LIMIT_DEBATE
+        ]
+    },
     [MOTION_TYPES.RESCIND]: {
         category: MOTION_CATEGORY.BRING_BACK,
         displayName: 'Rescind/Amend Something Previously Adopted',
@@ -346,6 +385,19 @@ export const MOTION_RULES = {
             MOTION_TYPES.AMEND, MOTION_TYPES.PREVIOUS_QUESTION,
             MOTION_TYPES.LIMIT_DEBATE
         ]
+    },
+
+    [MOTION_TYPES.UNLISTED_MOTION]: {
+        category: MOTION_CATEGORY.EXPERT,
+        displayName: 'Unlisted Motion',
+        requiresSecond: true,
+        isDebatable: true,
+        isAmendable: true,
+        voteRequired: VOTE_THRESHOLDS.MAJORITY,
+        canInterrupt: false,
+        precedence: 0,
+        appliesTo: [],
+        subjectTo: []
     }
 };
 

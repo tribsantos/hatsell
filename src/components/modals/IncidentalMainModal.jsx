@@ -5,8 +5,8 @@ import { incidentalMainOptions } from '../../constants';
 export default function IncidentalMainModal({ onSelectTemplate, onClose }) {
     const { t } = useTranslation('modals');
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal variant-main" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+            <div className="modal variant-main" role="dialog" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <h3>{t('incidental_main_heading')}</h3>
                 <p className="modal-intro">
                     {t('incidental_main_desc')}
@@ -14,11 +14,11 @@ export default function IncidentalMainModal({ onSelectTemplate, onClose }) {
                 <div className="modal-template-list">
                     {incidentalMainOptions.map((opt) => (
                         <button
-                            key={opt.label}
+                            key={opt.key}
                             className="secondary modal-template-button"
-                            onClick={() => onSelectTemplate(opt.template, opt.heading)}
+                            onClick={() => onSelectTemplate(t(`${opt.key}_template`), t('incidental_main_heading'))}
                         >
-                            {opt.label}
+                            {t(`${opt.key}_label`)}
                         </button>
                     ))}
                 </div>
@@ -31,4 +31,5 @@ export default function IncidentalMainModal({ onSelectTemplate, onClose }) {
         </div>
     );
 }
+
 

@@ -11,7 +11,14 @@ export default function DecidedMotionsList({ decidedMotions }) {
             {decidedMotions.map((item, idx) => (
                 <div key={idx} className={`sidebar-list-item ${item.result === 'adopted' ? 'adopted' : 'defeated'}`}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>{item.text}</div>
+                        <div>
+                            <div>{item.text}</div>
+                            {item.motionType === 'amend' && item.metadata?.proposedText && (
+                                <div style={{ marginTop: '0.2rem', color: 'var(--h-fg-dim)' }}>
+                                    {t('amended_text_line', { text: item.metadata.proposedText })}
+                                </div>
+                            )}
+                        </div>
                         <span className={`motion-status-badge ${item.result === 'adopted' ? 'adopted' : 'defeated'}`}>
                             {item.result === 'adopted' ? t('decided_adopted') : t('decided_defeated')}
                         </span>

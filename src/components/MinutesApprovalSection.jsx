@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-export default function MinutesApprovalSection({ currentUser, isChair, meetingState, onRequestReadMinutes, onRequestCorrection, onObjectToCorrection, onAcceptByConsent, onCallVoteOnCorrection, onReadMinutesResponse }) {
+export default function MinutesApprovalSection({ currentUser, isChair, meetingState, onRequestReadMinutes, onRequestCorrection, onObjectToCorrection, onAcceptByConsent, onCallVoteOnCorrection, onReadMinutesResponse, onRecognizeCorrection, onReturnCorrection }) {
   const { t } = useTranslation('meeting');
   const hasCorrections = meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0;
   const currentCorrection = hasCorrections ? meetingState.minutesCorrections[0] : null;
@@ -56,20 +56,41 @@ export default function MinutesApprovalSection({ currentUser, isChair, meetingSt
           <p style={{ fontSize: '0.8rem', color: 'var(--h-fg-muted, #666)' }}>
             {t('minutes_proposed_by', { name: currentCorrection.proposedBy })}
           </p>
-          {isChair && (
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-              <button type="button" onClick={onAcceptByConsent} className="success">
-                {t('minutes_accept_consent')}
-              </button>
-              <button type="button" onClick={onObjectToCorrection} className="secondary">
-                {t('minutes_objection_raised')}
-              </button>
-            </div>
-          )}
-          {!isChair && (
-            <button type="button" onClick={onObjectToCorrection} className="secondary" style={{ marginTop: '0.75rem' }}>
-              {t('minutes_i_object')}
-            </button>
+          {currentCorrection.status === 'pending_chair' ? (
+            <>
+              {isChair ? (
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                  <button type="button" onClick={onRecognizeCorrection} className="success">
+                    {t('minutes_recognize_correction')}
+                  </button>
+                  <button type="button" onClick={onReturnCorrection} className="secondary">
+                    {t('minutes_return_correction')}
+                  </button>
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.85rem', color: 'var(--h-fg-muted, #666)', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                  {t('minutes_awaiting_chair')}
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              {isChair && (
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                  <button type="button" onClick={onAcceptByConsent} className="success">
+                    {t('minutes_accept_consent')}
+                  </button>
+                  <button type="button" onClick={onObjectToCorrection} className="secondary">
+                    {t('minutes_objection_raised')}
+                  </button>
+                </div>
+              )}
+              {!isChair && (
+                <button type="button" onClick={onObjectToCorrection} className="secondary" style={{ marginTop: '0.75rem' }}>
+                  {t('minutes_i_object')}
+                </button>
+              )}
+            </>
           )}
         </div>
       ) : (

@@ -1642,7 +1642,7 @@ KEY: meeting:log_motion_recognize_error
 EN: Motion could not be recognized: {{error}}
 TRANSLATION:
 
-## motions (35 keys)
+## motions (49 keys)
 
 KEY: motions:display_main
 EN: Main Motion
@@ -1742,6 +1742,62 @@ TRANSLATION:
 
 KEY: motions:display_rescind
 EN: Rescind/Amend Something Previously Adopted
+TRANSLATION:
+
+KEY: motions:reason_lower_precedence
+EN: Cannot make while {{motion}} is pending (lower precedence)
+TRANSLATION:
+
+KEY: motions:reason_only_main_motion
+EN: Can only apply to the main motion when it is the immediately pending question
+TRANSLATION:
+
+KEY: motions:reason_not_amendable
+EN: {{motion}} is not amendable
+TRANSLATION:
+
+KEY: motions:reason_max_amendment_degree
+EN: Cannot exceed two degrees of amendment
+TRANSLATION:
+
+KEY: motions:reason_awaiting_chair
+EN: Motion awaiting chair recognition
+TRANSLATION:
+
+KEY: motions:reason_awaiting_second
+EN: Motion is awaiting a second
+TRANSLATION:
+
+KEY: motions:reason_already_pending
+EN: {{motion}} is already pending
+TRANSLATION:
+
+KEY: motions:reason_point_of_order_pending
+EN: A point of order is already pending
+TRANSLATION:
+
+KEY: motions:reason_no_chair_ruling
+EN: No recent chair ruling to appeal
+TRANSLATION:
+
+KEY: motions:reason_division_only_voting
+EN: Division can only be demanded during voting
+TRANSLATION:
+
+KEY: motions:reason_no_tabled_motions
+EN: No motions have been tabled
+TRANSLATION:
+
+KEY: motions:reason_no_motions_reconsider
+EN: No motions available to reconsider
+TRANSLATION:
+
+KEY: motions:reason_no_adopted_motions
+EN: No adopted motions to rescind
+TRANSLATION:
+
+KEY: motions:reason_debate_begun
+EN: Too late — debate has already begun on this motion
 TRANSLATION:
 
 KEY: motions:status_pending_chair
@@ -2556,7 +2612,7 @@ KEY: actions:higher_priority_pending
 EN: A higher or equal priority motion is already pending
 TRANSLATION:
 
-## modals (147 keys)
+## modals (167 keys)
 
 KEY: modals:motion_heading
 EN: Introduce a Motion
@@ -2584,6 +2640,46 @@ TRANSLATION:
 
 KEY: modals:motion_previous_notice_tag
 EN: requires previous notice
+TRANSLATION:
+
+KEY: modals:special_bylaws_label
+EN: Adopt/Amend By-laws
+TRANSLATION:
+
+KEY: modals:special_bylaws_template
+EN: to adopt/amend the by-laws as follows: ...
+TRANSLATION:
+
+KEY: modals:special_standing_rules_label
+EN: Adopt/Amend Standing Rules
+TRANSLATION:
+
+KEY: modals:special_standing_rules_template
+EN: to adopt/amend the standing rules as follows: ...
+TRANSLATION:
+
+KEY: modals:special_rescind_label
+EN: Rescind / Repeal / Annul
+TRANSLATION:
+
+KEY: modals:special_rescind_template
+EN: to rescind/repeal/annul the motion adopted on ...
+TRANSLATION:
+
+KEY: modals:special_discharge_label
+EN: Discharge a Committee
+TRANSLATION:
+
+KEY: modals:special_discharge_template
+EN: to discharge the committee on ... from further consideration of ...
+TRANSLATION:
+
+KEY: modals:special_disciplinary_label
+EN: Disciplinary Motion
+TRANSLATION:
+
+KEY: modals:special_disciplinary_template
+EN: to censure/remove/expel ...
 TRANSLATION:
 
 KEY: modals:motion_cancel
@@ -2684,6 +2780,46 @@ TRANSLATION:
 
 KEY: modals:incidental_main_desc
 EN: Choose an incidental main motion template. You can edit the text before introducing it.
+TRANSLATION:
+
+KEY: modals:incidental_main_committee_label
+EN: Create a Committee
+TRANSLATION:
+
+KEY: modals:incidental_main_committee_template
+EN: to create a committee to ...
+TRANSLATION:
+
+KEY: modals:incidental_main_instructions_label
+EN: Give Instructions to a Committee
+TRANSLATION:
+
+KEY: modals:incidental_main_instructions_template
+EN: to instruct the committee to ...
+TRANSLATION:
+
+KEY: modals:incidental_main_agenda_label
+EN: Adopt an Agenda/Program
+TRANSLATION:
+
+KEY: modals:incidental_main_agenda_template
+EN: to adopt the agenda/program as follows: ...
+TRANSLATION:
+
+KEY: modals:incidental_main_authorize_label
+EN: Authorize an Act Related to Pending Business
+TRANSLATION:
+
+KEY: modals:incidental_main_authorize_template
+EN: to authorize ... (related to the pending business)
+TRANSLATION:
+
+KEY: modals:incidental_main_other_label
+EN: Other Incidental Main Motion
+TRANSLATION:
+
+KEY: modals:incidental_main_other_template
+EN: to ...
 TRANSLATION:
 
 KEY: modals:incidental_main_close

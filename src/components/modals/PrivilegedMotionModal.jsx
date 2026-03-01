@@ -55,8 +55,8 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal variant-privileged" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+            <div className="modal variant-privileged" role="dialog" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <h3>{getHeading()}</h3>
                 <p className="modal-description">{t('privileged_desc')}</p>
 
@@ -121,4 +121,5 @@ export default function PrivilegedMotionModal({ motionType, onSubmit, onClose })
         </div>
     );
 }
+
 

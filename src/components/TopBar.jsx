@@ -32,6 +32,53 @@ export default function TopBar({
 
     const orgName = meetingState.orgProfile?.organizationName || 'Hatsell';
     const stageLabel = STAGE_LABELS[meetingState.stage] || meetingState.stage;
+    const roleLabelMap = {
+        Chair: t('role_chair'),
+        'Vice Chair': t('role_vice_chair'),
+        Secretary: t('role_secretary'),
+        Member: t('role_member')
+    };
+    const roleLabel = roleLabelMap[currentUser.role] || currentUser.role?.replace('_', ' ') || '';
+    const customAgendaItems = meetingState.meetingSettings?.agendaItems || [];
+    const includeMinutesApproval = !!meetingState.meetingSettings?.includeMinutesApproval;
+    const hasCustomAgenda = customAgendaItems.length > 0;
+    const hasFormalAgenda = meetingState.meetingSettings?.agendaStatus === 'orders_of_the_day' && hasCustomAgenda;
+    const requiredPrefixItems = [
+        { id: 'call_to_order', title: t('topbar_stage_call_to_order') },
+        { id: 'roll_call', title: t('topbar_stage_roll_call') },
+        ...(includeMinutesApproval ? [{ id: 'approve_minutes', title: t('topbar_stage_approve_minutes') }] : [])
+    ];
+    const customSequenceItems = customAgendaItems.map((item) => ({ id: item.id, title: item.title }));
+    const orderItems = [
+        ...requiredPrefixItems,
+        ...(hasFormalAgenda ? [{ id: 'adopt_agenda', title: t('topbar_stage_adopt_agenda') }] : []),
+        ...customSequenceItems,
+        { id: 'new_business', title: t('topbar_stage_new_business') }
+    ];
+    const minutesIndex = includeMinutesApproval ? 2 : null;
+    const isAgendaPhase = meetingState.stage === MEETING_STAGES.ADOPT_AGENDA || meetingState.stage === MEETING_STAGES.AGENDA_ITEM;
+    const customStartIndex = requiredPrefixItems.length + (hasFormalAgenda ? 1 : 0);
+    const currentOrderIndex = hasCustomAgenda
+        ? (
+            meetingState.stage === MEETING_STAGES.NOT_STARTED ? 0 :
+            meetingState.stage === MEETING_STAGES.CALL_TO_ORDER ? 0 :
+            meetingState.stage === MEETING_STAGES.ROLL_CALL ? 1 :
+            meetingState.stage === MEETING_STAGES.APPROVE_MINUTES && minutesIndex != null ? minutesIndex :
+            meetingState.stage === MEETING_STAGES.ADOPT_AGENDA && hasFormalAgenda ? requiredPrefixItems.length :
+            isAgendaPhase ? customStartIndex + (meetingState.currentAgendaIndex ?? 0) :
+            meetingState.stage === MEETING_STAGES.ADJOURNED ? null :
+            orderItems.length - 1
+        )
+        : (
+            meetingState.stage === MEETING_STAGES.ADJOURNED ? null :
+            meetingState.stage === MEETING_STAGES.NOT_STARTED || meetingState.stage === MEETING_STAGES.CALL_TO_ORDER ? 0 :
+            meetingState.stage === MEETING_STAGES.ROLL_CALL ? 1 :
+            meetingState.stage === MEETING_STAGES.APPROVE_MINUTES && minutesIndex != null ? minutesIndex :
+            orderItems.length - 1
+        );
+    const completedCount = currentOrderIndex == null
+        ? orderItems.length
+        : Math.max(0, currentOrderIndex);
     const participantCount = meetingState.participants?.length || 0;
     const queueCount = (meetingState.speakingQueue?.length || 0) + (meetingState.currentSpeaker ? 1 : 0);
     const logCount = meetingState.log?.length || 0;
@@ -40,12 +87,14 @@ export default function TopBar({
         <nav className="topbar" aria-label="Meeting toolbar">
             <div className="topbar-left">
                 <HatsellLogo small />
-                <span className="topbar-org-name">{orgName}</span>
+                <div className="topbar-identity">
+                    <span className="topbar-org-name">{orgName}</span>
+                    <span className="topbar-user-name">{currentUser.name} {roleLabel ? `(${roleLabel})` : ''}</span>
+                </div>
                 {meetingState.meetingCode && (
                     <span className="topbar-meeting-code">{meetingState.meetingCode}</span>
                 )}
             </div>
-
             <div className="topbar-center">
                 <span className="topbar-stage-badge">{stageLabel}</span>
             </div>
@@ -57,6 +106,17 @@ export default function TopBar({
                     aria-pressed={activeDrawer === 'members'}
                 >
                     {t('topbar_members')}<span className="drawer-toggle-count">{participantCount}</span>
+                </button>
+                <button
+                    className={`drawer-toggle ${activeDrawer === 'order' ? 'active' : ''}`}
+                    onClick={() => onToggleDrawer('order')}
+                    aria-pressed={activeDrawer === 'order'}
+                    title={t('topbar_order_toggle')}
+                >
+                    {t('topbar_order')}
+                    <span className="drawer-toggle-count">
+                        {completedCount}/{orderItems.length}
+                    </span>
                 </button>
                 <button
                     className={`drawer-toggle ${activeDrawer === 'queue' ? 'active' : ''}`}
@@ -75,6 +135,11 @@ export default function TopBar({
                 <button className="topbar-leave" onClick={onLogout}>
                     {t('topbar_leave')}
                 </button>
+                {onAbout && (
+                    <button className="topbar-about" onClick={onAbout}>
+                        {t('topbar_about')}
+                    </button>
+                )}
             </div>
         </nav>
     );

@@ -12,8 +12,8 @@ export default function MinutesCorrectionModal({ onSubmit, onClose }) {
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal variant-main" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+            <div className="modal variant-main" role="dialog" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <h3>{t('minutes_correction_heading')}</h3>
                 <div className="info-box">
                     {t('minutes_correction_desc')}
@@ -37,4 +37,5 @@ export default function MinutesCorrectionModal({ onSubmit, onClose }) {
         </div>
     );
 }
+
 

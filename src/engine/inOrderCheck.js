@@ -2,6 +2,7 @@ import { MOTION_TYPES, MOTION_CATEGORY, MOTION_STATUS } from '../constants/motio
 import { MOTION_RULES, getRules } from './motionRules';
 import { getCurrentPendingQuestion, getMainMotion } from './motionStack';
 import { MEETING_STAGES } from '../constants/meetingStages';
+import i18n from '../i18n';
 
 /**
  * Determine which motions are currently in order based on:
@@ -19,13 +20,16 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
         decidedMotions = [],
         isChair = false,
         lastChairRuling = null,
-        speakingHistory = []
+        speakingHistory = [],
+        expertMotionsEnabled = false
     } = options;
 
     const available = [];
     const top = getCurrentPendingQuestion(stack);
     const mainMotion = getMainMotion(stack);
     const topRules = top ? getRules(top.motionType) : null;
+    const topCategory = top?.category ?? topRules?.category ?? null;
+    const topPrecedence = top?.precedence ?? topRules?.precedence ?? null;
 
     // Check if we're in a stage where motions can be made
     const businessStages = [
@@ -54,6 +58,20 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
         });
     }
 
+    if (expertMotionsEnabled && [
+        MEETING_STAGES.NEW_BUSINESS,
+        MEETING_STAGES.AGENDA_ITEM,
+        MEETING_STAGES.MOTION_DISCUSSION
+    ].includes(stage)) {
+        available.push({
+            motionType: MOTION_TYPES.UNLISTED_MOTION,
+            displayName: 'Unlisted Motion',
+            category: MOTION_CATEGORY.EXPERT,
+            enabled: true,
+            reason: null
+        });
+    }
+
     // === SUBSIDIARY MOTIONS ===
     // Only available when a main motion is pending and the top question is being debated
     if (stack.length > 0 && top && (top.status === MOTION_STATUS.DEBATING || top.status === MOTION_STATUS.PENDING_SECOND || top.status === MOTION_STATUS.PENDING_CHAIR)) {
@@ -74,10 +92,10 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
 
             // Precedence check: must outrank what's currently on top (unless it's an amendment)
             if (motionType !== MOTION_TYPES.AMEND) {
-                if (topRules && topRules.category === MOTION_CATEGORY.SUBSIDIARY &&
-                    rules.precedence <= topRules.precedence) {
+                if (topCategory === MOTION_CATEGORY.SUBSIDIARY &&
+                    rules.precedence <= topPrecedence) {
                     enabled = false;
-                    reason = `Cannot make while ${topRules.displayName} is pending (lower precedence)`;
+                    reason = i18n.t('motions:reason_lower_precedence', { motion: i18n.t(`motions:display_${top.motionType}`) });
                 }
             }
 
@@ -89,7 +107,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
                     // For simplicity: only available when on top is the main motion
                     if (top.motionType !== MOTION_TYPES.MAIN && top.motionType !== MOTION_TYPES.MAIN_INCIDENTAL) {
                         enabled = false;
-                        reason = 'Can only apply to the main motion when it is the immediately pending question';
+                        reason = i18n.t('motions:reason_only_main_motion');
                     }
                 }
             }
@@ -98,13 +116,13 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
             if (motionType === MOTION_TYPES.AMEND) {
                 if (!top.isAmendable) {
                     enabled = false;
-                    reason = `${top.displayName || 'Current motion'} is not amendable`;
+                    reason = i18n.t('motions:reason_not_amendable', { motion: i18n.t(`motions:display_${top.motionType}`) });
                 } else {
                     // Check degree
                     const currentDegree = top.motionType === MOTION_TYPES.AMEND ? top.degree : 0;
                     if (currentDegree >= 2) {
                         enabled = false;
-                        reason = 'Cannot exceed two degrees of amendment';
+                        reason = i18n.t('motions:reason_max_amendment_degree');
                     }
                 }
             }
@@ -113,14 +131,14 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
             if ((top.status === MOTION_STATUS.PENDING_CHAIR || top.status === MOTION_STATUS.PENDING_SECOND) && motionType !== MOTION_TYPES.AMEND) {
                 enabled = false;
                 reason = top.status === MOTION_STATUS.PENDING_CHAIR
-                    ? 'Motion awaiting chair recognition'
-                    : 'Motion is awaiting a second';
+                    ? i18n.t('motions:reason_awaiting_chair')
+                    : i18n.t('motions:reason_awaiting_second');
             }
 
             // Amendments also cannot be made before the chair has stated the question
             if (motionType === MOTION_TYPES.AMEND && top.status === MOTION_STATUS.PENDING_CHAIR) {
                 enabled = false;
-                reason = 'Motion awaiting chair recognition';
+                reason = i18n.t('motions:reason_awaiting_chair');
             }
 
             // Lay on Table only applies to main motion
@@ -160,7 +178,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
                 m.status !== MOTION_STATUS.ADOPTED && m.status !== MOTION_STATUS.DEFEATED);
             if (alreadyPending) {
                 enabled = false;
-                reason = `${rules.displayName} is already pending`;
+                reason = i18n.t('motions:reason_already_pending', { motion: i18n.t(`motions:display_${motionType}`) });
             }
 
             available.push({
@@ -186,7 +204,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
             displayName: 'Point of Order',
             category: MOTION_CATEGORY.INCIDENTAL,
             enabled: !hasPendingPointOfOrder,
-            reason: hasPendingPointOfOrder ? 'A point of order is already pending' : null
+            reason: hasPendingPointOfOrder ? i18n.t('motions:reason_point_of_order_pending') : null
         });
 
         available.push({
@@ -211,7 +229,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
             displayName: 'Appeal the Decision of the Chair',
             category: MOTION_CATEGORY.INCIDENTAL,
             enabled: !!lastChairRuling,
-            reason: !lastChairRuling ? 'No recent chair ruling to appeal' : null
+            reason: !lastChairRuling ? i18n.t('motions:reason_no_chair_ruling') : null
         });
 
         // Division of Assembly - only during/just after a vote
@@ -220,7 +238,19 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
             displayName: 'Division of the Assembly',
             category: MOTION_CATEGORY.INCIDENTAL,
             enabled: stage === MEETING_STAGES.VOTING || (top && top.status === MOTION_STATUS.VOTING),
-            reason: stage !== MEETING_STAGES.VOTING ? 'Division can only be demanded during voting' : null
+            reason: stage !== MEETING_STAGES.VOTING ? i18n.t('motions:reason_division_only_voting') : null
+        });
+
+        // Division of a Question - only when a divisible main question is pending
+        const canDivideQuestion = !!top &&
+            (top.motionType === MOTION_TYPES.MAIN || top.motionType === MOTION_TYPES.MAIN_INCIDENTAL) &&
+            (top.status === MOTION_STATUS.DEBATING || top.status === MOTION_STATUS.PENDING_SECOND);
+        available.push({
+            motionType: MOTION_TYPES.DIVISION_OF_QUESTION,
+            displayName: 'Division of a Question',
+            category: MOTION_CATEGORY.INCIDENTAL,
+            enabled: canDivideQuestion,
+            reason: !canDivideQuestion ? i18n.t('motions:reason_division_question_only_pending_main') : null
         });
 
         // Suspend Rules
@@ -253,7 +283,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
                 displayName: 'Objection to Consideration',
                 category: MOTION_CATEGORY.INCIDENTAL,
                 enabled: !debateHasBegun,
-                reason: debateHasBegun ? 'Too late — debate has already begun on this motion' : null
+                reason: debateHasBegun ? i18n.t('motions:reason_debate_begun') : null
             });
         }
     }
@@ -265,7 +295,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
             displayName: 'Take from the Table',
             category: MOTION_CATEGORY.BRING_BACK,
             enabled: tabledMotions.length > 0,
-            reason: tabledMotions.length === 0 ? 'No motions have been tabled' : null
+            reason: tabledMotions.length === 0 ? i18n.t('motions:reason_no_tabled_motions') : null
         });
 
         available.push({
@@ -273,7 +303,25 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
             displayName: 'Reconsider',
             category: MOTION_CATEGORY.BRING_BACK,
             enabled: decidedMotions.length > 0,
-            reason: decidedMotions.length === 0 ? 'No motions available to reconsider' : null
+            reason: decidedMotions.length === 0 ? i18n.t('motions:reason_no_motions_reconsider') : null
+        });
+
+        available.push({
+            motionType: MOTION_TYPES.RECONSIDER_ENTER_MINUTES,
+            displayName: 'Reconsider and Enter on the Minutes',
+            category: MOTION_CATEGORY.BRING_BACK,
+            enabled: decidedMotions.length > 0,
+            reason: decidedMotions.length === 0 ? i18n.t('motions:reason_no_motions_reconsider') : null
+        });
+
+        available.push({
+            motionType: MOTION_TYPES.DISCHARGE_COMMITTEE,
+            displayName: 'Discharge a Committee',
+            category: MOTION_CATEGORY.BRING_BACK,
+            enabled: decidedMotions.some(m => m.motionType === MOTION_TYPES.COMMIT && m.result === 'adopted'),
+            reason: !decidedMotions.some(m => m.motionType === MOTION_TYPES.COMMIT && m.result === 'adopted')
+                ? i18n.t('motions:reason_no_committed_motions')
+                : null
         });
 
         available.push({
@@ -281,7 +329,7 @@ export function getAvailableMotions(stack, stage, user, options = {}) {
             displayName: 'Rescind/Amend Previously Adopted',
             category: MOTION_CATEGORY.BRING_BACK,
             enabled: decidedMotions.some(m => m.result === 'adopted'),
-            reason: !decidedMotions.some(m => m.result === 'adopted') ? 'No adopted motions to rescind' : null
+            reason: !decidedMotions.some(m => m.result === 'adopted') ? i18n.t('motions:reason_no_adopted_motions') : null
         });
     }
 

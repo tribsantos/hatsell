@@ -58,6 +58,7 @@
   "label_meeting_template": "Modelo de Reunião",
   "template_select_placeholder": "Selecione um modelo...",
   "template_apply_button": "Aplicar",
+  "template_apply_button_confirm": "Aplicar (Confirmar)",
   "template_helper": "Preenche configurações e pauta com um padrão comum. Você pode editar tudo depois.",
   "template_apply_confirm": "Aplicar um modelo vai substituir a pauta atual e configurações selecionadas da reunião. Continuar?",
   "template_community_label": "Associação Comunitária",
@@ -155,6 +156,9 @@
   "vote_show_details": "Exibir votos individuais quando os resultados forem anunciados",
   "hint_vote_transparency": "Quando habilitado, o presidente verá como cada membro votou (por nome) no anúncio do resultado. Por padrão, apenas os totais agregados são exibidos.",
 
+  "label_expert_motions": "MoÃ§Ãµes AvanÃ§adas",
+  "expert_motions_enable": "Habilitar categoria de moÃ§Ãµes avanÃ§adas (MoÃ§Ã£o nÃ£o listada)",
+  "hint_expert_motions": "Adiciona uma seÃ§Ã£o de MoÃ§Ãµes AvanÃ§adas com um formulÃ¡rio de MoÃ§Ã£o nÃ£o listada para autoridade, procedimento, precedÃªncia e efeitos.",
   "button_confirm": "Confirmar",
   "button_cancel": "Cancelar"
 }

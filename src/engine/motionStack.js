@@ -13,6 +13,24 @@ export function createMotionEntry(motionType, text, mover, metadata = {}) {
     }
 
     const degree = metadata.degree || (motionType === MOTION_TYPES.AMEND ? 1 : 0);
+    const expertProcedure = metadata.expertProcedure || null;
+    const displayName = expertProcedure?.ronrMotionName
+        ? `Unlisted Motion (${expertProcedure.ronrMotionName})`
+        : rules.displayName;
+    const voteRequired = expertProcedure?.voteRequired || rules.voteRequired;
+    const isDebatable = typeof expertProcedure?.isDebatable === 'boolean'
+        ? expertProcedure.isDebatable
+        : rules.isDebatable;
+    const isAmendable = typeof expertProcedure?.isAmendable === 'boolean'
+        ? expertProcedure.isAmendable
+        : rules.isAmendable;
+    const requiresSecond = typeof expertProcedure?.requiresSecond === 'boolean'
+        ? expertProcedure.requiresSecond
+        : rules.requiresSecond;
+    const category = expertProcedure?.classType || rules.category;
+    const precedence = typeof expertProcedure?.precedence === 'number'
+        ? expertProcedure.precedence
+        : rules.precedence;
 
     return {
         id: `motion_${nextMotionId++}`,
@@ -20,18 +38,20 @@ export function createMotionEntry(motionType, text, mover, metadata = {}) {
         text,
         mover,
         seconder: null,
-        status: rules.requiresSecond ? MOTION_STATUS.PENDING_CHAIR : MOTION_STATUS.DEBATING,
+        status: motionType === MOTION_TYPES.UNLISTED_MOTION
+            ? MOTION_STATUS.PENDING_CHAIR
+            : (requiresSecond ? MOTION_STATUS.PENDING_CHAIR : MOTION_STATUS.DEBATING),
         degree,
         appliedTo: metadata.appliedTo || null,
         votes: { aye: 0, nay: 0, abstain: 0 },
         votedBy: [],
-        voteRequired: rules.voteRequired,
-        isDebatable: rules.isDebatable,
-        isAmendable: rules.isAmendable,
-        requiresSecond: rules.requiresSecond,
-        category: rules.category,
-        displayName: rules.displayName,
-        precedence: rules.precedence,
+        voteRequired,
+        isDebatable,
+        isAmendable,
+        requiresSecond,
+        category,
+        displayName,
+        precedence,
         metadata
     };
 }
@@ -49,16 +69,20 @@ export function pushMotion(stack, entry) {
     if (!rules) {
         return { newStack: stack, error: `No rules found for motion type: ${entry.motionType}` };
     }
+    const entryCategory = entry.category ?? rules.category;
+    const entryPrecedence = entry.precedence ?? rules.precedence;
 
     // Main motions can only be made when the stack is empty
-    if (rules.category === MOTION_CATEGORY.MAIN && stack.length > 0) {
+    if (entryCategory === MOTION_CATEGORY.MAIN && stack.length > 0) {
         return { newStack: stack, error: 'A main motion cannot be made while another motion is pending.' };
     }
 
     // For subsidiary motions, check precedence
-    if (rules.category === MOTION_CATEGORY.SUBSIDIARY && stack.length > 0) {
+    if (entryCategory === MOTION_CATEGORY.SUBSIDIARY && stack.length > 0) {
         const topMotion = stack[stack.length - 1];
         const topRules = getRules(topMotion.motionType);
+        const topCategory = topMotion.category ?? topRules?.category;
+        const topPrecedence = topMotion.precedence ?? topRules?.precedence;
 
         // Amendment degree check
         if (entry.motionType === MOTION_TYPES.AMEND) {
@@ -76,12 +100,12 @@ export function pushMotion(stack, entry) {
             }
         } else {
             // Non-amendment subsidiary: must outrank top of stack
-            if (topRules && topRules.category === MOTION_CATEGORY.SUBSIDIARY &&
-                rules.precedence !== null && topRules.precedence !== null &&
-                rules.precedence <= topRules.precedence) {
+            if (topCategory === MOTION_CATEGORY.SUBSIDIARY &&
+                entryPrecedence !== null && topPrecedence !== null &&
+                entryPrecedence <= topPrecedence) {
                 return {
                     newStack: stack,
-                    error: `${rules.displayName} (precedence ${rules.precedence}) cannot be made while ${topRules.displayName} (precedence ${topRules.precedence}) is pending.`
+                    error: `${rules.displayName} (precedence ${entryPrecedence}) cannot be made while ${topRules?.displayName || topMotion.displayName} (precedence ${topPrecedence}) is pending.`
                 };
             }
         }
@@ -163,7 +187,7 @@ export function determineVoteResult(entry, votingContext) {
 
     switch (voteRequired) {
         case VOTE_THRESHOLDS.MAJORITY: {
-            const basis = votingContext?.majorityBasis || 'votes_cast';
+            const basis = entry?.metadata?.expertProcedure?.voteBasisOverride || votingContext?.majorityBasis || 'votes_cast';
             const denom = getDenominator(basis);
             const basisLabel = getBasisLabel(basis);
             if (aye > denom / 2) {
@@ -173,7 +197,7 @@ export function determineVoteResult(entry, votingContext) {
         }
 
         case VOTE_THRESHOLDS.TWO_THIRDS: {
-            const basis = votingContext?.twoThirdsBasis || 'votes_cast';
+            const basis = entry?.metadata?.expertProcedure?.voteBasisOverride || votingContext?.twoThirdsBasis || 'votes_cast';
             const denom = getDenominator(basis);
             const basisLabel = getBasisLabel(basis);
             if (aye >= denom * 2 / 3) {

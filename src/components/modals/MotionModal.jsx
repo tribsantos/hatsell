@@ -21,8 +21,8 @@ export default function MotionModal({ heading, initialText = '', showSpecialOpti
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal variant-main" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+            <div className="modal variant-main" role="dialog" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <h3>{heading || t('motion_heading')}</h3>
                 <p className="modal-description">{t('motion_desc')}</p>
 
@@ -49,16 +49,16 @@ export default function MotionModal({ heading, initialText = '', showSpecialOpti
                                     const needsNotice = opt.requiresNotice && (!previousNotice || !previousNotice[opt.requiresNotice]);
                                     return (
                                         <button
-                                            key={opt.label}
+                                            key={opt.key}
                                             type="button"
                                             className="secondary modal-template-button"
-                                            onClick={() => !needsNotice && setMotionText(opt.template)}
+                                            onClick={() => !needsNotice && setMotionText(t(`${opt.key}_template`))}
                                             disabled={needsNotice}
                                             style={needsNotice ? { opacity: 0.45 } : {}}
                                             data-tooltip={needsNotice ? t('motion_previous_notice') : ''}
                                             title={needsNotice ? t('motion_previous_notice') : ''}
                                         >
-                                            <span>{opt.label}</span>
+                                            <span>{t(`${opt.key}_label`)}</span>
                                             {needsNotice && (
                                                 <span className="modal-choice-meta" style={{ color: 'var(--h-red)', fontStyle: 'italic' }}>
                                                     ({t('motion_previous_notice_tag')})
@@ -80,4 +80,5 @@ export default function MotionModal({ heading, initialText = '', showSpecialOpti
         </div>
     );
 }
+
 

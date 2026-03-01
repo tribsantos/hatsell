@@ -22,8 +22,8 @@ export default function SuspendRulesModal({ onSubmit, onClose }) {
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+            <div className="modal variant-incidental" role="dialog" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <h3>{t('suspend_rules_heading')}</h3>
                 <div className="info-box">
                     <p>{t('suspend_rules_desc')}</p>
@@ -68,4 +68,5 @@ export default function SuspendRulesModal({ onSubmit, onClose }) {
         </div>
     );
 }
+
 

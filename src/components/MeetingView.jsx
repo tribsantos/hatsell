@@ -110,9 +110,12 @@ export default function MeetingView({
     onSubsidiaryMotion,
     onPrivilegedMotion,
     onBringBackMotion,
+    onUnlistedMotion,
     onParliamentaryInquiry,
     onRequestForInfo,
     onAppeal,
+    onDivideQuestion,
+    onObjectionToConsideration,
     onSuspendRules,
     onWithdrawMotion,
     onDivision,
@@ -140,6 +143,20 @@ export default function MeetingView({
     const isChair = currentUser.role === ROLES.PRESIDENT || currentUser.role === ROLES.VICE_PRESIDENT;
     const motionStack = meetingState.motionStack || [];
     const pendingRequests = meetingState.pendingRequests || [];
+    const top = motionStack.length > 0 ? motionStack[motionStack.length - 1] : null;
+    const hasPendingPointOfOrder = pendingRequests.some(
+        r => r.type === 'point_of_order' && r.status === 'pending'
+    );
+    const canRecognizeNextSpeaker = isChair &&
+        !meetingState.currentSpeaker &&
+        meetingState.stage === MEETING_STAGES.MOTION_DISCUSSION &&
+        (meetingState.pendingMotions || []).length === 0 &&
+        (meetingState.pendingAmendments || []).length === 0 &&
+        !hasPendingPointOfOrder &&
+        !meetingState.ordersOfTheDayDemand &&
+        top?.status !== 'pending_chair' &&
+        top?.status !== 'pending_second' &&
+        (meetingState.speakingQueue || []).length > 0;
 
     const dismissNotification = useCallback((timestamp) => {
         if (updateMeetingState) {
@@ -147,6 +164,33 @@ export default function MeetingView({
             updateMeetingState({ notifications: filtered });
         }
     }, [meetingState.notifications, updateMeetingState]);
+
+    const formatExpertVoteRequired = (expert) => {
+        if (!expert?.voteRequired) return '';
+        const mapping = {
+            majority: t('expert_vote_majority'),
+            two_thirds: t('expert_vote_two_thirds')
+        };
+        const basisMapping = {
+            votes_cast: t('expert_vote_basis_votes_cast'),
+            members_present: t('expert_vote_basis_members_present'),
+            entire_membership: t('expert_vote_basis_entire_membership')
+        };
+        const base = mapping[expert.voteRequired] || expert.voteRequired;
+        const basis = expert.voteBasisOverride ? basisMapping[expert.voteBasisOverride] || expert.voteBasisOverride : '';
+        return basis ? `${base} (${basis})` : base;
+    };
+
+    const formatExpertClassType = (classType) => {
+        const mapping = {
+            main: t('category_main'),
+            subsidiary: t('category_subsidiary'),
+            privileged: t('category_privileged'),
+            incidental: t('category_incidental'),
+            bring_back: t('category_bring_back')
+        };
+        return mapping[classType] || classType || '';
+    };
 
     return (
         <div className="meeting-container">
@@ -368,14 +412,19 @@ export default function MeetingView({
 
                 {/* Pending Motions (non-interrupting motions queued while speaker had the floor) */}
                 {(meetingState.pendingMotions || []).length > 0 && isChair && (() => {
+                    const getPendingPrecedence = (pendingMotion) => {
+                        const metadataPrec = pendingMotion?.metadata?.expertProcedure?.precedence;
+                        const rulePrec = getRules(pendingMotion?.motionType)?.precedence;
+                        return typeof metadataPrec === 'number' ? metadataPrec : (rulePrec ?? 0);
+                    };
                     // Sort by precedence descending (highest first) and track original indices
                     const indexed = (meetingState.pendingMotions || []).map((pm, idx) => ({ pm, originalIndex: idx }));
                     indexed.sort((a, b) => {
-                        const aPrec = getRules(a.pm.motionType)?.precedence ?? 0;
-                        const bPrec = getRules(b.pm.motionType)?.precedence ?? 0;
+                        const aPrec = getPendingPrecedence(a.pm);
+                        const bPrec = getPendingPrecedence(b.pm);
                         return bPrec - aPrec;
                     });
-                    const highestPrec = getRules(indexed[0]?.pm.motionType)?.precedence ?? 0;
+                    const highestPrec = getPendingPrecedence(indexed[0]?.pm);
 
                     // Block all pending motion actions if a motion is awaiting a second on the stack
                     const topOfStack = motionStack.length > 0 ? motionStack[motionStack.length - 1] : null;
@@ -398,9 +447,11 @@ export default function MeetingView({
                             </p>
                         )}
                         {indexed.map(({ pm, originalIndex }, displayIdx) => {
-                            const pmPrec = getRules(pm.motionType)?.precedence ?? 0;
+                            const pmPrec = getPendingPrecedence(pm);
                             const isHighest = pmPrec === highestPrec;
                             const blocked = !isHighest || !!meetingState.currentSpeaker || awaitingSecond;
+                            const expert = pm.metadata?.expertProcedure;
+                            const isExpert = pm.motionType === 'unlisted_motion' && !!expert;
 
                             return (
                             <div key={originalIndex} style={{
@@ -415,6 +466,40 @@ export default function MeetingView({
                                     {pm.displayName}
                                 </p>
                                 <p style={{marginBottom: '0.5rem'}}>{t('pending_moves', { name: pm.proposer, text: pm.text })}</p>
+                                {isExpert && (
+                                    <details style={{ marginBottom: '0.75rem' }}>
+                                        <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--h-blue)' }}>
+                                            {t('expert_dossier_title')}
+                                        </summary>
+                                        <div style={{
+                                            marginTop: '0.5rem',
+                                            padding: '0.75rem',
+                                            background: 'rgba(0, 0, 0, 0.03)',
+                                            borderRadius: '4px',
+                                            fontSize: '0.85rem',
+                                            lineHeight: 1.5
+                                        }}>
+                                            <div><strong>{t('expert_a_purpose_label')}</strong> {expert.purpose}</div>
+                                            <div><strong>{t('expert_b_ronr_citation_label')}</strong> {expert.ronrCitation}</div>
+                                            <div><strong>{t('expert_b_ronr_name_label')}</strong> {expert.ronrMotionName}</div>
+                                            <div><strong>{t('expert_b_in_order_label')}</strong> {expert.inOrderNowWhy}</div>
+                                            <div><strong>{t('expert_b_current_business_label')}</strong> {expert.currentBusiness}</div>
+                                            <div><strong>{t('expert_b_no_conflict_label')}</strong> {expert.noConflictWhy}</div>
+                                            <div><strong>{t('expert_c_second_required_label')}</strong> {expert.requiresSecond ? t('yes') : t('no')}</div>
+                                            <div><strong>{t('expert_c_debatable_label')}</strong> {expert.isDebatable ? t('yes') : t('no')}{expert.debateLimitsText ? ` (${expert.debateLimitsText})` : ''}</div>
+                                            <div><strong>{t('expert_c_amendable_label')}</strong> {expert.isAmendable ? t('yes') : t('no')}{expert.amendLimitsText ? ` (${expert.amendLimitsText})` : ''}</div>
+                                            <div><strong>{t('expert_c_vote_required_label')}</strong> {formatExpertVoteRequired(expert)}</div>
+                                            <div><strong>{t('expert_c_notice_required_label')}</strong> {expert.noticeRequired}</div>
+                                            <div><strong>{t('expert_d_class_type_label')}</strong> {formatExpertClassType(expert.classType)}</div>
+                                            <div><strong>{t('expert_d_precedence_label')}</strong> {expert.precedence == null ? t('expert_not_applicable') : expert.precedence}</div>
+                                            <div><strong>{t('expert_d_can_interrupt_label')}</strong> {expert.canInterrupt ? t('yes') : t('no')}</div>
+                                            <div><strong>{t('expert_d_relations_label')}</strong> {expert.precedenceRelations}</div>
+                                            <div><strong>{t('expert_e_reconsiderable_label')}</strong> {expert.reconsiderable ? t('yes') : t('no')}{expert.reconsiderWhen ? ` (${expert.reconsiderWhen})` : ''}</div>
+                                            <div><strong>{t('expert_e_renewable_label')}</strong> {expert.renewable ? t('yes') : t('no')}{expert.renewableWhen ? ` (${expert.renewableWhen})` : ''}</div>
+                                            <div><strong>{t('expert_e_duration_scope_label')}</strong> {expert.durationScope}</div>
+                                        </div>
+                                    </details>
+                                )}
                                 <div style={{display: 'flex', gap: '0.5rem'}}>
                                     <button
                                         onClick={() => {
@@ -575,9 +660,7 @@ export default function MeetingView({
                 )}
 
                 {/* Next Speaker — chair only, same position as member speak buttons */}
-                {isChair && !meetingState.currentSpeaker &&
-                 meetingState.stage === MEETING_STAGES.MOTION_DISCUSSION &&
-                 (meetingState.speakingQueue || []).length > 0 && (
+                {canRecognizeNextSpeaker && (
                     <div style={{ marginBottom: '1rem' }}>
                         <button
                             onClick={onRecognizeSpeaker}
@@ -625,9 +708,12 @@ export default function MeetingView({
                             onSubsidiaryMotion={onSubsidiaryMotion}
                             onPrivilegedMotion={onPrivilegedMotion}
                             onBringBackMotion={onBringBackMotion}
+                            onUnlistedMotion={onUnlistedMotion}
                             onParliamentaryInquiry={onParliamentaryInquiry}
                             onRequestForInfo={onRequestForInfo}
                             onAppeal={onAppeal}
+                            onDivideQuestion={onDivideQuestion}
+                            onObjectionToConsideration={onObjectionToConsideration}
                             onSuspendRules={onSuspendRules}
                             onWithdrawMotion={onWithdrawMotion}
                             onDivision={onDivision}
@@ -650,9 +736,12 @@ export default function MeetingView({
                         onSubsidiaryMotion={onSubsidiaryMotion}
                         onPrivilegedMotion={onPrivilegedMotion}
                         onBringBackMotion={onBringBackMotion}
+                        onUnlistedMotion={onUnlistedMotion}
                         onParliamentaryInquiry={onParliamentaryInquiry}
                         onRequestForInfo={onRequestForInfo}
                         onAppeal={onAppeal}
+                        onDivideQuestion={onDivideQuestion}
+                        onObjectionToConsideration={onObjectionToConsideration}
                         onSuspendRules={onSuspendRules}
                         onWithdrawMotion={onWithdrawMotion}
                         onDivision={onDivision}

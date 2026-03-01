@@ -1,63 +1,26 @@
 export const specialOriginalOptions = [
-    {
-        label: 'Adopt/Amend By-laws',
-        template: 'to adopt/amend the by-laws as follows: ...',
-        requiresNotice: 'bylawAmendments'
-    },
-    {
-        label: 'Adopt/Amend Standing Rules',
-        template: 'to adopt/amend the standing rules as follows: ...'
-    },
-    {
-        label: 'Rescind / Repeal / Annul',
-        template: 'to rescind/repeal/annul the motion adopted on ...',
-        requiresNotice: 'rescind'
-    },
-    {
-        label: 'Discharge a Committee',
-        template: 'to discharge the committee on ... from further consideration of ...',
-        requiresNotice: 'dischargeCommittee'
-    },
-    {
-        label: 'Disciplinary Motion',
-        template: 'to censure/remove/expel ...',
-        requiresNotice: 'disciplinary'
-    }
+    { key: 'special_bylaws', requiresNotice: 'bylawAmendments' },
+    { key: 'special_standing_rules' },
+    { key: 'special_rescind', requiresNotice: 'rescind' },
+    { key: 'special_discharge', requiresNotice: 'dischargeCommittee' },
+    { key: 'special_disciplinary', requiresNotice: 'disciplinary' }
 ];
 
 export const incidentalMainOptions = [
-    {
-        label: 'Create a Committee',
-        heading: 'Introduce an Incidental Main Motion',
-        template: 'to create a committee to ...'
-    },
-    {
-        label: 'Give Instructions to a Committee',
-        heading: 'Introduce an Incidental Main Motion',
-        template: 'to instruct the committee to ...'
-    },
-    {
-        label: 'Adopt an Agenda/Program',
-        heading: 'Introduce an Incidental Main Motion',
-        template: 'to adopt the agenda/program as follows: ...'
-    },
-    {
-        label: 'Authorize an Act Related to Pending Business',
-        heading: 'Introduce an Incidental Main Motion',
-        template: 'to authorize ... (related to the pending business)'
-    },
-    {
-        label: 'Other Incidental Main Motion',
-        heading: 'Introduce an Incidental Main Motion',
-        template: 'to ...'
-    }
+    { key: 'incidental_main_committee' },
+    { key: 'incidental_main_instructions' },
+    { key: 'incidental_main_agenda' },
+    { key: 'incidental_main_authorize' },
+    { key: 'incidental_main_other' }
 ];
 
 export const incidentalOptions = [
-    'Point of Order',
-    'Appeal the Decision of the Chair',
-    'Parliamentary Inquiry',
-    'Request for Information',
-    'Division of the Assembly',
-    'Suspend the Rules'
+    { type: 'point_of_order', interrupts: true },
+    { type: 'appeal', interrupts: true },
+    { type: 'parliamentary_inquiry', interrupts: true },
+    { type: 'request_for_info', interrupts: true },
+    { type: 'division_of_assembly', interrupts: true },
+    { type: 'division_of_question', interrupts: false },
+    { type: 'objection_to_consideration', interrupts: true },
+    { type: 'suspend_rules', interrupts: false }
 ];

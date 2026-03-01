@@ -18,12 +18,33 @@
   "display_parliamentary_inquiry": "Consulta Regimental",
   "display_request_for_info": "Pedido de Informação",
   "display_division_of_assembly": "Verificação de Votação",
+  "display_division_of_question": "Divisão da Questão",
   "display_suspend_rules": "Suspender as Regras",
   "display_withdraw_motion": "Retirar uma Moção",
   "display_objection_to_consideration": "Objeção à Consideração",
   "display_take_from_table": "Retirar da Mesa",
   "display_reconsider": "Reconsiderar",
+  "display_reconsider_enter_minutes": "Reconsiderar e Registrar em Ata",
+  "display_discharge_committee": "Dispensar uma Comissão",
   "display_rescind": "Rescindir/Emendar Deliberação Anterior",
+  "display_unlisted_motion": "Mocao nao listada",
+
+  "reason_lower_precedence": "Não pode ser apresentada enquanto {{motion}} está pendente (menor precedência)",
+  "reason_only_main_motion": "Só pode ser aplicada à moção principal quando esta é a questão imediatamente pendente",
+  "reason_not_amendable": "{{motion}} não é emendável",
+  "reason_max_amendment_degree": "Não é possível exceder dois graus de emenda",
+  "reason_awaiting_chair": "Moção aguardando reconhecimento da presidência",
+  "reason_awaiting_second": "Moção aguardando apoio",
+  "reason_already_pending": "{{motion}} já está pendente",
+  "reason_point_of_order_pending": "Uma questão de ordem já está pendente",
+  "reason_no_chair_ruling": "Nenhuma decisão recente da presidência para apelar",
+  "reason_division_only_voting": "Verificação só pode ser solicitada durante votação",
+  "reason_division_question_only_pending_main": "Divisão da questão exige uma moção principal pendente",
+  "reason_no_tabled_motions": "Nenhuma moção sobre a mesa",
+  "reason_no_motions_reconsider": "Nenhuma moção disponível para reconsideração",
+  "reason_no_committed_motions": "Nenhuma questão em comissão disponível para dispensa",
+  "reason_no_adopted_motions": "Nenhuma moção aprovada para rescindir",
+  "reason_debate_begun": "Tarde demais — o debate sobre esta moção já foi iniciado",
 
   "status_pending_chair": "Aguardando a Presidência",
   "status_pending_second": "Aguardando Apoio",
@@ -36,3 +57,5 @@
   "status_postponed": "Adiada",
   "status_committed": "Encaminhada a Comissão"
 }
+
+

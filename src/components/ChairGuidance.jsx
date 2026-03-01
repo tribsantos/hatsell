@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { MEETING_STAGES, ROLES } from '../constants';
 import { getCurrentPendingQuestion, getMainMotion } from '../engine/motionStack';
 import { getThresholdLabel } from '../engine/voteEngine';
-import { MOTION_TYPES } from '../constants/motionTypes';
+import { getRules } from '../engine/motionRules';
 
 export default function ChairGuidance({ meetingState, currentUser, isChair, onAcknowledgeAnnouncement }) {
     const { t } = useTranslation('guidance');
@@ -13,6 +13,7 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
     const { stage, currentMotion, speakingQueue, currentSpeaker, pendingAmendments, motionStack = [] } = meetingState;
     const top = getCurrentPendingQuestion(motionStack);
     const mainMotion = getMainMotion(motionStack);
+    const pendingMotions = meetingState.pendingMotions || [];
 
     let guidance = null;
 
@@ -82,7 +83,13 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
                 : t('action_roll_call_chair')
         };
     } else if (stage === MEETING_STAGES.APPROVE_MINUTES) {
-        if (meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0) {
+        if (meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0 && meetingState.minutesCorrections[0].status === 'pending_chair') {
+            guidance = {
+                title: t('title_review_correction'),
+                phrase: t('phrase_review_correction'),
+                action: t('action_review_correction')
+            };
+        } else if (meetingState.minutesCorrections && meetingState.minutesCorrections.length > 0) {
             guidance = {
                 title: t('title_minutes_corrections'),
                 phrase: t('phrase_minutes_correction'),
@@ -174,6 +181,17 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
                 phrase: t('phrase_member_speaking', { name: currentSpeaker.participant }),
                 action: t('action_member_speaking')
             };
+        } else if (pendingMotions.length > 0) {
+            const highestPending = [...pendingMotions].sort((a, b) => {
+                const aPrec = a.metadata?.expertProcedure?.precedence ?? getRules(a.motionType)?.precedence ?? -Infinity;
+                const bPrec = b.metadata?.expertProcedure?.precedence ?? getRules(b.motionType)?.precedence ?? -Infinity;
+                return bPrec - aPrec;
+            })[0];
+            guidance = {
+                title: t('title_motion_pending_recognition'),
+                phrase: t('phrase_motion_pending', { mover: highestPending.proposer, text: highestPending.text }),
+                action: t('action_recognize_or_reject')
+            };
         } else if (speakingQueue.length > 0) {
             guidance = {
                 title: t('title_recognize_next_speaker'),
@@ -248,11 +266,11 @@ export default function ChairGuidance({ meetingState, currentUser, isChair, onAc
                     borderRadius: '4px',
                     fontSize: '0.85rem'
                 }}>
-                    <div style={{ fontWeight: '600', marginBottom: '0.35rem', color: '#555' }}>{t('individual_votes')}</div>
+                    <div style={{ fontWeight: '600', marginBottom: '0.35rem', color: 'var(--h-fg-muted)' }}>{t('individual_votes')}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 1rem' }}>
                         {guidance.voteDetails.map((v, i) => (
                             <span key={i} style={{
-                                color: v.vote === 'aye' ? '#27ae60' : v.vote === 'nay' ? '#c0392b' : '#888'
+                                color: v.vote === 'aye' ? 'var(--h-green)' : v.vote === 'nay' ? 'var(--h-red)' : 'var(--h-fg-dim)'
                             }}>
                                 {v.name}: {v.vote === 'aye' ? t('vote_aye') : v.vote === 'nay' ? t('vote_nay') : t('vote_abstain')}
                             </span>

@@ -66,8 +66,18 @@ export function useModal() {
         setModalData({});
     };
 
+    const openDivideQuestionModal = () => {
+        setShowModal('divideQuestion');
+        setModalData({});
+    };
+
     const openWithdrawMotionModal = () => {
         setShowModal('withdrawMotion');
+        setModalData({});
+    };
+
+    const openExpertMotionModal = () => {
+        setShowModal('expertMotion');
         setModalData({});
     };
 
@@ -96,7 +106,9 @@ export function useModal() {
         openRequestForInfoModal,
         openAppealModal,
         openSuspendRulesModal,
+        openDivideQuestionModal,
         openWithdrawMotionModal,
+        openExpertMotionModal,
         openPreChairWithdrawModal,
         closeModal
     };

@@ -52,8 +52,8 @@ export default function AmendmentModal({ originalMotion, onSubmit, onClose }) {
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal variant-amend" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+            <div className="modal variant-amend" role="dialog" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <h3>{t('amendment_heading')}</h3>
                 <p className="modal-description">{t('amendment_desc')}</p>
 

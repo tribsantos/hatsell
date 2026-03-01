@@ -2,6 +2,40 @@ import { useEffect, useRef } from 'react';
 import { MEETING_STAGES, ROLES } from '../constants';
 import * as MeetingConnection from '../services/MeetingConnection';
 
+function buildClearedMeetingState(message) {
+    return {
+        stage: MEETING_STAGES.NOT_STARTED,
+        participants: [],
+        motionStack: [],
+        pendingRequests: [],
+        savedSpeakingState: {},
+        suspendedSpeakingState: null,
+        tabledMotions: [],
+        decidedMotions: [],
+        speakingQueue: [],
+        speakingHistory: [],
+        currentSpeaker: null,
+        votes: { aye: 0, nay: 0, abstain: 0 },
+        votedBy: [],
+        voteDetails: [],
+        log: [{
+            timestamp: new Date().toLocaleTimeString(),
+            message
+        }],
+        quorum: 0,
+        quorumRule: null,
+        rollCallStatus: {},
+        pendingAmendments: [],
+        pendingMotions: [],
+        dividedQuestionsQueue: [],
+        minutesCorrections: [],
+        notifications: [],
+        lastChairRuling: null,
+        lastActivityTime: Date.now(),
+        currentMotion: null
+    };
+}
+
 export function useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingState, updateMeetingState, options = {}) {
     const prevParticipantNames = useRef(null);
     const meetingStateRef = useRef(meetingState);
@@ -84,6 +118,7 @@ export function useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingSt
             // 45s timeout accounts for browser background-tab throttling
             // (browsers reduce setInterval to ~60s in background tabs)
             const activeParticipants = updatedParticipants.filter(p => {
+                if (p.demoSeeded) return true;
                 if (!p.lastSeen) return true;
                 return (now - p.lastSeen) < 45000;
             });
@@ -92,6 +127,20 @@ export function useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingSt
             const hasPresident = activeParticipants.some(p => p.role === ROLES.PRESIDENT);
 
             if (hadPresident && !hasPresident && ms.stage !== MEETING_STAGES.ADJOURNED) {
+                const quorumRequired = ms.quorum || 0;
+                const quorumLost = quorumRequired > 0 && activeParticipants.length < quorumRequired;
+                if (quorumLost && activeParticipants.length > 0) {
+                    const handler = [...activeParticipants].sort((a, b) => a.name.localeCompare(b.name))[0];
+                    if (cu.name === handler.name) {
+                        updateMeetingStateRef.current(
+                            buildClearedMeetingState(
+                                `Chair disconnected and quorum was lost (${activeParticipants.length} of ${quorumRequired} required). Meeting data cleared.`
+                            )
+                        );
+                    }
+                    return;
+                }
+
                 const viceChair = activeParticipants.find(p => p.role === ROLES.VICE_PRESIDENT);
 
                 if (viceChair && cu.name === viceChair.name) {

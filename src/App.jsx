@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from './i18n';
-import { ROLES } from './constants';
+import { MEETING_STAGES, ROLES } from './constants';
 import { MOTION_TYPES } from './constants/motionTypes';
 import { useMeetingState } from './hooks/useMeetingState';
 import { useModal } from './hooks/useModal';
@@ -20,6 +20,7 @@ import TopBar from './components/TopBar';
 import MembersDrawer from './components/drawers/MembersDrawer';
 import QueueDrawer from './components/drawers/QueueDrawer';
 import LogDrawer from './components/drawers/LogDrawer';
+import OrderDrawer from './components/drawers/OrderDrawer';
 import MotionModal from './components/modals/MotionModal';
 import AmendmentModal from './components/modals/AmendmentModal';
 import PointOfOrderModal from './components/modals/PointOfOrderModal';
@@ -33,8 +34,28 @@ import ParliamentaryInquiryModal from './components/modals/ParliamentaryInquiryM
 import RequestForInfoModal from './components/modals/RequestForInfoModal';
 import AppealModal from './components/modals/AppealModal';
 import SuspendRulesModal from './components/modals/SuspendRulesModal';
+import DivideQuestionModal from './components/modals/DivideQuestionModal';
+import ExpertMotionModal from './components/modals/ExpertMotionModal';
 import WithdrawMotionModal from './components/modals/WithdrawMotionModal';
 import PreChairWithdrawModal from './components/modals/PreChairWithdrawModal';
+import ChairExplanationModal from './components/modals/ChairExplanationModal';
+import ChairRulingNotification from './components/ChairRulingNotification';
+
+const HIDDEN_TEST_QUERY_KEY = 'hidden';
+const HIDDEN_TEST_QUERY_VALUE = 'rr9';
+const HIDDEN_TEST_PATH = '/hidden/rr9';
+const HIDDEN_TEST_MEETING_CODE = 'RR9HID';
+const HIDDEN_TEST_MEMBERS = [
+    'Amina Hassan',
+    'Luca Bianchi',
+    'Sofia Petrova',
+    'Kenji Sato',
+    'Priya Sharma',
+    "Michael O'Connor",
+    'Fatima El Idrissi',
+    'Jonas Muller',
+    'Camila Torres'
+];
 
 export default function App() {
     const [activePage, setActivePage] = useState('meeting');
@@ -45,8 +66,17 @@ export default function App() {
     const [disclaimerChecked, setDisclaimerChecked] = useState(false);
     const [activeDrawer, setActiveDrawer] = useState(null);
     const [inactivityWarning, setInactivityWarning] = useState(false);
+    const [pendingRuling, setPendingRuling] = useState(null);
+    const hiddenTestBootstrapped = useRef(false);
+    const hiddenTestMode = useRef((() => {
+        const params = new URLSearchParams(window.location.search);
+        const fromQuery = params.get(HIDDEN_TEST_QUERY_KEY) === HIDDEN_TEST_QUERY_VALUE;
+        const fromPath = window.location.pathname.toLowerCase() === HIDDEN_TEST_PATH;
+        return fromQuery || fromPath;
+    })());
 
     const { t } = useTranslation('meeting');
+    const { t: tModals } = useTranslation('modals');
 
     const toggleDrawer = (name) => {
         setActiveDrawer(prev => prev === name ? null : name);
@@ -83,6 +113,8 @@ export default function App() {
         handleSecondAmendment,
         handleSubmitPointOfOrder,
         handleSubmitMinutesCorrection,
+        handleRecognizeCorrection,
+        handleReturnCorrection,
         handleObjectToCorrection,
         handleAcceptCorrectionByConsent,
         handleRuleOnPointOfOrder,
@@ -134,17 +166,242 @@ export default function App() {
         openRequestForInfoModal,
         openAppealModal,
         openSuspendRulesModal,
+        openDivideQuestionModal,
         openWithdrawMotionModal,
+        openExpertMotionModal,
         openPreChairWithdrawModal,
         closeModal,
         modalData
     } = useModal();
+
+    const buildExpertMotionConfig = (payload) => {
+        const voteMap = {
+            majority_votes_cast: { voteRequired: 'majority', voteBasisOverride: 'votes_cast' },
+            two_thirds_votes_cast: { voteRequired: 'two_thirds', voteBasisOverride: 'votes_cast' },
+            majority_entire_membership: { voteRequired: 'majority', voteBasisOverride: 'entire_membership' },
+            majority_members_present: { voteRequired: 'majority', voteBasisOverride: 'members_present' },
+            two_thirds_members_present: { voteRequired: 'two_thirds', voteBasisOverride: 'members_present' }
+        };
+        const selectedVote = voteMap[payload.voteRequired] || voteMap.majority_votes_cast;
+        return {
+            purpose: payload.purpose,
+            ronrCitation: payload.ronrCitation,
+            ronrMotionName: payload.ronrMotionName,
+            inOrderNowWhy: payload.inOrderNowWhy,
+            currentBusiness: payload.currentBusiness,
+            noConflictWhy: payload.noConflictWhy,
+            requiresSecond: payload.secondRequiredBool,
+            isDebatable: payload.debatableBool,
+            debateLimitsText: payload.debateLimits,
+            isAmendable: payload.amendableBool,
+            amendLimitsText: payload.amendLimits,
+            voteRequired: selectedVote.voteRequired,
+            voteBasisOverride: selectedVote.voteBasisOverride,
+            noticeRequired: payload.noticeRequired,
+            classType: payload.classType,
+            precedence: payload.parsedPrecedence,
+            canInterrupt: payload.canInterruptBool,
+            precedenceRelations: payload.precedenceRelations,
+            reconsiderable: payload.reconsiderableBool,
+            reconsiderWhen: payload.reconsiderWhen,
+            renewable: payload.renewableBool,
+            renewableWhen: payload.renewableWhen,
+            durationScope: payload.durationScope
+        };
+    };
 
     useHeartbeat(currentUser, isLoggedIn, meetingState, setMeetingState, updateMeetingState, {
         onInactivityWarning: (action) => setInactivityWarning(action === 'show'),
         inactivityWarningActive: inactivityWarning
     });
     useAudioCues(meetingState);
+
+    useEffect(() => {
+        if (!hiddenTestMode.current) return;
+        if (hiddenTestBootstrapped.current) return;
+        if (isLoggedIn) return;
+        hiddenTestBootstrapped.current = true;
+
+        const bootstrapHiddenMeeting = async () => {
+            setDisclaimerAccepted(true);
+            sessionStorage.setItem('hatsell_disclaimer', 'true');
+
+            const meetingSettings = {
+                meetingName: 'Hidden Test Meeting',
+                agendaItems: [
+                    { id: 1, createdAt: 1, title: 'Reports', category: 'officer_reports', owner: 'Officers', timeTarget: '10', notes: '' },
+                    { id: 2, createdAt: 2, title: 'Unfinished Business', category: 'unfinished_business', owner: 'Assembly', timeTarget: '10', notes: '' }
+                ],
+                agendaCustomSequence: false,
+                includeMinutesApproval: true,
+                agendaStatus: 'orders_of_the_day',
+                previousNotice: {
+                    rescind: false,
+                    bylawAmendments: false,
+                    dischargeCommittee: false,
+                    disciplinary: false
+                },
+                meetingType: 'regular',
+                specialMeetingRestrict: true,
+                electronicRules: {
+                    recognitionMethod: 'queue_only',
+                    chatPolicy: 'informational_only',
+                    raiseHandMechanism: 'button'
+                },
+                openingPackage: {
+                    enabled: false,
+                    adoptAgenda: true,
+                    adoptElectronicRules: true
+                },
+                autoYieldOnTimeExpired: false,
+                audioCues: false,
+                showVoteDetails: false,
+                language: 'en'
+            };
+
+            const orgProfile = {
+                organizationName: 'Hatsell Hidden Demo',
+                totalMembership: '10',
+                quorumType: 'default',
+                quorumValue: '',
+                majorityBasis: 'votes_cast',
+                twoThirdsBasis: 'votes_cast',
+                timePerSpeech: 10,
+                speechesPerMember: 2,
+                totalDebateTime: '',
+                meetingFormat: 'in_person',
+                electronicVoting: false,
+                proxyVoting: false
+            };
+
+            await handleLogin({
+                name: 'John Hatsell',
+                role: ROLES.PRESIDENT,
+                meetingCode: HIDDEN_TEST_MEETING_CODE,
+                orgProfile,
+                meetingSettings
+            });
+
+            const participants = [
+                { name: 'John Hatsell', role: ROLES.PRESIDENT, meetingCode: HIDDEN_TEST_MEETING_CODE, lastSeen: Date.now() },
+                ...HIDDEN_TEST_MEMBERS.map((name, idx) => ({
+                    name,
+                    role: ROLES.MEMBER,
+                    meetingCode: HIDDEN_TEST_MEETING_CODE,
+                    lastSeen: Date.now() - (idx + 1) * 1000,
+                    demoSeeded: true
+                }))
+            ];
+
+            updateMeetingState({
+                stage: MEETING_STAGES.CALL_TO_ORDER,
+                participants,
+                meetingSettings,
+                orgProfile,
+                meetingCode: HIDDEN_TEST_MEETING_CODE,
+                currentAgendaIndex: null,
+                rollCallStatus: {},
+                log: [
+                    {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: 'Hidden test meeting loaded with seeded participants.'
+                    }
+                ]
+            });
+        };
+
+        bootstrapHiddenMeeting().catch((err) => {
+            console.error('Failed to bootstrap hidden test meeting mode:', err);
+        });
+    }, [isLoggedIn, handleLogin, updateMeetingState]);
+
+    // --- Wrapped negative ruling handlers (intercept with explanation modal) ---
+
+    const wrappedChairRejectMotion = () => {
+        const stack = meetingState.motionStack || [];
+        const top = getCurrentPendingQuestion(stack);
+        if (!top) return;
+        setPendingRuling({
+            heading: tModals('chair_explanation_heading_motion'),
+            description: top.text,
+            memberName: top.mover,
+            onConfirm: (explanation) => {
+                handleChairRejectMotion(explanation);
+                setPendingRuling(null);
+            }
+        });
+    };
+
+    const wrappedRuleOnPointOfOrderRequest = (requestId, ruling) => {
+        // Favorable ruling passes through directly
+        if (ruling === 'sustained') {
+            handleRuleOnPointOfOrderRequest(requestId, ruling);
+            return;
+        }
+        const request = (meetingState.pendingRequests || []).find(r => r.id === requestId);
+        if (!request) return;
+        setPendingRuling({
+            heading: tModals('chair_explanation_heading_point'),
+            description: request.content,
+            memberName: request.raisedBy,
+            onConfirm: (explanation) => {
+                handleRuleOnPointOfOrderRequest(requestId, ruling, explanation);
+                setPendingRuling(null);
+            }
+        });
+    };
+
+    const wrappedReturnCorrection = () => {
+        const corrections = meetingState.minutesCorrections || [];
+        if (corrections.length === 0) return;
+        const correction = corrections[0];
+        setPendingRuling({
+            heading: tModals('chair_explanation_heading_correction'),
+            description: correction.text,
+            memberName: correction.proposedBy,
+            onConfirm: (explanation) => {
+                handleReturnCorrection(explanation);
+                setPendingRuling(null);
+            }
+        });
+    };
+
+    const wrappedRuleOnPointOfOrder = (ruling) => {
+        // Favorable ruling passes through directly
+        if (ruling === 'sustained') {
+            handleRuleOnPointOfOrder(ruling);
+            return;
+        }
+        // Check pending requests first, then legacy pendingPointOfOrder
+        const pendingPOO = (meetingState.pendingRequests || []).find(
+            r => r.type === 'point_of_order' && r.status === 'pending'
+        );
+        const concern = pendingPOO?.content || meetingState.pendingPointOfOrder?.concern || '';
+        const memberName = pendingPOO?.raisedBy || meetingState.pendingPointOfOrder?.raisedBy || '';
+        setPendingRuling({
+            heading: tModals('chair_explanation_heading_point'),
+            description: concern,
+            memberName,
+            onConfirm: (explanation) => {
+                handleRuleOnPointOfOrder(ruling, explanation);
+                setPendingRuling(null);
+            }
+        });
+    };
+
+    const wrappedDismissRequest = (requestId) => {
+        const request = (meetingState.pendingRequests || []).find(r => r.id === requestId);
+        if (!request) return;
+        setPendingRuling({
+            heading: tModals('chair_explanation_heading_dismiss'),
+            description: request.content,
+            memberName: request.raisedBy,
+            onConfirm: (explanation) => {
+                handleDismissRequest(requestId, explanation);
+                setPendingRuling(null);
+            }
+        });
+    };
 
     // Sync meeting language to i18n — all participants see the same language
     useEffect(() => {
@@ -153,6 +410,23 @@ export default function App() {
             i18n.changeLanguage(meetingLang);
         }
     }, [meetingState?.meetingSettings?.language, isLoggedIn]);
+
+    useEffect(() => {
+        const hasOpenDialog = !!showModal || !!pendingRuling;
+        if (!hasOpenDialog) return;
+
+        const handleKeyDown = (event) => {
+            if (event.key !== 'Escape') return;
+            if (pendingRuling) {
+                setPendingRuling(null);
+                return;
+            }
+            closeModal();
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showModal, pendingRuling, closeModal]);
 
     if (activePage === 'tutorial') {
         return (
@@ -301,6 +575,12 @@ export default function App() {
                     onClose={() => setActiveDrawer(null)}
                 />
             )}
+            {activeDrawer === 'order' && (
+                <OrderDrawer
+                    meetingState={meetingState}
+                    onClose={() => setActiveDrawer(null)}
+                />
+            )}
             {activeDrawer === 'queue' && (
                 <QueueDrawer
                     meetingState={meetingState}
@@ -337,12 +617,14 @@ export default function App() {
                 onRecognizeAmendment={handleRecognizeAmendment}
                 onDismissAmendment={handleDismissAmendment}
                 onPointOfOrder={openPointOfOrderModal}
-                onRuleOnPointOfOrder={handleRuleOnPointOfOrder}
+                onRuleOnPointOfOrder={wrappedRuleOnPointOfOrder}
                 updateMeetingState={updateMeetingState}
                 addToLog={addToLog}
                 setShowModal={setShowModal}
                 handleObjectToCorrection={handleObjectToCorrection}
                 handleAcceptCorrectionByConsent={handleAcceptCorrectionByConsent}
+                handleRecognizeCorrection={handleRecognizeCorrection}
+                handleReturnCorrection={wrappedReturnCorrection}
                 onCallVoteOnMinutesCorrection={handleCallVoteOnMinutesCorrection}
                 onAcknowledgeAnnouncement={handleAcknowledgeAnnouncement}
                 onIncidentalMainMotion={openIncidentalMainModal}
@@ -351,16 +633,22 @@ export default function App() {
                 onSubsidiaryMotion={openSubsidiaryMotionModal}
                 onPrivilegedMotion={openPrivilegedMotionModal}
                 onBringBackMotion={openBringBackModal}
+                onUnlistedMotion={openExpertMotionModal}
                 onParliamentaryInquiry={openParliamentaryInquiryModal}
                 onRequestForInfo={openRequestForInfoModal}
                 onAppeal={openAppealModal}
+                onDivideQuestion={openDivideQuestionModal}
+                onObjectionToConsideration={() => handleConvertRequestToMotion(
+                    MOTION_TYPES.OBJECTION_TO_CONSIDERATION,
+                    'to object to consideration of the question'
+                )}
                 onSuspendRules={openSuspendRulesModal}
                 onWithdrawMotion={openWithdrawMotionModal}
                 onDivision={handleDivisionOfAssembly}
                 onAcceptRequest={handleAcceptRequest}
                 onRespondToRequest={handleRespondToRequest}
-                onDismissRequest={handleDismissRequest}
-                onRuleOnPointOfOrderRequest={handleRuleOnPointOfOrderRequest}
+                onDismissRequest={wrappedDismissRequest}
+                onRuleOnPointOfOrderRequest={wrappedRuleOnPointOfOrderRequest}
                 onResumeFromRecess={handleResumeFromRecess}
                 onNewSpeakingList={handleNewSpeakingList}
                 onResumePreviousSpeakingList={handleResumePreviousSpeakingList}
@@ -368,7 +656,7 @@ export default function App() {
                 onSuspendedVote={handleSuspendedVote}
                 onDeclareNoSecond={handleDeclareNoSecond}
                 onChairAcceptMotion={handleChairAcceptMotion}
-                onChairRejectMotion={handleChairRejectMotion}
+                onChairRejectMotion={wrappedChairRejectMotion}
                 onRecognizePendingMotion={handleRecognizePendingMotion}
                 onDismissPendingMotion={handleDismissPendingMotion}
                 onPreChairWithdraw={openPreChairWithdrawModal}
@@ -409,22 +697,31 @@ export default function App() {
                         // Route each incidental type to its proper modal
                         closeModal();
                         switch (type) {
-                            case 'Point of Order':
+                            case 'point_of_order':
                                 openPointOfOrderModal();
                                 break;
-                            case 'Parliamentary Inquiry':
+                            case 'parliamentary_inquiry':
                                 openParliamentaryInquiryModal();
                                 break;
-                            case 'Request for Information':
+                            case 'request_for_info':
                                 openRequestForInfoModal();
                                 break;
-                            case 'Appeal the Decision of the Chair':
+                            case 'appeal':
                                 openAppealModal();
                                 break;
-                            case 'Division of the Assembly':
+                            case 'division_of_assembly':
                                 handleDivisionOfAssembly();
                                 break;
-                            case 'Suspend the Rules':
+                            case 'division_of_question':
+                                openDivideQuestionModal();
+                                break;
+                            case 'objection_to_consideration':
+                                handleConvertRequestToMotion(
+                                    MOTION_TYPES.OBJECTION_TO_CONSIDERATION,
+                                    'to object to consideration of the question'
+                                );
+                                break;
+                            case 'suspend_rules':
                                 openSuspendRulesModal();
                                 break;
                             default:
@@ -499,9 +796,40 @@ export default function App() {
                             handleTakeFromTable(metadata.selectedIndex);
                         } else if (motionType === MOTION_TYPES.RECONSIDER) {
                             handleReconsider(metadata.selectedIndex);
+                        } else if (motionType === MOTION_TYPES.RECONSIDER_ENTER_MINUTES) {
+                            handleReconsider(metadata.selectedIndex, true);
                         } else {
                             handleConvertRequestToMotion(motionType, text, metadata);
                         }
+                        closeModal();
+                    }}
+                    onClose={closeModal}
+                />
+            )}
+
+            {showModal === 'divideQuestion' && (
+                <DivideQuestionModal
+                    currentMotionText={top?.text}
+                    onSubmit={(parts) => {
+                        handleConvertRequestToMotion(
+                            MOTION_TYPES.DIVISION_OF_QUESTION,
+                            'to divide the question',
+                            { parts }
+                        );
+                        closeModal();
+                    }}
+                    onClose={closeModal}
+                />
+            )}
+
+            {showModal === 'expertMotion' && (
+                <ExpertMotionModal
+                    onSubmit={(payload) => {
+                        handleConvertRequestToMotion(
+                            MOTION_TYPES.UNLISTED_MOTION,
+                            payload.motionText,
+                            { expertProcedure: buildExpertMotionConfig(payload) }
+                        );
                         closeModal();
                     }}
                     onClose={closeModal}
@@ -531,7 +859,7 @@ export default function App() {
             {showModal === 'appeal' && (
                 <AppealModal
                     chairRuling={meetingState.lastChairRuling ?
-                        `${meetingState.lastChairRuling.ruling}: ${meetingState.lastChairRuling.concern}` : null}
+                        `${meetingState.lastChairRuling.ruling}: ${meetingState.lastChairRuling.concern}${meetingState.lastChairRuling.explanation ? ` — ${meetingState.lastChairRuling.explanation}` : ''}` : null}
                     onSubmit={() => {
                         handleConvertRequestToMotion(
                             MOTION_TYPES.APPEAL,
@@ -584,6 +912,22 @@ export default function App() {
                     onClose={closeModal}
                 />
             )}
+
+            {pendingRuling && (
+                <ChairExplanationModal
+                    heading={pendingRuling.heading}
+                    description={pendingRuling.description}
+                    memberName={pendingRuling.memberName}
+                    onConfirm={pendingRuling.onConfirm}
+                    onClose={() => setPendingRuling(null)}
+                />
+            )}
+
+            <ChairRulingNotification
+                meetingState={meetingState}
+                isChair={isChair}
+                onAppeal={openAppealModal}
+            />
 
             {inactivityWarning && isLoggedIn && (
                 <InactivityWarningModal

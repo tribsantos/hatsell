@@ -72,6 +72,7 @@ export function ChairActions({
     const [suspendedThreshold, setSuspendedThreshold] = useState('majority');
     const [appealWindowActive, setAppealWindowActive] = useState(false);
     const [appealCountdown, setAppealCountdown] = useState(0);
+    const [adjournConfirmArmed, setAdjournConfirmArmed] = useState(false);
 
     const top = getCurrentPendingQuestion(motionStack);
     const hasPendingPointOfOrder = pendingRequests.some(r => r.type === 'point_of_order' && r.status === 'pending');
@@ -105,6 +106,20 @@ export function ChairActions({
 
         return () => clearInterval(interval);
     }, [meetingState.chairDecisionTime]);
+
+    useEffect(() => {
+        if (!adjournConfirmArmed) return;
+        const timeout = setTimeout(() => setAdjournConfirmArmed(false), 4000);
+        return () => clearTimeout(timeout);
+    }, [adjournConfirmArmed]);
+
+    useEffect(() => {
+        if (!adjournConfirmArmed) return;
+        const canAdjournStage = stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM;
+        if (!canAdjournStage || motionStack.length > 0 || !!currentMotion) {
+            setAdjournConfirmArmed(false);
+        }
+    }, [adjournConfirmArmed, stage, motionStack.length, currentMotion]);
 
     const membersToCall = meetingState.participants.filter(p =>
         p.role !== ROLES.PRESIDENT &&
@@ -347,7 +362,22 @@ export function ChairActions({
     // Adjourn (no business pending)
     if ((stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && motionStack.length === 0 && !currentMotion) {
         buttons.push(
-            <button key="adjourn" onClick={() => { if (window.confirm(t('confirm_adjourn'))) onAdjourn(); }} className="danger" data-tooltip={t('tooltip_adjourn')} title={t('tooltip_adjourn')}>{t('button_adjourn')}</button>
+            <button
+                key="adjourn"
+                onClick={() => {
+                    if (!adjournConfirmArmed) {
+                        setAdjournConfirmArmed(true);
+                        return;
+                    }
+                    setAdjournConfirmArmed(false);
+                    onAdjourn();
+                }}
+                className="danger"
+                data-tooltip={adjournConfirmArmed ? t('tooltip_adjourn_confirm') : t('tooltip_adjourn')}
+                title={adjournConfirmArmed ? t('tooltip_adjourn_confirm') : t('tooltip_adjourn')}
+            >
+                {adjournConfirmArmed ? t('button_adjourn_confirm') : t('button_adjourn')}
+            </button>
         );
     }
 
@@ -377,14 +407,16 @@ export function MemberActions({
     onSubsidiaryMotion,
     onPrivilegedMotion,
     onBringBackMotion,
+    onUnlistedMotion,
     onParliamentaryInquiry,
     onRequestForInfo,
     onAppeal,
+    onDivideQuestion,
+    onObjectionToConsideration,
     onSuspendRules,
     onWithdrawMotion,
     onDivision,
-    onPreChairWithdraw,
-    onOrdersOfTheDay
+    onPreChairWithdraw
 }) {
     const { t } = useTranslation(['actions', 'motions']);
     const {
@@ -404,13 +436,16 @@ export function MemberActions({
         decidedMotions,
         isChair,
         lastChairRuling,
-        speakingHistory: meetingState.speakingHistory || []
+        speakingHistory: meetingState.speakingHistory || [],
+        expertMotionsEnabled: !!meetingState.meetingSettings?.expertMotionsEnabled
     });
 
     const pendingMotionsList = meetingState.pendingMotions || [];
     const highestPendingPrecedence = pendingMotionsList.reduce((max, pm) => {
-        const pmRules = getRules(pm.motionType);
-        return pmRules && pmRules.precedence !== null && pmRules.precedence > max ? pmRules.precedence : max;
+        const metadataPrec = pm.metadata?.expertProcedure?.precedence;
+        const rulePrec = getRules(pm.motionType)?.precedence;
+        const pmPrec = typeof metadataPrec === 'number' ? metadataPrec : rulePrec;
+        return pmPrec !== null && pmPrec !== undefined && pmPrec > max ? pmPrec : max;
     }, 0);
 
     const subsidiaryMotions = available.filter(m =>
@@ -429,6 +464,9 @@ export function MemberActions({
     );
     const bringBackMotions = available.filter(m =>
         m.category === MOTION_CATEGORY.BRING_BACK
+    );
+    const expertMotions = available.filter(m =>
+        m.category === MOTION_CATEGORY.EXPERT
     );
 
     const getMotionTooltip = (m) => {
@@ -496,6 +534,7 @@ export function MemberActions({
                             </details>
                         </div>
                     )}
+
                 </>
             )}
 
@@ -558,6 +597,10 @@ export function MemberActions({
                 const appealEnabled = appealAvail?.enabled ?? false;
                 const divisionAvail = available.find(m => m.motionType === MOTION_TYPES.DIVISION_OF_ASSEMBLY);
                 const divisionEnabled = divisionAvail?.enabled ?? false;
+                const divideQuestionAvail = available.find(m => m.motionType === MOTION_TYPES.DIVISION_OF_QUESTION);
+                const divideQuestionEnabled = divideQuestionAvail?.enabled ?? false;
+                const objectionAvail = available.find(m => m.motionType === MOTION_TYPES.OBJECTION_TO_CONSIDERATION);
+                const objectionEnabled = objectionAvail?.enabled ?? false;
 
                 const subsidiarySection = stage === MEETING_STAGES.MOTION_DISCUSSION && subsidiaryMotions.length > 0 && !hasPendingPointOfOrder && (
                     <div className="action-section" style={{ width: '100%' }}>
@@ -658,6 +701,26 @@ export function MemberActions({
                                     {t('button_division')}
                                 </button>
                                 <button
+                                    onClick={divideQuestionEnabled ? onDivideQuestion : undefined}
+                                    className="secondary"
+                                    disabled={!divideQuestionEnabled}
+                                    data-tooltip={divideQuestionEnabled ? t('tooltip_divide_question_enabled') : t('tooltip_divide_question_disabled')}
+                                    title={divideQuestionEnabled ? t('tooltip_divide_question_enabled') : t('tooltip_divide_question_disabled')}
+                                    style={{fontSize: '0.85rem', padding: '0.5rem', ...(!divideQuestionEnabled ? disabledStyle : {})}}
+                                >
+                                    {t('button_divide_question')}
+                                </button>
+                                <button
+                                    onClick={objectionEnabled ? onObjectionToConsideration : undefined}
+                                    className="secondary"
+                                    disabled={!objectionEnabled}
+                                    data-tooltip={objectionEnabled ? t('tooltip_objection_consideration_enabled') : t('tooltip_objection_consideration_disabled')}
+                                    title={objectionEnabled ? t('tooltip_objection_consideration_enabled') : t('tooltip_objection_consideration_disabled')}
+                                    style={{fontSize: '0.85rem', padding: '0.5rem', ...(!objectionEnabled ? disabledStyle : {})}}
+                                >
+                                    {t('button_objection_consideration')}
+                                </button>
+                                <button
                                     onClick={onSuspendRules}
                                     className="secondary"
                                     data-tooltip={t('tooltip_suspend_rules')} title={t('tooltip_suspend_rules')}
@@ -675,16 +738,28 @@ export function MemberActions({
                                         {t('button_withdraw_motion')}
                                     </button>
                                 )}
-                                {onOrdersOfTheDay && !isChair && (stage === MEETING_STAGES.MOTION_DISCUSSION || stage === MEETING_STAGES.NEW_BUSINESS || stage === MEETING_STAGES.AGENDA_ITEM) && (
+                            </div>
+                        </details>
+                    </div>
+                );
+                const expertSection = expertMotions.length > 0 && (
+                    <div className="action-section" style={{ width: '100%' }}>
+                        <details>
+                            <summary>{t('summary_expert', { count: expertMotions.length })}</summary>
+                            <div className="action-grid">
+                                {expertMotions.map(m => (
                                     <button
-                                        onClick={onOrdersOfTheDay}
+                                        key={m.motionType}
+                                        onClick={() => m.enabled && onUnlistedMotion && onUnlistedMotion()}
                                         className="secondary"
-                                        data-tooltip={t('tooltip_orders_of_day')} title={t('tooltip_orders_of_day')}
-                                        style={{fontSize: '0.85rem', padding: '0.5rem'}}
+                                        disabled={!m.enabled}
+                                        data-tooltip={m.enabled ? t('tooltip_unlisted_motion') : t('out_of_order')}
+                                        title={m.enabled ? t('tooltip_unlisted_motion') : t('out_of_order')}
+                                        style={{ fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {}) }}
                                     >
-                                        {t('button_orders_of_day')}
+                                        {t('button_unlisted_motion')}
                                     </button>
-                                )}
+                                ))}
                             </div>
                         </details>
                     </div>
@@ -695,6 +770,7 @@ export function MemberActions({
                         {subsidiarySection}
                         {privilegedSection}
                         {incidentalButtons}
+                        {expertSection}
                     </>
                 );
             })()}

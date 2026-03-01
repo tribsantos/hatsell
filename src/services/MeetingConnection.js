@@ -8,12 +8,13 @@ const ARRAY_FIELDS = [
     'participants', 'motionStack', 'pendingRequests', 'tabledMotions',
     'decidedMotions', 'speakingQueue', 'speakingHistory', 'votedBy',
     'log', 'pendingAmendments', 'minutesCorrections', 'notifications',
-    'voteDetails', 'pendingMotions'
+    'voteDetails', 'pendingMotions', 'dividedQuestionsQueue'
 ];
 
 let meetingRef = null;
 let cachedState = null;
 let activeListener = null;
+let writeQueue = Promise.resolve();
 
 function sanitizeForFirebase(value) {
     if (value === undefined) return null;
@@ -52,6 +53,7 @@ export function connect(meetingCode) {
     }
     meetingRef = ref(database, `meetings/${meetingCode}`);
     cachedState = null;
+    writeQueue = Promise.resolve();
 }
 
 export function disconnect() {
@@ -61,13 +63,19 @@ export function disconnect() {
     }
     meetingRef = null;
     cachedState = null;
+    writeQueue = Promise.resolve();
 }
 
 export function broadcast(newState) {
     if (!meetingRef) return Promise.resolve();
     const versionedState = { ...newState, stateVersion: STATE_VERSION };
     const cleanedState = sanitizeForFirebase(versionedState);
-    return set(meetingRef, cleanedState);
+    // Serialize full-state writes to prevent out-of-order overwrites
+    // when actions happen rapidly (e.g., roll call called -> present).
+    writeQueue = writeQueue
+        .catch(() => {})
+        .then(() => set(meetingRef, cleanedState));
+    return writeQueue;
 }
 
 export function subscribe(callback) {

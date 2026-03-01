@@ -58,6 +58,7 @@
   "label_meeting_template": "Meeting Template",
   "template_select_placeholder": "Select a template...",
   "template_apply_button": "Apply",
+  "template_apply_button_confirm": "Apply (Confirm)",
   "template_helper": "Prefill settings and agenda with a common meeting pattern. You can edit everything afterward.",
   "template_apply_confirm": "Applying a template will replace current agenda and selected meeting settings. Continue?",
   "template_community_label": "Community Association",
@@ -154,6 +155,9 @@
   "label_vote_transparency": "Vote Transparency",
   "vote_show_details": "Display individual votes when results are announced",
   "hint_vote_transparency": "When enabled, the chair will see how each member voted (by name) in the result announcement. By default, only aggregate totals are shown.",
+  "label_expert_motions": "Expert Motions",
+  "expert_motions_enable": "Enable expert motions category (Unlisted Motion)",
+  "hint_expert_motions": "Adds an Expert Motions section with an Unlisted Motion form that captures authority, procedure, precedence, and effects.",
   "button_confirm": "Confirm",
   "button_cancel": "Cancel"
 }

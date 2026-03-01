@@ -28,7 +28,7 @@ export function getThresholdLabel(voteRequired) {
         case VOTE_THRESHOLDS.TWO_THIRDS:
             return '2/3 Vote';
         case VOTE_THRESHOLDS.TIE_SUSTAINS:
-            return 'Tie Sustains Chair';
+            return 'Tie Sustains Chair (one half plus one vote)';
         case VOTE_THRESHOLDS.NONE:
             return 'No Vote';
         default:

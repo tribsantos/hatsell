@@ -2,6 +2,8 @@ import {
     Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel,
     BorderStyle, TabStopType, TabStopPosition
 } from 'docx';
+import { MOTION_TYPES } from '../constants/motionTypes';
+import i18n from '../i18n';
 
 /**
  * Export meeting minutes in RONR 12th ed. §48 format as a .docx file.
@@ -12,7 +14,11 @@ export async function exportMinutes(meetingState) {
     const decidedMotions = meetingState.decidedMotions || [];
     const tabledMotions = meetingState.tabledMotions || [];
 
-    const meetingDate = new Date().toLocaleDateString('en-US', {
+    const language = meetingState?.meetingSettings?.language || i18n.language || 'en';
+    const locale = language === 'pt-BR' ? 'pt-BR' : 'en-US';
+    const t = (key, opts) => i18n.t(`meeting:${key}`, opts);
+
+    const meetingDate = new Date().toLocaleDateString(locale, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -20,9 +26,17 @@ export async function exportMinutes(meetingState) {
     });
 
     // Extract times from log
-    const callToOrderEntry = log.find(e => e.message.includes('called to order'));
+    const callToOrderMarkers = [
+        i18n.t('meeting:log_called_to_order', { lng: 'en' }),
+        i18n.t('meeting:log_called_to_order', { lng: 'pt-BR' })
+    ];
+    const adjournMarkers = [
+        i18n.t('meeting:log_meeting_adjourned', { lng: 'en' }),
+        i18n.t('meeting:log_meeting_adjourned', { lng: 'pt-BR' })
+    ];
+    const callToOrderEntry = log.find((e) => callToOrderMarkers.some((marker) => e.message.includes(marker)));
     const adjournEntry = [...log].reverse().find(e =>
-        e.message.includes('adjourned') || e.message.includes('Adjourned')
+        adjournMarkers.some((marker) => e.message.includes(marker))
     );
 
     const callToOrderTime = callToOrderEntry?.timestamp || 'N/A';
@@ -41,8 +55,8 @@ export async function exportMinutes(meetingState) {
             spacing: { after: 100 },
             children: [
                 new TextRun({ text: meetingState.meetingSettings?.meetingName
-                    ? `MINUTES OF ${meetingState.meetingSettings.meetingName.toUpperCase()}`
-                    : 'MINUTES OF MEETING', bold: true, size: 32 })
+                    ? t('minutes_export_title_with_name', { name: meetingState.meetingSettings.meetingName.toUpperCase() })
+                    : t('minutes_export_title_default'), bold: true, size: 32 })
             ]
         }),
         new Paragraph({
@@ -69,15 +83,15 @@ export async function exportMinutes(meetingState) {
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 200, after: 100 },
             children: [
-                new TextRun({ text: 'Call to Order', bold: true })
+                new TextRun({ text: t('minutes_export_call_to_order_heading'), bold: true })
             ]
         }),
         new Paragraph({
             spacing: { after: 200 },
             children: [
-                new TextRun({
-                    text: `The meeting was called to order at ${callToOrderTime}${chair ? ` by ${chair.name}, presiding.` : '.'}`
-                })
+                new TextRun({ text: chair
+                    ? t('minutes_export_call_to_order_text_with_chair', { time: callToOrderTime, name: chair.name })
+                    : t('minutes_export_call_to_order_text_no_chair', { time: callToOrderTime }) })
             ]
         })
     );
@@ -88,7 +102,7 @@ export async function exportMinutes(meetingState) {
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 200, after: 100 },
             children: [
-                new TextRun({ text: 'Attendance', bold: true })
+                new TextRun({ text: t('minutes_export_attendance_heading'), bold: true })
             ]
         })
     );
@@ -125,7 +139,7 @@ export async function exportMinutes(meetingState) {
         new Paragraph({
             spacing: { after: 100 },
             children: [
-                new TextRun({ text: 'Members present:', bold: true })
+                new TextRun({ text: t('minutes_export_present_members'), bold: true })
             ]
         })
     );
@@ -148,7 +162,7 @@ export async function exportMinutes(meetingState) {
             new Paragraph({
                 spacing: { before: 100, after: 200 },
                 children: [
-                    new TextRun({ text: `Quorum: ${meetingState.quorum} members required.` })
+                    new TextRun({ text: t('minutes_export_quorum', { count: meetingState.quorum }) })
                 ]
             })
         );
@@ -162,13 +176,13 @@ export async function exportMinutes(meetingState) {
                 heading: HeadingLevel.HEADING_2,
                 spacing: { before: 200, after: 100 },
                 children: [
-                    new TextRun({ text: 'Approval of Minutes', bold: true })
+                    new TextRun({ text: t('minutes_export_approval_heading'), bold: true })
                 ]
             }),
             new Paragraph({
                 spacing: { after: 200 },
                 children: [
-                    new TextRun({ text: 'The minutes of the previous meeting were approved.' })
+                    new TextRun({ text: t('minutes_export_approval_text') })
                 ]
             })
         );
@@ -181,39 +195,54 @@ export async function exportMinutes(meetingState) {
                 heading: HeadingLevel.HEADING_2,
                 spacing: { before: 200, after: 100 },
                 children: [
-                    new TextRun({ text: 'Motions', bold: true })
+                    new TextRun({ text: t('minutes_export_motions_heading'), bold: true })
                 ]
             })
         );
 
         decidedMotions.forEach((motion, idx) => {
-            const result = motion.result === 'adopted' ? 'ADOPTED' : 'DEFEATED';
+            const isAdopted = motion.result === 'adopted';
+            const result = isAdopted ? t('minutes_export_adopted') : t('minutes_export_defeated');
             const votes = motion.votes || {};
+            const isAmendment = motion.motionType === MOTION_TYPES.AMEND;
+            const amendedText = motion.metadata?.proposedText;
+            const hasAmendedTextLine = isAmendment && amendedText;
 
             sections.push(
                 new Paragraph({
                     spacing: { before: 150, after: 60 },
                     children: [
                         new TextRun({ text: `${idx + 1}. `, bold: true }),
-                        new TextRun({ text: `${motion.displayName || 'Motion'}`, bold: true }),
-                        new TextRun({ text: ` \u2014 ${result}`, bold: true, color: result === 'ADOPTED' ? '1e8449' : 'c0392b' })
+                        new TextRun({ text: `${motion.displayName || t('minutes_export_motion_fallback')}`, bold: true }),
+                        new TextRun({ text: ` \u2014 ${result}`, bold: true, color: isAdopted ? '1e8449' : 'c0392b' })
                     ]
                 }),
                 new Paragraph({
                     spacing: { after: 40 },
                     indent: { left: 360 },
                     children: [
-                        new TextRun({ text: `"${motion.text}"` })
+                        ...(isAmendment
+                            ? [new TextRun({ text: t('minutes_export_amendment_proposal'), bold: true }), new TextRun({ text: `"${motion.text}"` })]
+                            : [new TextRun({ text: `"${motion.text}"` })]
+                        )
                     ]
                 }),
+                ...(hasAmendedTextLine ? [new Paragraph({
+                    spacing: { after: 40 },
+                    indent: { left: 360 },
+                    children: [
+                        new TextRun({ text: t('minutes_export_amended_text'), bold: true }),
+                        new TextRun({ text: `"${amendedText}"` })
+                    ]
+                })] : []),
                 new Paragraph({
                     spacing: { after: 40 },
                     indent: { left: 360 },
                     children: [
-                        new TextRun({ text: 'Moved by: ', bold: true }),
+                        new TextRun({ text: t('minutes_export_moved_by'), bold: true }),
                         new TextRun({ text: motion.mover || 'N/A' }),
                         ...(motion.seconder ? [
-                            new TextRun({ text: '  |  Seconded by: ', bold: true }),
+                            new TextRun({ text: t('minutes_export_seconded_by'), bold: true }),
                             new TextRun({ text: motion.seconder })
                         ] : [])
                     ]
@@ -222,12 +251,12 @@ export async function exportMinutes(meetingState) {
                     spacing: { after: 100 },
                     indent: { left: 360 },
                     children: [
-                        new TextRun({ text: 'Vote: ', bold: true }),
+                        new TextRun({ text: t('minutes_export_vote_label'), bold: true }),
                         new TextRun({
                             text: `${votes.aye || 0} ayes, ${votes.nay || 0} nays, ${votes.abstain || 0} abstentions`
                         }),
                         ...(motion.voteRequired ? [
-                            new TextRun({ text: ` (${motion.voteRequired.replace('_', '-')} required)`, italics: true })
+                            new TextRun({ text: ` (${motion.voteRequired.replace('_', '-')}${t('minutes_export_required_suffix')})`, italics: true })
                         ] : [])
                     ]
                 })
@@ -240,7 +269,7 @@ export async function exportMinutes(meetingState) {
                     spacing: { before: 150, after: 100 },
                     indent: { left: 360 },
                     children: [
-                        new TextRun({ text: 'TABLED: ', bold: true, color: 'e67e22' }),
+                        new TextRun({ text: t('minutes_export_tabled_label'), bold: true, color: 'e67e22' }),
                         new TextRun({ text: `"${tabled.mainMotionText}"` })
                     ]
                 })
@@ -254,15 +283,13 @@ export async function exportMinutes(meetingState) {
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 200, after: 100 },
             children: [
-                new TextRun({ text: 'Adjournment', bold: true })
+                new TextRun({ text: t('minutes_export_adjournment_heading'), bold: true })
             ]
         }),
         new Paragraph({
             spacing: { after: 400 },
             children: [
-                new TextRun({
-                    text: `The meeting was adjourned at ${adjournTime}.`
-                })
+                new TextRun({ text: t('minutes_export_adjournment_text', { time: adjournTime }) })
             ]
         })
     );
@@ -282,7 +309,7 @@ export async function exportMinutes(meetingState) {
                     text: secretary ? secretary.name : '[Secretary Name]',
                     italics: !secretary
                 }),
-                new TextRun({ text: ', Secretary' })
+                new TextRun({ text: t('minutes_export_secretary_suffix') })
             ]
         })
     );

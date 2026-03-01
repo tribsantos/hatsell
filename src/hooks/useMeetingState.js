@@ -31,6 +31,7 @@ const INITIAL_MEETING_STATE = {
     rollCallStatus: {},
     pendingAmendments: [],
     pendingMotions: [],
+    dividedQuestionsQueue: [],
     minutesCorrections: [],
     notifications: [],
     lastChairRuling: null,
@@ -108,6 +109,20 @@ export function useMeetingState() {
         MeetingConnection.broadcast(newState);
     };
 
+    const clearMeetingData = (message) => {
+        const clearedState = {
+            ...INITIAL_MEETING_STATE,
+            log: [{
+                timestamp: new Date().toLocaleTimeString(),
+                message
+            }],
+            lastActivityTime: Date.now()
+        };
+        meetingStateRef.current = clearedState;
+        setMeetingState(clearedState);
+        MeetingConnection.broadcast(clearedState);
+    };
+
     // ========== LOGIN / MEETING SETUP ==========
 
     const handleLogin = async (userData) => {
@@ -133,11 +148,11 @@ export function useMeetingState() {
                 });
 
                 if (hasActivePresident) {
-                    alert(i18n.t('meeting:alert_active_chair'));
+                    const message = i18n.t('meeting:alert_active_chair');
                     MeetingConnection.disconnect();
                     setIsLoggedIn(false);
                     setCurrentUser(null);
-                    return;
+                    return { ok: false, error: message };
                 }
             }
 
@@ -185,11 +200,11 @@ export function useMeetingState() {
             await MeetingConnection.broadcast(initialState);
         } else {
             if (!existingState) {
-                alert(i18n.t('meeting:alert_no_meeting'));
+                const message = i18n.t('meeting:alert_no_meeting');
                 MeetingConnection.disconnect();
                 setIsLoggedIn(false);
                 setCurrentUser(null);
-                return;
+                return { ok: false, error: message };
             }
 
             // Migrate old state format if needed
@@ -201,14 +216,15 @@ export function useMeetingState() {
                 // If the existing participant is still active (seen within 10s), this is a duplicate name
                 const isActive = existingParticipant.lastSeen && (Date.now() - existingParticipant.lastSeen) < 10000;
                 if (isActive && existingParticipant.role !== userData.role) {
-                    alert(i18n.t('meeting:alert_name_in_use', { name: userData.name }));
+                    const message = i18n.t('meeting:alert_name_in_use', { name: userData.name });
                     MeetingConnection.disconnect();
                     setIsLoggedIn(false);
                     setCurrentUser(null);
-                    return;
+                    return { ok: false, error: message };
                 }
                 // Otherwise it's a reconnect — restore state
                 setMeetingState(migratedState);
+                return { ok: true };
             } else {
                 const userWithTimestamp = { ...userData, lastSeen: Date.now() };
                 const updatedParticipants = [...migratedState.participants, userWithTimestamp];
@@ -224,8 +240,10 @@ export function useMeetingState() {
                 };
                 setMeetingState(newState);
                 await MeetingConnection.broadcast(newState);
+                return { ok: true };
             }
         }
+        return { ok: true };
     };
 
     // ========== MEETING LIFECYCLE ==========
@@ -260,6 +278,77 @@ export function useMeetingState() {
                 message: i18n.t('meeting:log_quorum_set', { rule: formatQuorumRule(rule), count: resolved })
             }]
         });
+    };
+
+    const getPostMinutesTransition = (state, options = {}) => {
+        const skipped = !!options.skipped;
+        const agendaItems = state.meetingSettings?.agendaItems || [];
+        const hasAgenda = agendaItems.length > 0;
+        const isOrders = state.meetingSettings?.agendaStatus === 'orders_of_the_day';
+
+        if (hasAgenda && isOrders) {
+            return {
+                nextStage: MEETING_STAGES.ADOPT_AGENDA,
+                currentAgendaIndex: 0,
+                logMsg: skipped
+                    ? i18n.t('meeting:log_minutes_skipped_adopt_agenda')
+                    : i18n.t('meeting:log_minutes_approved_adopt_agenda')
+            };
+        }
+        if (hasAgenda) {
+            return {
+                nextStage: MEETING_STAGES.AGENDA_ITEM,
+                currentAgendaIndex: 0,
+                logMsg: skipped
+                    ? i18n.t('meeting:log_minutes_skipped_agenda')
+                    : i18n.t('meeting:log_minutes_approved_agenda')
+            };
+        }
+        return {
+            nextStage: MEETING_STAGES.NEW_BUSINESS,
+            currentAgendaIndex: null,
+            logMsg: skipped
+                ? i18n.t('meeting:log_minutes_skipped_new_business')
+                : i18n.t('meeting:log_minutes_approved_new_business')
+        };
+    };
+
+    const getSeededAgendaMotionState = (state, agendaIndex) => {
+        const item = state.meetingSettings?.agendaItems?.[agendaIndex];
+        if (!item || item.category !== 'unfinished_business') return null;
+
+        const motionText = String(item.unfinishedMotionText || '').trim();
+        if (!motionText) return null;
+
+        const mover = String(item.unfinishedMotionMover || '').trim() || 'Previous Meeting';
+        const mainEntry = createMotionEntry(MOTION_TYPES.MAIN, motionText, mover, {
+            seededUnfinishedBusiness: true,
+            agendaItemId: item.id
+        });
+        if (mainEntry.error) return null;
+
+        mainEntry.status = MOTION_STATUS.DEBATING;
+        const stack = [mainEntry];
+
+        const amendText = String(item.unfinishedAmendmentText || '').trim();
+        if (amendText) {
+            const amendMover = String(item.unfinishedAmendmentMover || '').trim() || mover;
+            const amendEntry = createMotionEntry(MOTION_TYPES.AMEND, amendText, amendMover, {
+                seededUnfinishedBusiness: true,
+                agendaItemId: item.id,
+                appliedTo: mainEntry.id,
+                degree: 1
+            });
+            if (!amendEntry.error) {
+                amendEntry.status = MOTION_STATUS.DEBATING;
+                stack.push(amendEntry);
+            }
+        }
+
+        const seedMsg = amendText
+            ? `Unfinished business loaded with pending motion and amendment: "${item.title}"`
+            : `Unfinished business loaded with pending motion: "${item.title}"`;
+        return { motionStack: stack, seedMsg };
     };
 
     const handleRollCall = () => {
@@ -298,6 +387,31 @@ export function useMeetingState() {
                     message: i18n.t('meeting:log_no_quorum')
                 }],
                 stage: MEETING_STAGES.ADJOURNED
+            });
+            return;
+        }
+
+        const shouldApproveMinutes = !!meetingState.meetingSettings?.includeMinutesApproval;
+        if (!shouldApproveMinutes) {
+            const transition = getPostMinutesTransition(meetingState, { skipped: true });
+            const seeded = transition.nextStage === MEETING_STAGES.AGENDA_ITEM
+                ? getSeededAgendaMotionState(meetingState, transition.currentAgendaIndex)
+                : null;
+            updateMeetingState({
+                stage: transition.nextStage,
+                currentAgendaIndex: transition.currentAgendaIndex,
+                ...(seeded ? { motionStack: seeded.motionStack, currentMotion: null } : {}),
+                quorum,
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: quorumMsg
+                }, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: transition.logMsg
+                }, ...(seeded ? [{
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: seeded.seedMsg
+                }] : [])]
             });
             return;
         }
@@ -352,41 +466,39 @@ export function useMeetingState() {
     };
 
     const handleApproveMinutes = () => {
-        const agendaItems = meetingState.meetingSettings?.agendaItems || [];
-        const hasAgenda = agendaItems.length > 0;
-        const isOrders = meetingState.meetingSettings?.agendaStatus === 'orders_of_the_day';
-
-        let nextStage, logMsg;
-        if (hasAgenda && isOrders) {
-            nextStage = MEETING_STAGES.ADOPT_AGENDA;
-            logMsg = i18n.t('meeting:log_minutes_approved_adopt_agenda');
-        } else if (hasAgenda) {
-            nextStage = MEETING_STAGES.AGENDA_ITEM;
-            logMsg = i18n.t('meeting:log_minutes_approved_agenda');
-        } else {
-            nextStage = MEETING_STAGES.NEW_BUSINESS;
-            logMsg = i18n.t('meeting:log_minutes_approved_new_business');
-        }
+        const transition = getPostMinutesTransition(meetingState);
+        const seeded = transition.nextStage === MEETING_STAGES.AGENDA_ITEM
+            ? getSeededAgendaMotionState(meetingState, transition.currentAgendaIndex)
+            : null;
 
         updateMeetingState({
-            stage: nextStage,
-            currentAgendaIndex: hasAgenda ? 0 : null,
+            stage: transition.nextStage,
+            currentAgendaIndex: transition.currentAgendaIndex,
+            ...(seeded ? { motionStack: seeded.motionStack, currentMotion: null } : {}),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: logMsg
-            }]
+                message: transition.logMsg
+            }, ...(seeded ? [{
+                timestamp: new Date().toLocaleTimeString(),
+                message: seeded.seedMsg
+            }] : [])]
         });
     };
 
     const handleAdoptAgenda = () => {
+        const seeded = getSeededAgendaMotionState(meetingState, 0);
         updateMeetingState({
             stage: MEETING_STAGES.AGENDA_ITEM,
             agendaAdopted: true,
             currentAgendaIndex: 0,
+            ...(seeded ? { motionStack: seeded.motionStack, currentMotion: null } : {}),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: i18n.t('meeting:log_agenda_adopted')
-            }]
+            }, ...(seeded ? [{
+                timestamp: new Date().toLocaleTimeString(),
+                message: seeded.seedMsg
+            }] : [])]
         });
     };
 
@@ -405,12 +517,17 @@ export function useMeetingState() {
                 }]
             });
         } else {
+            const seeded = getSeededAgendaMotionState(meetingState, nextIndex);
             updateMeetingState({
                 currentAgendaIndex: nextIndex,
+                ...(seeded ? { motionStack: seeded.motionStack, currentMotion: null } : {}),
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
                     message: i18n.t('meeting:log_agenda_next', { title: currentItem?.title })
-                }]
+                }, ...(seeded ? [{
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: seeded.seedMsg
+                }] : [])]
             });
         }
     };
@@ -450,20 +567,33 @@ export function useMeetingState() {
         const top = getCurrentPendingQuestion(meetingState.motionStack);
         if (!top || top.status !== MOTION_STATUS.PENDING_CHAIR) return;
 
+        const acceptedStatus = top.requiresSecond
+            ? MOTION_STATUS.PENDING_SECOND
+            : (top.isDebatable ? MOTION_STATUS.DEBATING : MOTION_STATUS.VOTING);
         const newStack = updateTopMotion(meetingState.motionStack, {
-            status: MOTION_STATUS.PENDING_SECOND
+            status: acceptedStatus,
+            votes: acceptedStatus === MOTION_STATUS.VOTING ? { aye: 0, nay: 0, abstain: 0 } : top.votes,
+            votedBy: acceptedStatus === MOTION_STATUS.VOTING ? [] : top.votedBy
         });
 
-        updateMeetingState({
+        const updates = {
             motionStack: newStack,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: i18n.t('meeting:log_chair_recognizes', { name: top.displayName })
             }]
-        });
+        };
+        if (acceptedStatus === MOTION_STATUS.DEBATING) {
+            updates.stage = MEETING_STAGES.MOTION_DISCUSSION;
+        }
+        if (acceptedStatus === MOTION_STATUS.VOTING) {
+            updates.stage = MEETING_STAGES.VOTING;
+            updates.voteStartTime = Date.now();
+        }
+        updateMeetingState(updates);
     };
 
-    const handleChairRejectMotion = () => {
+    const handleChairRejectMotion = (explanation) => {
         const top = getCurrentPendingQuestion(meetingState.motionStack);
         if (!top || top.status !== MOTION_STATUS.PENDING_CHAIR) return;
 
@@ -494,8 +624,10 @@ export function useMeetingState() {
             lastChairRuling: {
                 type: 'ruled_out_of_order',
                 ruling: 'out_of_order',
+                explanation: explanation || '',
                 concern: top.text,
                 raisedBy: top.mover,
+                displayName: i18n.t('meeting:ruling_notification_type_motion'),
                 timestamp: Date.now()
             },
             chairDecisionTime: Date.now(),
@@ -732,6 +864,8 @@ export function useMeetingState() {
             }
             if (entry.requiresSecond) {
                 entry.status = MOTION_STATUS.PENDING_SECOND;
+            } else if (entry.status === MOTION_STATUS.PENDING_CHAIR) {
+                entry.status = entry.isDebatable ? MOTION_STATUS.DEBATING : MOTION_STATUS.VOTING;
             }
 
             // RONR: Rescind requires only a majority vote when previous notice was given
@@ -766,6 +900,8 @@ export function useMeetingState() {
                 speakingQueue: [],
                 speakingHistory: [],
                 currentSpeaker: null,
+                stage: entry.status === MOTION_STATUS.VOTING ? MEETING_STAGES.VOTING : MEETING_STAGES.MOTION_DISCUSSION,
+                ...(entry.status === MOTION_STATUS.VOTING ? { voteStartTime: Date.now() } : {}),
                 log: [...baseLog, {
                     timestamp: new Date().toLocaleTimeString(),
                     message: i18n.t('meeting:log_chair_recognizes_pending', { motionName: pending.displayName, proposer: pending.proposer, text: pending.text })
@@ -921,10 +1057,19 @@ export function useMeetingState() {
         // Use the stack's votes for the result determination
         const entryForResult = { ...top, votes: votesForResult, voteRequired: top.voteRequired };
         const { result, description } = determineVoteResult(entryForResult, votingContext);
+        const amendmentResultText = top.motionType === MOTION_TYPES.AMEND ? top.metadata?.proposedText : null;
+        const hasAmendedText = !!amendmentResultText && amendmentResultText !== top.text;
 
         const newLog = [...meetingState.log, {
             timestamp: new Date().toLocaleTimeString(),
-            message: i18n.t('meeting:log_vote_on', { motionName: top.displayName, description, text: top.text })
+            message: hasAmendedText
+                ? i18n.t('meeting:log_vote_on_amend', {
+                    motionName: top.displayName,
+                    description,
+                    text: top.text,
+                    amendedText: amendmentResultText
+                })
+                : i18n.t('meeting:log_vote_on', { motionName: top.displayName, description, text: top.text })
         }];
 
         // Handle the effect of adoption/defeat
@@ -976,6 +1121,8 @@ export function useMeetingState() {
             delete savedSpeakingState[below.id];
         }
 
+        const dividedQueue = meetingState.dividedQuestionsQueue || [];
+
         // Handle effects of adoption based on motion type
         if (result === 'adopted') {
             const effectResult = handleEffectOfAdoption(motion, newStack, newLog, savedSpeakingState, decidedMotions, restoredSpeaking);
@@ -984,6 +1131,54 @@ export function useMeetingState() {
 
         // Default disposition: pop and continue
         if (newStack.length === 0) {
+            if (dividedQueue.length > 0) {
+                const [nextPart, ...remainingParts] = dividedQueue;
+                const nextEntry = createMotionEntry(MOTION_TYPES.MAIN, nextPart.text, nextPart.mover || motion.mover, {
+                    ...(nextPart.metadata || {}),
+                    dividedFromQuestion: true
+                });
+                if (!nextEntry.error) {
+                    nextEntry.status = MOTION_STATUS.DEBATING;
+                    nextEntry.requiresSecond = false;
+                    nextEntry.seconder = nextPart.seconder || motion.seconder || null;
+                    nextEntry.voteRequired = nextPart.voteRequired || nextEntry.voteRequired;
+                    updateMeetingState({
+                        motionStack: [nextEntry],
+                        stage: MEETING_STAGES.MOTION_DISCUSSION,
+                        currentMotion: {
+                            text: nextEntry.text,
+                            mover: nextEntry.mover,
+                            seconder: nextEntry.seconder,
+                            needsSecond: false
+                        },
+                        pendingAnnouncement: {
+                            motionText: motion.text,
+                            aye: meetingState.votes.aye,
+                            nay: meetingState.votes.nay,
+                            abstain: meetingState.votes.abstain,
+                            result,
+                            description,
+                            displayName: motion.displayName,
+                            voteRequired: motion.voteRequired,
+                            voteDetails: meetingState.voteDetails || []
+                        },
+                        dividedQuestionsQueue: remainingParts,
+                        decidedMotions,
+                        votes: { aye: 0, nay: 0, abstain: 0 },
+                        votedBy: [],
+                        voteDetails: [],
+                        ...restoredSpeaking,
+                        savedSpeakingState,
+                        pendingAmendments: [],
+                        pendingMotions: [],
+                        log: [...newLog, {
+                            timestamp: new Date().toLocaleTimeString(),
+                            message: i18n.t('meeting:log_division_next_part', { text: nextEntry.text })
+                        }]
+                    });
+                    return;
+                }
+            }
             // All motions disposed of, back to new business
             // Dismiss any stale pending motions — no main motion to apply them to
             const stalePending = meetingState.pendingMotions || [];
@@ -1017,6 +1212,7 @@ export function useMeetingState() {
                 savedSpeakingState,
                 pendingAmendments: [],
                 pendingMotions: [],
+                dividedQuestionsQueue: [],
                 log: newLog
             });
         } else {
@@ -1053,6 +1249,7 @@ export function useMeetingState() {
                 votedBy: [],
                 ...restoredSpeaking,
                 savedSpeakingState,
+                dividedQuestionsQueue: dividedQueue,
                 log: newLog
             });
         }
@@ -1078,6 +1275,9 @@ export function useMeetingState() {
                         text: proposedText,
                         metadata: {
                             ...(target?.metadata || {}),
+                            // Keep the effective amended wording on the target so downstream
+                            // adoption and exports use the real amended text consistently.
+                            proposedText,
                             amendmentHistory: newHistory,
                             originalText: target?.metadata?.originalText || target?.text
                         }
@@ -1224,7 +1424,44 @@ export function useMeetingState() {
             case MOTION_TYPES.COMMIT: {
                 // Refer to committee: save main motion with committee details, clear stack
                 const mainMotion = getMainMotion(currentStack);
+                const enrichedDecided = [...decidedMotions];
+                if (enrichedDecided.length > 0) {
+                    const lastIdx = enrichedDecided.length - 1;
+                    enrichedDecided[lastIdx] = {
+                        ...enrichedDecided[lastIdx],
+                        metadata: {
+                            ...(enrichedDecided[lastIdx].metadata || {}),
+                            committeeName: motion.metadata?.committeeName || '',
+                            committedQuestionText: mainMotion?.text || '',
+                            committedAt: Date.now()
+                        }
+                    };
+                }
 
+                updateMeetingState({
+                    motionStack: [],
+                    stage: getBaseStage(),
+                    currentMotion: null,
+                    decidedMotions: enrichedDecided,
+                    votes: { aye: 0, nay: 0, abstain: 0 },
+                    votedBy: [],
+                    speakingQueue: [],
+                    speakingHistory: [],
+                    currentSpeaker: null,
+                    savedSpeakingState: {},
+                    pendingAmendments: [],
+                    pendingMotions: [],
+                    dividedQuestionsQueue: [],
+                    log: [...currentLog, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: i18n.t('meeting:log_referred_to', { committee: motion.metadata?.committeeName || i18n.t('meeting:committee'), text: mainMotion?.text })
+                    }]
+                });
+                return true;
+            }
+
+            case MOTION_TYPES.OBJECTION_TO_CONSIDERATION: {
+                // If objection is sustained, drop the main question immediately.
                 updateMeetingState({
                     motionStack: [],
                     stage: getBaseStage(),
@@ -1238,9 +1475,118 @@ export function useMeetingState() {
                     savedSpeakingState: {},
                     pendingAmendments: [],
                     pendingMotions: [],
+                    dividedQuestionsQueue: [],
                     log: [...currentLog, {
                         timestamp: new Date().toLocaleTimeString(),
-                        message: i18n.t('meeting:log_referred_to', { committee: motion.metadata?.committeeName || i18n.t('meeting:committee'), text: mainMotion?.text })
+                        message: i18n.t('meeting:log_objection_sustained')
+                    }]
+                });
+                return true;
+            }
+
+            case MOTION_TYPES.DIVISION_OF_QUESTION: {
+                const nextTop = getCurrentPendingQuestion(currentStack);
+                const rawParts = (motion.metadata?.parts || []).map((p) => String(p || '').trim()).filter(Boolean);
+                const parts = rawParts.length >= 2 ? rawParts : [];
+                if (!nextTop || parts.length < 2) {
+                    updateMeetingState({
+                        motionStack: currentStack,
+                        stage: MEETING_STAGES.MOTION_DISCUSSION,
+                        currentMotion: nextTop ? {
+                            text: nextTop.text,
+                            mover: nextTop.mover,
+                            seconder: nextTop.seconder,
+                            needsSecond: false
+                        } : null,
+                        decidedMotions,
+                        votes: { aye: 0, nay: 0, abstain: 0 },
+                        votedBy: [],
+                        ...restoredSpeaking,
+                        savedSpeakingState,
+                        log: [...currentLog, {
+                            timestamp: new Date().toLocaleTimeString(),
+                            message: i18n.t('meeting:log_division_unavailable')
+                        }]
+                    });
+                    return true;
+                }
+
+                const [first, ...remaining] = parts;
+                const dividedStack = updateTopMotion(currentStack, {
+                    text: first,
+                    metadata: {
+                        ...(nextTop.metadata || {}),
+                        dividedOriginalText: nextTop.text,
+                        dividedPartCount: parts.length
+                    }
+                });
+                const queued = remaining.map((text) => ({
+                    text,
+                    mover: nextTop.mover,
+                    seconder: nextTop.seconder,
+                    voteRequired: nextTop.voteRequired,
+                    metadata: { dividedFromOriginalText: nextTop.text }
+                }));
+
+                updateMeetingState({
+                    motionStack: dividedStack,
+                    stage: MEETING_STAGES.MOTION_DISCUSSION,
+                    currentMotion: {
+                        text: first,
+                        mover: nextTop.mover,
+                        seconder: nextTop.seconder,
+                        needsSecond: false
+                    },
+                    decidedMotions,
+                    dividedQuestionsQueue: [...(meetingState.dividedQuestionsQueue || []), ...queued],
+                    votes: { aye: 0, nay: 0, abstain: 0 },
+                    votedBy: [],
+                    ...restoredSpeaking,
+                    savedSpeakingState,
+                    log: [...currentLog, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: i18n.t('meeting:log_division_adopted', { count: parts.length })
+                    }]
+                });
+                return true;
+            }
+
+            case MOTION_TYPES.DISCHARGE_COMMITTEE: {
+                const selectedIdx = motion.metadata?.selectedIndex;
+                const decidedList = meetingState.decidedMotions || [];
+                const committed = decidedList[selectedIdx];
+                const committedText = committed?.metadata?.committedQuestionText;
+                if (!committedText) {
+                    return false;
+                }
+                const entry = createMotionEntry(MOTION_TYPES.MAIN, committedText, committed.mover || currentUser.name);
+                if (entry.error) return false;
+                entry.status = MOTION_STATUS.DEBATING;
+                entry.requiresSecond = false;
+                entry.seconder = committed.seconder || null;
+
+                updateMeetingState({
+                    motionStack: [entry],
+                    stage: MEETING_STAGES.MOTION_DISCUSSION,
+                    currentMotion: {
+                        text: entry.text,
+                        mover: entry.mover,
+                        seconder: entry.seconder,
+                        needsSecond: false
+                    },
+                    decidedMotions,
+                    votes: { aye: 0, nay: 0, abstain: 0 },
+                    votedBy: [],
+                    speakingQueue: [],
+                    speakingHistory: [],
+                    currentSpeaker: null,
+                    savedSpeakingState: {},
+                    pendingAmendments: [],
+                    pendingMotions: [],
+                    dividedQuestionsQueue: [],
+                    log: [...currentLog, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: i18n.t('meeting:log_discharge_committee', { text: committedText })
                     }]
                 });
                 return true;
@@ -1426,11 +1772,20 @@ export function useMeetingState() {
         });
     };
 
-    const handleReconsider = (index) => {
+    const handleReconsider = (index, enterOnMinutes = false) => {
         const decidedMotions = meetingState.decidedMotions || [];
         if (index < 0 || index >= decidedMotions.length) return;
 
         const decided = decidedMotions[index];
+        if (decided.motionType === MOTION_TYPES.UNLISTED_MOTION && decided.metadata?.expertProcedure?.reconsiderable === false) {
+            updateMeetingState({
+                log: [...meetingState.log, {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: i18n.t('meeting:log_expert_not_reconsiderable', { text: decided.text })
+                }]
+            });
+            return;
+        }
 
         // RONR: only someone who voted on the prevailing side can move to reconsider
         if (decided.votedBy && decided.result) {
@@ -1454,13 +1809,28 @@ export function useMeetingState() {
         const { newStack, error } = pushMotion([], entry);
         if (error) return;
 
+        const updatedDecided = decidedMotions.map((d, i) => (
+            i === index
+                ? {
+                    ...d,
+                    metadata: {
+                        ...(d.metadata || {}),
+                        reconsiderEnteredOnMinutes: enterOnMinutes || d.metadata?.reconsiderEnteredOnMinutes
+                    }
+                }
+                : d
+        ));
+
         updateMeetingState({
             motionStack: newStack,
             stage: getBaseStage(),
+            decidedMotions: updatedDecided,
             currentMotion: { text: decided.text, mover: currentUser.name, needsSecond: true },
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: i18n.t('meeting:log_moves_to_reconsider', { name: currentUser.name, text: decided.text })
+                message: enterOnMinutes
+                    ? i18n.t('meeting:log_moves_to_reconsider_enter_minutes', { name: currentUser.name, text: decided.text })
+                    : i18n.t('meeting:log_moves_to_reconsider', { name: currentUser.name, text: decided.text })
             }]
         });
     };
@@ -1544,6 +1914,17 @@ export function useMeetingState() {
 
     const handleRecognizeSpeaker = () => {
         if (meetingState.speakingQueue.length === 0) return;
+        const top = getCurrentPendingQuestion(meetingState.motionStack);
+        const hasPendingPointOfOrder = (meetingState.pendingRequests || []).some(
+            r => r.type === MOTION_TYPES.POINT_OF_ORDER && r.status === 'pending'
+        );
+        const hasUnresolvedPendingBusiness =
+            (meetingState.pendingMotions || []).length > 0 ||
+            (meetingState.pendingAmendments || []).length > 0 ||
+            hasPendingPointOfOrder ||
+            !!meetingState.ordersOfTheDayDemand ||
+            (top && (top.status === MOTION_STATUS.PENDING_CHAIR || top.status === MOTION_STATUS.PENDING_SECOND));
+        if (hasUnresolvedPendingBusiness) return;
 
         const nextSpeaker = { ...meetingState.speakingQueue[0], speakingStartTime: Date.now() };
         const remainingQueue = meetingState.speakingQueue.slice(1);
@@ -1679,19 +2060,32 @@ export function useMeetingState() {
         });
     };
 
-    const handleDismissRequest = (requestId) => {
+    const handleDismissRequest = (requestId, explanation) => {
+        const request = (meetingState.pendingRequests || []).find(r => r.id === requestId);
         const updated = dismissRequest(meetingState.pendingRequests || [], requestId);
 
         updateMeetingState({
             pendingRequests: updated.filter(r => r.status !== 'dismissed'),
+            lastChairRuling: {
+                type: 'request_dismissed',
+                ruling: 'dismissed',
+                explanation: explanation || '',
+                concern: request?.content || '',
+                raisedBy: request?.raisedBy || '',
+                displayName: i18n.t('meeting:ruling_notification_type_dismiss'),
+                timestamp: Date.now()
+            },
+            chairDecisionTime: Date.now(),
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: i18n.t('meeting:log_request_dismissed')
+                message: request
+                    ? i18n.t('meeting:log_request_dismissed_detail', { type: request.displayName, name: request.raisedBy })
+                    : i18n.t('meeting:log_request_dismissed')
             }]
         });
     };
 
-    const handleRuleOnPointOfOrderRequest = (requestId, ruling) => {
+    const handleRuleOnPointOfOrderRequest = (requestId, ruling, explanation) => {
         const request = (meetingState.pendingRequests || []).find(r => r.id === requestId);
         if (!request) return;
 
@@ -1702,8 +2096,12 @@ export function useMeetingState() {
             lastChairRuling: {
                 type: 'point_of_order',
                 ruling,
+                explanation: explanation || '',
                 concern: request.content,
                 raisedBy: request.raisedBy,
+                displayName: ruling === 'sustained'
+                    ? i18n.t('meeting:sustained')
+                    : i18n.t('meeting:ruling_notification_type_point'),
                 timestamp: Date.now()
             },
             chairDecisionTime: Date.now(),
@@ -1717,21 +2115,42 @@ export function useMeetingState() {
     const handleConvertRequestToMotion = (requestType, text, metadata = {}) => {
         const rules = getRules(requestType);
         if (!rules) return;
+        if (requestType === MOTION_TYPES.UNLISTED_MOTION && metadata?.expertProcedure?.renewable === false) {
+            const duplicate = (meetingState.decidedMotions || []).some(
+                (m) => m.motionType === MOTION_TYPES.UNLISTED_MOTION &&
+                    String(m.text || '').trim().toLowerCase() === String(text || '').trim().toLowerCase()
+            );
+            if (duplicate) {
+                updateMeetingState({
+                    log: [...meetingState.log, {
+                        timestamp: new Date().toLocaleTimeString(),
+                        message: i18n.t('meeting:log_expert_not_renewable', { text })
+                    }]
+                });
+                return;
+            }
+        }
+        const motionDisplayName = requestType === MOTION_TYPES.UNLISTED_MOTION && metadata?.expertProcedure?.ronrMotionName
+            ? `${rules.displayName} (${metadata.expertProcedure.ronrMotionName})`
+            : rules.displayName;
+        const canInterrupt = requestType === MOTION_TYPES.UNLISTED_MOTION
+            ? !!metadata?.expertProcedure?.canInterrupt
+            : rules.canInterrupt;
 
         // If a speaker has the floor and this motion cannot interrupt, queue as pending
-        if (meetingState.currentSpeaker && !rules.canInterrupt) {
+        if (meetingState.currentSpeaker && !canInterrupt) {
             const pendingMotions = [...(meetingState.pendingMotions || []), {
                 motionType: requestType,
                 text,
                 proposer: currentUser.name,
-                displayName: rules.displayName,
+                displayName: motionDisplayName,
                 metadata
             }];
             updateMeetingState({
                 pendingMotions,
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
-                    message: i18n.t('meeting:log_motion_queued_member', { name: currentUser.name, motionName: rules.displayName, text })
+                    message: i18n.t('meeting:log_motion_queued_member', { name: currentUser.name, motionName: motionDisplayName, text })
                 }]
             });
             return;
@@ -1776,7 +2195,7 @@ export function useMeetingState() {
             currentSpeaker: null,
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
-                message: i18n.t('meeting:log_motion_moves', { name: currentUser.name, motionName: rules.displayName, text })
+                message: i18n.t('meeting:log_motion_moves', { name: currentUser.name, motionName: motionDisplayName, text })
             }]
         });
     };
@@ -2098,11 +2517,48 @@ export function useMeetingState() {
             minutesCorrections: [...corrections, {
                 proposedBy: currentUser.name,
                 text: correction,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                status: 'pending_chair'
             }],
             log: [...meetingState.log, {
                 timestamp: new Date().toLocaleTimeString(),
                 message: i18n.t('meeting:log_proposes_correction', { name: currentUser.name, text: correction })
+            }]
+        });
+    };
+
+    const handleRecognizeCorrection = () => {
+        const corrections = [...(meetingState.minutesCorrections || [])];
+        if (corrections.length === 0) return;
+        corrections[0] = { ...corrections[0], status: 'recognized' };
+        updateMeetingState({
+            minutesCorrections: corrections,
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: i18n.t('meeting:log_correction_recognized', { name: corrections[0].proposedBy })
+            }]
+        });
+    };
+
+    const handleReturnCorrection = (explanation) => {
+        const corrections = meetingState.minutesCorrections || [];
+        if (corrections.length === 0) return;
+        const returned = corrections[0];
+        updateMeetingState({
+            minutesCorrections: corrections.slice(1),
+            lastChairRuling: {
+                type: 'correction_returned',
+                ruling: 'returned',
+                explanation: explanation || '',
+                concern: returned.text,
+                raisedBy: returned.proposedBy,
+                displayName: i18n.t('meeting:ruling_notification_type_correction'),
+                timestamp: Date.now()
+            },
+            chairDecisionTime: Date.now(),
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: i18n.t('meeting:log_correction_returned', { name: returned.proposedBy })
             }]
         });
     };
@@ -2130,14 +2586,14 @@ export function useMeetingState() {
         });
     };
 
-    const handleRuleOnPointOfOrder = (ruling) => {
+    const handleRuleOnPointOfOrder = (ruling, explanation) => {
         // Legacy handler - route through pending requests if there's a pending request,
         // otherwise use legacy flow
         const pendingPOO = (meetingState.pendingRequests || []).find(
             r => r.type === MOTION_TYPES.POINT_OF_ORDER && r.status === 'pending'
         );
         if (pendingPOO) {
-            handleRuleOnPointOfOrderRequest(pendingPOO.id, ruling);
+            handleRuleOnPointOfOrderRequest(pendingPOO.id, ruling, explanation);
         } else if (meetingState.pendingPointOfOrder) {
             // Legacy fallback
             const point = meetingState.pendingPointOfOrder;
@@ -2146,8 +2602,12 @@ export function useMeetingState() {
                 lastChairRuling: {
                     type: 'point_of_order',
                     ruling,
+                    explanation: explanation || '',
                     concern: point.concern,
                     raisedBy: point.raisedBy,
+                    displayName: ruling === 'sustained'
+                        ? i18n.t('meeting:sustained')
+                        : i18n.t('meeting:ruling_notification_type_point'),
                     timestamp: Date.now()
                 },
                 chairDecisionTime: Date.now(),
@@ -2209,6 +2669,31 @@ export function useMeetingState() {
 
     const handleLogout = () => {
         if (currentUser.role === ROLES.PRESIDENT) {
+            const remainingAfterChairLeaves = meetingState.participants.filter(p => p.name !== currentUser.name);
+            const quorumRequired = meetingState.quorum || 0;
+            const officersAfterChairLeaves = remainingAfterChairLeaves.filter(p =>
+                p.role === ROLES.PRESIDENT || p.role === ROLES.VICE_PRESIDENT || p.role === ROLES.SECRETARY
+            ).length;
+            const membersPresentAfterChairLeaves = remainingAfterChairLeaves.filter(p =>
+                p.role !== ROLES.PRESIDENT &&
+                p.role !== ROLES.VICE_PRESIDENT &&
+                p.role !== ROLES.SECRETARY &&
+                (() => {
+                    const presence = meetingState.rollCallStatus?.[p.name];
+                    return presence === 'present' || !presence;
+                })()
+            ).length;
+            const presentAfterChairLeaves = officersAfterChairLeaves + membersPresentAfterChairLeaves;
+            const quorumLossOnChairExit = quorumRequired > 0 && presentAfterChairLeaves < quorumRequired;
+            if (quorumLossOnChairExit) {
+                clearMeetingData(`Chair ${currentUser.name} left and quorum was lost (${presentAfterChairLeaves} of ${quorumRequired} required). Meeting data cleared.`);
+                sessionStorage.removeItem('hatsell_session');
+                MeetingConnection.disconnect();
+                setIsLoggedIn(false);
+                setCurrentUser(null);
+                return;
+            }
+
             const viceChair = meetingState.participants.find(p => p.role === ROLES.VICE_PRESIDENT);
 
             if (viceChair) {
@@ -2371,6 +2856,8 @@ export function useMeetingState() {
         handleSecondAmendment,
         handleSubmitPointOfOrder,
         handleSubmitMinutesCorrection,
+        handleRecognizeCorrection,
+        handleReturnCorrection,
         handleObjectToCorrection,
         handleAcceptCorrectionByConsent,
         handleRuleOnPointOfOrder,

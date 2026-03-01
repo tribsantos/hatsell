@@ -12,8 +12,8 @@ export default function ParliamentaryInquiryModal({ onSubmit, onClose }) {
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal variant-incidental" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) e.stopPropagation(); }}>
+            <div className="modal variant-incidental" role="dialog" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <h3>{t('parl_inquiry_heading')}</h3>
                 <div className="info-box">
                     {t('parl_inquiry_desc')}
@@ -37,4 +37,5 @@ export default function ParliamentaryInquiryModal({ onSubmit, onClose }) {
         </div>
     );
 }
+
 

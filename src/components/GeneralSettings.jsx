@@ -46,6 +46,7 @@ const DEFAULT_MEETING_SETTINGS = {
     autoYieldOnTimeExpired: false,
     audioCues: false,
     showVoteDetails: false,
+    expertMotionsEnabled: false,
     language: 'en'
 };
 
@@ -58,9 +59,9 @@ const MEETING_TEMPLATES = {
             agendaStatus: 'guidance',
             agendaCustomSequence: false,
             agendaItems: [
-                { title: 'Officer and Committee Reports', category: 'informational_report', owner: 'Officers', timeTarget: 15, notes: '' },
-                { title: 'Carryover Item from Last Meeting', category: 'unfinished_business', owner: 'Chair', timeTarget: 10, notes: '', unfinishedMotionText: 'to allocate up to $4,000 for park lighting improvements', unfinishedMotionMover: 'Amina Hassan', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
-                { title: 'Neighborhood Safety Proposal', category: 'general_business', owner: 'Safety Committee', timeTarget: 20, notes: '' }
+                { title: 'Reports', category: 'informational_report', owner: '', timeTarget: 15, notes: '' },
+                { title: 'Unfinished Business', category: 'unfinished_business', owner: '', timeTarget: 10, notes: '', unfinishedMotionText: 'pending motion from previous meeting', unfinishedMotionMover: '', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
+                { title: 'General Business', category: 'general_business', owner: '', timeTarget: 20, notes: '' }
             ]
         }
     },
@@ -72,9 +73,9 @@ const MEETING_TEMPLATES = {
             agendaStatus: 'orders_of_the_day',
             agendaCustomSequence: false,
             agendaItems: [
-                { title: 'Executive Reports', category: 'informational_report', owner: 'CEO / CFO', timeTarget: 20, notes: '' },
-                { title: 'Pending Capital Plan Motion', category: 'unfinished_business', owner: 'Finance Committee', timeTarget: 15, notes: '', unfinishedMotionText: 'to approve the FY26 capital allocation framework', unfinishedMotionMover: 'Luca Bianchi', unfinishedAmendmentText: 'by striking "$3.2M" and inserting "$2.8M"', unfinishedAmendmentMover: 'Sofia Petrova' },
-                { title: 'Risk and Compliance Resolution', category: 'general_business', owner: 'Audit Committee', timeTarget: 20, notes: '' }
+                { title: 'Reports', category: 'informational_report', owner: '', timeTarget: 20, notes: '' },
+                { title: 'Unfinished Business', category: 'unfinished_business', owner: '', timeTarget: 15, notes: '', unfinishedMotionText: 'pending motion from previous meeting', unfinishedMotionMover: '', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
+                { title: 'General Business', category: 'general_business', owner: '', timeTarget: 20, notes: '' }
             ]
         }
     },
@@ -86,9 +87,9 @@ const MEETING_TEMPLATES = {
             agendaStatus: 'guidance',
             agendaCustomSequence: false,
             agendaItems: [
-                { title: 'Committee Reports', category: 'informational_report', owner: 'Committee Chairs', timeTarget: 15, notes: '' },
-                { title: 'Pending Philanthropy Motion', category: 'unfinished_business', owner: 'Service Chair', timeTarget: 10, notes: '', unfinishedMotionText: 'to set the annual philanthropy fundraising goal at $12,000', unfinishedMotionMover: 'Kenji Sato', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
-                { title: 'Event Budget Motion', category: 'financial', owner: 'Treasurer', timeTarget: 15, notes: '' }
+                { title: 'Reports', category: 'informational_report', owner: '', timeTarget: 15, notes: '' },
+                { title: 'Unfinished Business', category: 'unfinished_business', owner: '', timeTarget: 10, notes: '', unfinishedMotionText: 'pending motion from previous meeting', unfinishedMotionMover: '', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
+                { title: 'Financial Business', category: 'financial', owner: '', timeTarget: 15, notes: '' }
             ]
         }
     },
@@ -100,9 +101,9 @@ const MEETING_TEMPLATES = {
             agendaStatus: 'guidance',
             agendaCustomSequence: false,
             agendaItems: [
-                { title: 'Ministry Reports', category: 'informational_report', owner: 'Ministry Leaders', timeTarget: 20, notes: '' },
-                { title: 'Pending Facilities Motion', category: 'unfinished_business', owner: 'Facilities Committee', timeTarget: 15, notes: '', unfinishedMotionText: 'to approve the roof repair contract with Greenline Builders', unfinishedMotionMover: 'Priya Sharma', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
-                { title: 'Mission Support Allocation', category: 'financial', owner: 'Treasurer', timeTarget: 15, notes: '' }
+                { title: 'Reports', category: 'informational_report', owner: '', timeTarget: 20, notes: '' },
+                { title: 'Unfinished Business', category: 'unfinished_business', owner: '', timeTarget: 15, notes: '', unfinishedMotionText: 'pending motion from previous meeting', unfinishedMotionMover: '', unfinishedAmendmentText: '', unfinishedAmendmentMover: '' },
+                { title: 'Financial Business', category: 'financial', owner: '', timeTarget: 15, notes: '' }
             ]
         }
     }
@@ -319,6 +320,8 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
     const [generatedCodes, setGeneratedCodes] = useState(null);
     const [showAddAgenda, setShowAddAgenda] = useState(false);
     const [selectedTemplateId, setSelectedTemplateId] = useState('');
+    const [settingsError, setSettingsError] = useState('');
+    const [templateConfirmNeeded, setTemplateConfirmNeeded] = useState(false);
 
     const normalizeAgendaItems = (items, customSequence) => {
         if (customSequence) return items;
@@ -405,16 +408,17 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
             (item) => item.category === 'unfinished_business' && !String(item.unfinishedMotionText || '').trim()
         );
         if (invalidUnfinished) {
-            alert(t('agenda_unfinished_motion_required'));
+            setSettingsError(t('agenda_unfinished_motion_required'));
             return;
         }
         const invalidUnfinishedAmendment = meetingSettings.agendaItems.find(
             (item) => String(item.unfinishedAmendmentText || '').trim() && !String(item.unfinishedAmendmentMover || '').trim()
         );
         if (invalidUnfinishedAmendment) {
-            alert(t('agenda_unfinished_amendment_mover_required'));
+            setSettingsError(t('agenda_unfinished_amendment_mover_required'));
             return;
         }
+        setSettingsError('');
         doGenerateCodes();
     };
 
@@ -433,10 +437,13 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
         const template = MEETING_TEMPLATES[selectedTemplateId];
         if (!template) return;
 
-        if (hasConfiguredData()) {
-            const confirmed = window.confirm(t('template_apply_confirm'));
-            if (!confirmed) return;
+        if (hasConfiguredData() && !templateConfirmNeeded) {
+            setTemplateConfirmNeeded(true);
+            setSettingsError(t('template_apply_confirm'));
+            return;
         }
+        setTemplateConfirmNeeded(false);
+        setSettingsError('');
 
         const nextAgendaItems = createAgendaItemsForTemplate(template.meetingSettings.agendaItems || []);
 
@@ -560,6 +567,11 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
             </header>
 
             <div style={{ maxWidth: '760px', margin: '0 auto', padding: '1.25rem 0.75rem' }}>
+                {settingsError && (
+                    <div className="warning-box" style={{ marginBottom: '1rem' }}>
+                        {settingsError}
+                    </div>
+                )}
                 {/* Quick Start */}
                 {!generatedCodes && (
                     <div style={{
@@ -836,7 +848,11 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <select
                                 value={selectedTemplateId}
-                                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedTemplateId(e.target.value);
+                                    setTemplateConfirmNeeded(false);
+                                    setSettingsError('');
+                                }}
                                 style={{ ...inputStyle, flex: 1 }}
                             >
                                 <option value="">{t('template_select_placeholder')}</option>
@@ -852,7 +868,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                                 disabled={!selectedTemplateId}
                                 style={{ whiteSpace: 'nowrap', padding: '0.5rem 0.9rem' }}
                             >
-                                {t('template_apply_button')}
+                                {templateConfirmNeeded ? t('template_apply_button_confirm') : t('template_apply_button')}
                             </button>
                         </div>
                         <div style={hintStyle}>{t('template_helper')}</div>
@@ -1078,13 +1094,27 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                     </div>
 
                     {/* H) Vote Transparency */}
-                    <div>
+                    <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
                         <label style={labelStyle}>{t('label_vote_transparency')}</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                             <input type="checkbox" checked={meetingSettings.showVoteDetails} onChange={(e) => updateMeetingSettings('showVoteDetails', e.target.checked)} />
                             {t('vote_show_details')}
                         </label>
                         <div style={hintStyle}>{t('hint_vote_transparency')}</div>
+                    </div>
+
+                    {/* I) Expert Motions */}
+                    <div>
+                        <label style={labelStyle}>{t('label_expert_motions')}</label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                            <input
+                                type="checkbox"
+                                checked={!!meetingSettings.expertMotionsEnabled}
+                                onChange={(e) => updateMeetingSettings('expertMotionsEnabled', e.target.checked)}
+                            />
+                            {t('expert_motions_enable')}
+                        </label>
+                        <div style={hintStyle}>{t('hint_expert_motions')}</div>
                     </div>
                 </div>
 
