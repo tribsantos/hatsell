@@ -176,12 +176,12 @@ select:focus-visible {
 .logo-container svg {
   width: 160px;
   height: 160px;
-  opacity: 0.88;
+  opacity: 1;
 }
 svg.logo-small {
   width: 28px;
   height: 28px;
-  opacity: 0.6;
+  opacity: 1;
 }
 
 /* === TOP BAR === */
@@ -2352,7 +2352,7 @@ details > section {
 .tutorial-hero-logo svg {
   width: 180px;
   height: 180px;
-  opacity: 0.85;
+  opacity: 1;
   margin-bottom: 1.5rem;
 }
 .tutorial-hero h1 {

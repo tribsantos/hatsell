@@ -1,9 +1,10 @@
 import React from 'react';
 
-export default function HatsellLogo({ small }) {
+export default function HatsellLogo({ small, framed = false }) {
     const cx = 100;
     const cy = 100;
     const color = '#7b2d3b';
+    const frameRed = '#c0392b';
 
     const toRad = (d) => (d * Math.PI) / 180;
 
@@ -38,35 +39,48 @@ export default function HatsellLogo({ small }) {
         });
     };
 
-    const sections = [
-        { start: -80, end: -35 }, { start: -25, end: 20 }, { start: 30, end: 75 },
-        { start: 100, end: 145 }, { start: 155, end: 200 }, { start: 210, end: 255 },
-    ];
+    const sectionCount = 6;
+    const sectionWidth = 48;
+    const sectionOffset = 6;
+    const sectionStep = 360 / sectionCount;
+    const sections = Array.from({ length: sectionCount }).map((_, i) => {
+        const start = sectionOffset + i * sectionStep;
+        return { start, end: start + sectionWidth };
+    });
 
+    // Exact spec:
+    // - 3 rows per section
+    // - outer row: 6 seats
+    // - middle row: 5 seats
+    // - inner row: 3 seats
     const rings = [
-        { r: 38, seats: 5, size: 2.8, opacity: 0.25 },
-        { r: 48, seats: 7, size: 3, opacity: 0.30 },
-        { r: 58, seats: 8, size: 3.2, opacity: 0.30 },
-        { r: 68, seats: 10, size: 3.2, opacity: 0.28 },
-        { r: 78, seats: 11, size: 3.4, opacity: 0.25 },
+        { r: 68, seats: 6, size: 7, opacity: 0.59 },
+        { r: 52, seats: 5, size: 6.5, opacity: 0.63 },
+        { r: 36, seats: 3, size: 6, opacity: 0.59 }
     ];
 
     return (
         <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
             className={small ? 'logo-small' : undefined}>
-            <circle cx={cx} cy={cy} r="92" stroke={color} strokeWidth="1" opacity="0.18" />
-            <circle cx={cx} cy={cy} r="90" stroke={color} strokeWidth="0.5" opacity="0.10" />
-            <circle cx={cx} cy={cy} r="22" stroke={color} strokeWidth="1" opacity="0.20" fill={color} fillOpacity="0.04" />
-            <rect x={cx - 8} y={cy - 6} width="16" height="5" rx="1" stroke={color} strokeWidth="0.8" opacity="0.4" fill={color} fillOpacity="0.08" />
-            <rect x={cx - 3} y={cy + 4} width="6" height="4" rx="1" fill={color} opacity="0.3" />
+            {framed && (
+                <>
+                    <rect width="200" height="200" rx="36" fill={frameRed} />
+                    <circle cx={cx} cy={cy} r="84" fill="white" />
+                    <circle cx={cx} cy={cy} r="84" stroke={color} strokeWidth="2" opacity="0.6" />
+                </>
+            )}
+            <circle cx={cx} cy={cy} r="84" stroke={color} strokeWidth="1.65" opacity="0.4" />
+            <circle cx={cx} cy={cy} r="22" stroke={color} strokeWidth="1.4" opacity="0.4" fill={color} fillOpacity="0.08" />
+            <rect x={cx - 11} y={cy - 7} width="22" height="7" rx="2" stroke={color} strokeWidth="1.05" opacity="0.55" fill={color} fillOpacity="0.11" />
+            <rect x={cx - 5} y={cy + 4} width="10" height="6" rx="2" fill={color} opacity="0.45" />
 
             {sections.map((sec) => rings.map((ring) => (
                 <path
                     key={`arc-${sec.start}-${ring.r}`}
                     d={arcPath(ring.r, sec.start, sec.end)}
                     stroke={color}
-                    strokeWidth="0.6"
-                    opacity={0.12}
+                    strokeWidth="0.9"
+                    opacity={0.24}
                     fill="none"
                 />
             )))}

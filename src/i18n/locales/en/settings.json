@@ -124,6 +124,11 @@
   "meeting_type_special": "Special Meeting",
   "special_restrict": "Restrict business to items specified in the call",
   "hint_meeting_type": "Special meetings may only consider business mentioned in the call (RONR).",
+  "label_legal_validity": "For legal validity",
+  "legal_validity_bylaws": "Hatsell-only motions is part of by-laws",
+  "legal_validity_adopt_start": "Adopt Hatsell-only motions at start of the meeting",
+  "legal_validity_not_applicable": "Not applicable",
+  "hint_legal_validity": "If adoption at start is selected, the first item after call to order will be a motion to suspend the rules and restrict motions to those available in Hatsell.",
 
   "label_electronic_procedures": "Electronic Meeting Procedures",
   "label_recognition_method": "Recognition Method",
@@ -155,9 +160,6 @@
   "label_vote_transparency": "Vote Transparency",
   "vote_show_details": "Display individual votes when results are announced",
   "hint_vote_transparency": "When enabled, the chair will see how each member voted (by name) in the result announcement. By default, only aggregate totals are shown.",
-  "label_expert_motions": "Expert Motions",
-  "expert_motions_enable": "Enable expert motions category (Unlisted Motion)",
-  "hint_expert_motions": "Adds an Expert Motions section with an Unlisted Motion form that captures authority, procedure, precedence, and effects.",
   "button_confirm": "Confirm",
   "button_cancel": "Cancel"
 }

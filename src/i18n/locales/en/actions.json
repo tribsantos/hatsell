@@ -1,6 +1,8 @@
 {
   "button_call_to_order": "Call Meeting to Order",
   "button_complete_roll_call": "Complete Roll Call",
+  "button_start_count_check": "Start Count Check",
+  "button_close_count_check": "Close Count Check",
   "button_approve_minutes": "Approve Minutes",
   "button_adopt_agenda": "Adopt Agenda",
   "button_next_agenda_item": "Next Agenda Item",
@@ -60,6 +62,8 @@
   "tooltip_complete_roll_call": "Confirm attendance and establish quorum",
   "tooltip_complete_roll_call_quorum_ready": "Quorum is met. You can complete roll call now or continue checking attendance.",
   "tooltip_complete_roll_call_no_quorum": "Set a quorum requirement first (see Members drawer)",
+  "tooltip_start_count_check": "Run a presence count check for current members",
+  "tooltip_close_count_check": "Close the current count check and apply attendance result",
   "tooltip_approve_minutes": "Accept the minutes of the last meeting as correct",
   "tooltip_adopt_agenda": "Adopt the proposed agenda as the order of business",
   "tooltip_next_agenda": "Move to the next agenda item",

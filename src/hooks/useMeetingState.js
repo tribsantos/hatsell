@@ -34,6 +34,7 @@ const INITIAL_MEETING_STATE = {
     dividedQuestionsQueue: [],
     minutesCorrections: [],
     notifications: [],
+    countCheck: null,
     lastChairRuling: null,
     lastActivityTime: null,
 
@@ -92,6 +93,7 @@ export function useMeetingState() {
     };
 
     const MAX_LOG_ENTRIES = 200;
+    const INACTIVITY_EVICTION_MS = 45000;
 
     const updateMeetingState = (updates) => {
         const newState = { ...meetingStateRef.current, ...updates };
@@ -107,6 +109,38 @@ export function useMeetingState() {
         meetingStateRef.current = newState;
         setMeetingState(newState);
         MeetingConnection.broadcast(newState);
+    };
+
+    const applyCheckpointRemoval = ({ expectedNames, responderNames, checkpointLabel }) => {
+        const now = Date.now();
+        const responderSet = new Set(responderNames || []);
+        const expectedSet = new Set(expectedNames || []);
+        const staleMissedMembers = (meetingState.participants || []).filter((p) => {
+            if (p.role !== ROLES.MEMBER) return false;
+            if (!expectedSet.has(p.name)) return false;
+            if (responderSet.has(p.name)) return false;
+            if (!p.lastSeen) return false;
+            return (now - p.lastSeen) >= INACTIVITY_EVICTION_MS;
+        });
+
+        if (staleMissedMembers.length === 0) {
+            return {
+                participants: meetingState.participants,
+                removalLog: []
+            };
+        }
+
+        const removeNames = new Set(staleMissedMembers.map((p) => p.name));
+        const remainingParticipants = (meetingState.participants || []).filter((p) => !removeNames.has(p.name));
+        const removalLog = [{
+            timestamp: new Date().toLocaleTimeString(),
+            message: `${checkpointLabel}: removed inactive non-responding member(s): ${staleMissedMembers.map((p) => p.name).join(', ')}.`
+        }];
+
+        return {
+            participants: remainingParticipants,
+            removalLog
+        };
     };
 
     const clearMeetingData = (message) => {
@@ -258,13 +292,62 @@ export function useMeetingState() {
         return MEETING_STAGES.NEW_BUSINESS;
     };
 
+    const getPostMotionFallbackStage = (motion) => {
+        return motion?.metadata?.returnStageAfterDisposition || getBaseStage();
+    };
+
+    const canRunCountCheckInStage = (stage) => {
+        return [
+            MEETING_STAGES.AGENDA_ITEM,
+            MEETING_STAGES.NEW_BUSINESS,
+            MEETING_STAGES.MOTION_DISCUSSION
+        ].includes(stage);
+    };
+
     const handleCallToOrder = () => {
+        const legalMode = meetingState.meetingSettings?.legalValidityMode || 'not_applicable';
+        const callToOrderLog = {
+            timestamp: new Date().toLocaleTimeString(),
+            message: i18n.t('meeting:log_called_to_order')
+        };
+
+        if (legalMode === 'adopt_hatsell_only_at_start') {
+            const suspendText = 'to suspend the rules and restrict this meeting to motions available in Hatsell';
+            const entry = createMotionEntry(
+                MOTION_TYPES.SUSPEND_RULES,
+                suspendText,
+                currentUser.name,
+                {
+                    legalValidityBootstrap: true,
+                    returnStageAfterDisposition: MEETING_STAGES.ROLL_CALL
+                }
+            );
+
+            if (!entry.error) {
+                updateMeetingState({
+                    stage: MEETING_STAGES.MOTION_DISCUSSION,
+                    motionStack: [entry],
+                    currentMotion: {
+                        text: suspendText,
+                        mover: currentUser.name,
+                        needsSecond: true
+                    },
+                    log: [
+                        ...meetingState.log,
+                        callToOrderLog,
+                        {
+                            timestamp: new Date().toLocaleTimeString(),
+                            message: 'Initial legal-validity motion introduced: "to suspend the rules and restrict this meeting to motions available in Hatsell".'
+                        }
+                    ]
+                });
+                return;
+            }
+        }
+
         updateMeetingState({
             stage: MEETING_STAGES.ROLL_CALL,
-            log: [...meetingState.log, {
-                timestamp: new Date().toLocaleTimeString(),
-                message: i18n.t('meeting:log_called_to_order')
-            }]
+            log: [...meetingState.log, callToOrderLog]
         });
     };
 
@@ -485,6 +568,75 @@ export function useMeetingState() {
         });
     };
 
+    const handleStartCountCheck = () => {
+        if (!canRunCountCheckInStage(meetingState.stage)) return;
+        if (meetingState.countCheck) return;
+        updateMeetingState({
+            countCheck: {
+                id: Date.now(),
+                startedBy: currentUser.name,
+                startedAt: Date.now(),
+                responses: { [currentUser.name]: true }
+            },
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: `${currentUser.name} started a count check.`
+            }]
+        });
+    };
+
+    const handleRespondToCountCheck = () => {
+        const check = meetingState.countCheck;
+        if (!check) return;
+        if (check.responses?.[currentUser.name]) return;
+        updateMeetingState({
+            countCheck: {
+                ...check,
+                responses: {
+                    ...(check.responses || {}),
+                    [currentUser.name]: true
+                }
+            },
+            log: [...meetingState.log, {
+                timestamp: new Date().toLocaleTimeString(),
+                message: `${currentUser.name} confirmed presence for count check.`
+            }]
+        });
+    };
+
+    const handleCloseCountCheck = () => {
+        const check = meetingState.countCheck;
+        if (!check) return;
+
+        const expectedNames = (meetingState.participants || [])
+            .filter((p) => p.role === ROLES.MEMBER)
+            .map((p) => p.name);
+        const responderNames = Object.keys(check.responses || {});
+        const { participants: updatedParticipants, removalLog } = applyCheckpointRemoval({
+            expectedNames,
+            responderNames,
+            checkpointLabel: 'Count check'
+        });
+
+        const missing = expectedNames.filter((name) => !responderNames.includes(name));
+        updateMeetingState({
+            participants: updatedParticipants,
+            countCheck: null,
+            log: [
+                ...meetingState.log,
+                {
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Count check closed. Responded: ${responderNames.length}/${expectedNames.length}.`
+                },
+                ...(missing.length > 0 ? [{
+                    timestamp: new Date().toLocaleTimeString(),
+                    message: `Count check non-responders: ${missing.join(', ')}.`
+                }] : []),
+                ...removalLog
+            ]
+        });
+    };
+
     const handleAdoptAgenda = () => {
         const seeded = getSeededAgendaMotionState(meetingState, 0);
         updateMeetingState({
@@ -610,7 +762,7 @@ export function useMeetingState() {
 
         updateMeetingState({
             motionStack: newStack,
-            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : getBaseStage(),
+            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : getPostMotionFallbackStage(top),
             currentMotion: below ? {
                 text: below.text,
                 mover: below.mover,
@@ -696,7 +848,7 @@ export function useMeetingState() {
 
         updateMeetingState({
             motionStack: newStack,
-            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : getBaseStage(),
+            stage: newStack.length > 0 ? MEETING_STAGES.MOTION_DISCUSSION : getPostMotionFallbackStage(top),
             currentMotion: below ? {
                 text: below.text,
                 mover: below.mover,
@@ -993,7 +1145,18 @@ export function useMeetingState() {
             else if (threshold === 'two_thirds') passed = totalCast > 0 && aye >= (totalCast * 2) / 3;
             else if (threshold === 'unanimous') passed = nay === 0 && aye > 0;
 
+            const expectedNames = (meetingState.participants || [])
+                .filter((p) => p.role === ROLES.MEMBER)
+                .map((p) => p.name);
+            const responderNames = meetingState.votedBy || [];
+            const { participants: updatedParticipants, removalLog } = applyCheckpointRemoval({
+                expectedNames,
+                responderNames,
+                checkpointLabel: 'Vote'
+            });
+
             updateMeetingState({
+                participants: updatedParticipants,
                 stage: MEETING_STAGES.SUSPENDED_RULES,
                 votes: { aye: 0, nay: 0, abstain: 0 },
                 votedBy: [],
@@ -1001,7 +1164,7 @@ export function useMeetingState() {
                 log: [...meetingState.log, {
                     timestamp: new Date().toLocaleTimeString(),
                     message: i18n.t('meeting:log_vote_result', { aye, nay, threshold: threshold.replace('_', '-'), result: passed ? i18n.t('meeting:carried') : i18n.t('meeting:failed') })
-                }]
+                }, ...removalLog]
             });
             return;
         }
@@ -1016,7 +1179,18 @@ export function useMeetingState() {
                 timestamp: new Date().toLocaleTimeString(),
                 message: i18n.t('meeting:log_minutes_correction_vote', { aye, nay, result })
             }];
+            const expectedNames = (meetingState.participants || [])
+                .filter((p) => p.role === ROLES.MEMBER)
+                .map((p) => p.name);
+            const responderNames = meetingState.votedBy || [];
+            const { participants: updatedParticipants, removalLog } = applyCheckpointRemoval({
+                expectedNames,
+                responderNames,
+                checkpointLabel: 'Vote'
+            });
+
             updateMeetingState({
+                participants: updatedParticipants,
                 stage: MEETING_STAGES.APPROVE_MINUTES,
                 currentMotion: null,
                 minutesCorrectionDebate: null,
@@ -1025,7 +1199,7 @@ export function useMeetingState() {
                 currentSpeaker: null,
                 speakingQueue: [],
                 speakingHistory: [],
-                log: newLog
+                log: [...newLog, ...removalLog]
             });
             return;
         }
@@ -1072,8 +1246,20 @@ export function useMeetingState() {
                 : i18n.t('meeting:log_vote_on', { motionName: top.displayName, description, text: top.text })
         }];
 
-        // Handle the effect of adoption/defeat
-        handleMotionDisposition(top, result, description, newLog);
+        const expectedNames = (meetingState.participants || [])
+            .filter((p) => p.role === ROLES.MEMBER)
+            .map((p) => p.name);
+        const responderNames = meetingState.votedBy || [];
+        const { participants: updatedParticipants, removalLog } = applyCheckpointRemoval({
+            expectedNames,
+            responderNames,
+            checkpointLabel: 'Vote'
+        });
+
+        // Ensure disposition updates run on state that already reflects any removals.
+        meetingStateRef.current = { ...meetingStateRef.current, participants: updatedParticipants };
+        setMeetingState(meetingStateRef.current);
+        handleMotionDisposition(top, result, description, [...newLog, ...removalLog]);
     };
 
     const handleMotionDisposition = (motion, result, description, newLog) => {
@@ -1191,7 +1377,7 @@ export function useMeetingState() {
             }
             updateMeetingState({
                 motionStack: [],
-                stage: getBaseStage(),
+                stage: getPostMotionFallbackStage(motion),
                 currentMotion: null,
                 pendingAnnouncement: {
                     motionText: motion.text,
@@ -2838,6 +3024,9 @@ export function useMeetingState() {
         handleCallMember,
         handleMarkPresent,
         handleRespondToRollCall,
+        handleStartCountCheck,
+        handleRespondToCountCheck,
+        handleCloseCountCheck,
         handleApproveMinutes,
         handleNewMotion,
         handleSecondMotion,

@@ -27,10 +27,10 @@
   "display_reconsider_enter_minutes": "Reconsiderar e Registrar em Ata",
   "display_discharge_committee": "Dispensar uma Comissão",
   "display_rescind": "Rescindir/Emendar Deliberação Anterior",
-  "display_unlisted_motion": "Mocao nao listada",
+  "display_unlisted_motion": "Moção não listada",
 
   "reason_lower_precedence": "Não pode ser apresentada enquanto {{motion}} está pendente (menor precedência)",
-  "reason_only_main_motion": "Só pode ser aplicada à moção principal quando esta é a questão imediatamente pendente",
+  "reason_only_main_motion": "Só pode ser aplicada à moção principal quando está é a questão imediatamente pendente",
   "reason_not_amendable": "{{motion}} não é emendável",
   "reason_max_amendment_degree": "Não é possível exceder dois graus de emenda",
   "reason_awaiting_chair": "Moção aguardando reconhecimento da presidência",

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { changeAppLanguage } from '../i18n';
 import { ROLES } from '../constants';
 import * as MeetingConnection from '../services/MeetingConnection';
 import HatsellLogo from './HatsellLogo';
@@ -11,10 +12,10 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const toggleLanguage = () => {
-        const newLang = i18n.language === 'pt-BR' ? 'en' : 'pt-BR';
-        i18n.changeLanguage(newLang);
-        localStorage.setItem('hatsell_language', newLang);
+    const setLanguage = (newLang) => {
+        changeAppLanguage(newLang, { persist: 'session' }).catch((err) => {
+            setError(err?.message || t('login:error_join_failed'));
+        });
     };
 
     const handleJoin = async (e) => {
@@ -184,9 +185,21 @@ export default function LoginScreen({ onLogin, onAbout, onTutorial, onCreateMeet
                                 <button type="button" onClick={onTutorial}>{t('login:link_tutorial')}</button>
                             )}
                         </div>
-                        <div className="login-footer-links" style={{ marginTop: '0.25rem' }}>
-                            <button type="button" onClick={toggleLanguage}>
-                                {t('login:language_toggle')}
+                        <div className="login-footer-links" style={{ marginTop: '0.25rem', gap: '0.5rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => setLanguage('en')}
+                                disabled={i18n.language === 'en'}
+                            >
+                                English
+                            </button>
+                            <span className="separator">|</span>
+                            <button
+                                type="button"
+                                onClick={() => setLanguage('pt-BR')}
+                                disabled={i18n.language === 'pt-BR'}
+                            >
+                                Português (Brasil)
                             </button>
                         </div>
                         <p className="login-version">{t('common:label_version')}</p>

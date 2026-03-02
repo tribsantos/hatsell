@@ -75,8 +75,8 @@
   "hint_language": "Todos os participantes verão a interface da reunião neste idioma.",
 
   "label_agenda": "Pauta",
-  "minutes_step_enable": "Incluir etapa de aprovacao da ata",
-  "minutes_step_hint": "Opcional. Se desativado, a reuniao prossegue diretamente apos a chamada.",
+  "minutes_step_enable": "Incluir etapa de aprovação da ata",
+  "minutes_step_hint": "Opcional. Se desativado, a reunião prossegue diretamente após a chamada.",
   "agenda_guidance": "Apenas orientação (referência do presidente)",
   "agenda_orders": "Ordem do Dia (pauta aprovada)",
   "hint_agenda_guidance": "Os itens listados aqui orientarão o presidente, mas não são vinculantes.",
@@ -124,6 +124,11 @@
   "meeting_type_special": "Reunião Extraordinária",
   "special_restrict": "Restringir os trabalhos aos itens especificados na convocação",
   "hint_meeting_type": "Reuniões extraordinárias só podem deliberar sobre assuntos mencionados na convocação (RONR).",
+  "label_legal_validity": "Para validade legal",
+  "legal_validity_bylaws": "Moções apenas do Hatsell fazem parte do estatuto",
+  "legal_validity_adopt_start": "Adotar moções apenas do Hatsell no início da reunião",
+  "legal_validity_not_applicable": "Não se aplica",
+  "hint_legal_validity": "Se a adoção no início for selecionada, o primeiro item após a abertura será uma moção para suspender as regras e restringir moções às disponíveis no Hatsell.",
 
   "label_electronic_procedures": "Procedimentos para Reunião Eletrônica",
   "label_recognition_method": "Método de Reconhecimento",
@@ -156,9 +161,6 @@
   "vote_show_details": "Exibir votos individuais quando os resultados forem anunciados",
   "hint_vote_transparency": "Quando habilitado, o presidente verá como cada membro votou (por nome) no anúncio do resultado. Por padrão, apenas os totais agregados são exibidos.",
 
-  "label_expert_motions": "MoÃ§Ãµes AvanÃ§adas",
-  "expert_motions_enable": "Habilitar categoria de moÃ§Ãµes avanÃ§adas (MoÃ§Ã£o nÃ£o listada)",
-  "hint_expert_motions": "Adiciona uma seÃ§Ã£o de MoÃ§Ãµes AvanÃ§adas com um formulÃ¡rio de MoÃ§Ã£o nÃ£o listada para autoridade, procedimento, precedÃªncia e efeitos.",
   "button_confirm": "Confirmar",
   "button_cancel": "Cancelar"
 }

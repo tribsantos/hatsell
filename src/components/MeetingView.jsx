@@ -79,6 +79,9 @@ export default function MeetingView({
     onCallMember,
     onMarkPresent,
     onRespondToRollCall,
+    onStartCountCheck,
+    onRespondToCountCheck,
+    onCloseCountCheck,
     onApproveMinutes,
     onNewMotion,
     onSecondMotion,
@@ -270,6 +273,8 @@ export default function MeetingView({
                         currentUser={currentUser}
                         onCallToOrder={onCallToOrder}
                         onRollCall={onRollCall}
+                        onStartCountCheck={onStartCountCheck}
+                        onCloseCountCheck={onCloseCountCheck}
                         onApproveMinutes={onApproveMinutes}
                         onRecognizeSpeaker={onRecognizeSpeaker}
                         onFinishSpeaking={onFinishSpeaking}
@@ -555,6 +560,33 @@ export default function MeetingView({
                         onMarkPresent={onMarkPresent}
                         onRespondToRollCall={onRespondToRollCall}
                     />
+                )}
+
+                {meetingState.countCheck && (
+                    <div className="info-box" style={{ marginBottom: '1rem' }}>
+                        <h4 style={{ marginBottom: '0.5rem', color: 'var(--h-blue)' }}>
+                            {t('count_check_title')}
+                        </h4>
+                        <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--h-fg-dim)' }}>
+                            {t('count_check_started_by', { name: meetingState.countCheck.startedBy })}
+                        </p>
+                        <p style={{ marginBottom: '0.75rem', fontSize: '0.85rem' }}>
+                            {t('count_check_responses', {
+                                done: Object.keys(meetingState.countCheck.responses || {}).length,
+                                total: (meetingState.participants || []).filter((p) => p.role === ROLES.MEMBER).length
+                            })}
+                        </p>
+                        {!isChair && !meetingState.countCheck.responses?.[currentUser.name] && (
+                            <button onClick={onRespondToCountCheck} style={{ width: '100%' }}>
+                                {t('count_check_confirm')}
+                            </button>
+                        )}
+                        {isChair && (
+                            <button onClick={onCloseCountCheck} className="secondary" style={{ width: '100%' }}>
+                                {t('count_check_close')}
+                            </button>
+                        )}
+                    </div>
                 )}
 
                 {meetingState.stage === MEETING_STAGES.APPROVE_MINUTES && (

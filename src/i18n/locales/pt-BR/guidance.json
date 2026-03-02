@@ -66,7 +66,7 @@
   "action_roll_call_secretary": "Chame o nome de cada membro. Eles responderão 'Presente'.",
   "action_roll_call_chair": "O Secretário está conduzindo a chamada.",
   "action_minutes_correction": "Não havendo objeção, a ata é corrigida por consentimento unânime. Havendo objeção de algum membro, a correção será debatida e submetida a votação.",
-  "action_review_correction": "Avalie se esta é uma alteração específica proposta ao texto da ata. Seu papel não é julgar a exatidão factual — apenas se a submissão se qualifica como uma correção adequada. Se for vaga ou não propuser uma alteração específica, devolva ao membro para reformulação.",
+  "action_review_correction": "Avalie se está é uma alteração específica proposta ao texto da ata. Seu papel não é julgar a exatidão factual — apenas se a submissão se qualifica como uma correção adequada. Se for vaga ou não propuser uma alteração específica, devolva ao membro para reformulação.",
   "action_minutes_no_corrections": "Aguarde correções. Se nenhuma for apresentada: 'Não havendo correções, a ata está aprovada conforme distribuída.' Se houver correções propostas, trate-as antes de aprovar.",
   "action_adopt_agenda": "Adotar por consentimento unânime ou aceitar uma moção para adoção.",
   "action_agenda_report": "Após o relato, pergunte se há perguntas. Quando concluído, avance para o próximo item.",

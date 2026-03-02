@@ -37,7 +37,7 @@ export default function ExpertMotionModal({ onSubmit, onClose }) {
     const requiredFields = [
         'motionText', 'purpose', 'ronrCitation', 'ronrMotionName', 'inOrderNowWhy', 'currentBusiness',
         'noConflictWhy', 'secondRequired', 'debatable', 'amendable', 'voteRequired', 'noticeRequired',
-        'classType', 'precedence', 'precedenceRelations', 'reconsiderable', 'reconsiderWhen', 'renewable',
+        'classType', 'precedenceRelations', 'reconsiderable', 'reconsiderWhen', 'renewable',
         'renewableWhen', 'durationScope'
     ];
 

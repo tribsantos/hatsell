@@ -521,5 +521,10 @@
   "minutes_export_defeated": "DEFEATED",
   "minutes_export_call_to_order_text_with_chair": "The meeting was called to order at {{time}} by {{name}}, presiding.",
   "minutes_export_call_to_order_text_no_chair": "The meeting was called to order at {{time}}.",
+  "count_check_title": "Count Check In Progress",
+  "count_check_started_by": "Started by {{name}}",
+  "count_check_responses": "Responses: {{done}}/{{total}}",
+  "count_check_confirm": "Confirm Present",
+  "count_check_close": "Close Count Check",
   "minutes_export_adjournment_text": "The meeting was adjourned at {{time}}."
 }

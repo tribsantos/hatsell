@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from './i18n';
+import i18n, { changeAppLanguage } from './i18n';
 import { MEETING_STAGES, ROLES } from './constants';
 import { MOTION_TYPES } from './constants/motionTypes';
 import { useMeetingState } from './hooks/useMeetingState';
@@ -95,6 +95,9 @@ export default function App() {
         handleCallMember,
         handleMarkPresent,
         handleRespondToRollCall,
+        handleStartCountCheck,
+        handleRespondToCountCheck,
+        handleCloseCountCheck,
         handleApproveMinutes,
         handleNewMotion,
         handleSecondMotion,
@@ -256,6 +259,7 @@ export default function App() {
                 autoYieldOnTimeExpired: false,
                 audioCues: false,
                 showVoteDetails: false,
+                legalValidityMode: 'not_applicable',
                 language: 'en'
             };
 
@@ -406,9 +410,17 @@ export default function App() {
     // Sync meeting language to i18n — all participants see the same language
     useEffect(() => {
         const meetingLang = meetingState?.meetingSettings?.language;
-        if (meetingLang && isLoggedIn && i18n.language !== meetingLang) {
-            i18n.changeLanguage(meetingLang);
-        }
+        if (!meetingLang || !isLoggedIn || i18n.language === meetingLang) return;
+
+        let cancelled = false;
+        changeAppLanguage(meetingLang, { persist: 'session' }).catch((error) => {
+            if (!cancelled) {
+                console.error('Failed to sync meeting language:', error);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
     }, [meetingState?.meetingSettings?.language, isLoggedIn]);
 
     useEffect(() => {
@@ -427,6 +439,26 @@ export default function App() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [showModal, pendingRuling, closeModal]);
+
+    useEffect(() => {
+        if (!isLoggedIn || !currentUser) return;
+
+        const confirmMessage = 'Are you sure you want to leave the meeting?';
+
+        const handleBeforeUnload = (event) => {
+            event.preventDefault();
+            // Most browsers ignore custom text, but setting returnValue
+            // is required to trigger the native confirmation prompt.
+            event.returnValue = confirmMessage;
+            return confirmMessage;
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isLoggedIn, currentUser]);
 
     if (activePage === 'tutorial') {
         return (
@@ -602,6 +634,9 @@ export default function App() {
                 onCallMember={handleCallMember}
                 onMarkPresent={handleMarkPresent}
                 onRespondToRollCall={handleRespondToRollCall}
+                onStartCountCheck={handleStartCountCheck}
+                onRespondToCountCheck={handleRespondToCountCheck}
+                onCloseCountCheck={handleCloseCountCheck}
                 onApproveMinutes={handleApproveMinutes}
                 onNewMotion={openMotionModal}
                 onSecondMotion={handleSecondMotion}

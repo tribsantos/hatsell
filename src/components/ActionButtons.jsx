@@ -41,6 +41,8 @@ export function ChairActions({
     currentUser,
     onCallToOrder,
     onRollCall,
+    onStartCountCheck,
+    onCloseCountCheck,
     onApproveMinutes,
     onRecognizeSpeaker,
     onFinishSpeaking,
@@ -142,6 +144,12 @@ export function ChairActions({
         currentUser.role === ROLES.PRESIDENT ||
         currentUser.role === ROLES.VICE_PRESIDENT;
     const canCompleteRollCall = stage === MEETING_STAGES.ROLL_CALL && (allResponded || quorumMet);
+    const countCheckAllowedStages = [
+        MEETING_STAGES.AGENDA_ITEM,
+        MEETING_STAGES.NEW_BUSINESS,
+        MEETING_STAGES.MOTION_DISCUSSION
+    ];
+    const canRunCountCheck = countCheckAllowedStages.includes(stage);
 
     const buttons = [];
 
@@ -381,6 +389,35 @@ export function ChairActions({
         );
     }
 
+    // Count check (chair-triggered attendance confirmation)
+    if (canRunCountCheck) {
+        if (meetingState.countCheck) {
+            buttons.push(
+                <button
+                    key="close-count-check"
+                    onClick={onCloseCountCheck}
+                    className="secondary"
+                    data-tooltip={t('tooltip_close_count_check')}
+                    title={t('tooltip_close_count_check')}
+                >
+                    {t('button_close_count_check')}
+                </button>
+            );
+        } else {
+            buttons.push(
+                <button
+                    key="start-count-check"
+                    onClick={onStartCountCheck}
+                    className="secondary"
+                    data-tooltip={t('tooltip_start_count_check')}
+                    title={t('tooltip_start_count_check')}
+                >
+                    {t('button_start_count_check')}
+                </button>
+            );
+        }
+    }
+
     if (buttons.length === 0) return null;
 
     return (
@@ -437,7 +474,7 @@ export function MemberActions({
         isChair,
         lastChairRuling,
         speakingHistory: meetingState.speakingHistory || [],
-        expertMotionsEnabled: !!meetingState.meetingSettings?.expertMotionsEnabled
+        expertMotionsEnabled: false
     });
 
     const pendingMotionsList = meetingState.pendingMotions || [];
@@ -465,10 +502,6 @@ export function MemberActions({
     const bringBackMotions = available.filter(m =>
         m.category === MOTION_CATEGORY.BRING_BACK
     );
-    const expertMotions = available.filter(m =>
-        m.category === MOTION_CATEGORY.EXPERT
-    );
-
     const getMotionTooltip = (m) => {
         const key = TOOLTIP_KEYS[m.motionType];
         const base = key ? t(key) : '';
@@ -742,35 +775,11 @@ export function MemberActions({
                         </details>
                     </div>
                 );
-                const expertSection = expertMotions.length > 0 && (
-                    <div className="action-section" style={{ width: '100%' }}>
-                        <details>
-                            <summary>{t('summary_expert', { count: expertMotions.length })}</summary>
-                            <div className="action-grid">
-                                {expertMotions.map(m => (
-                                    <button
-                                        key={m.motionType}
-                                        onClick={() => m.enabled && onUnlistedMotion && onUnlistedMotion()}
-                                        className="secondary"
-                                        disabled={!m.enabled}
-                                        data-tooltip={m.enabled ? t('tooltip_unlisted_motion') : t('out_of_order')}
-                                        title={m.enabled ? t('tooltip_unlisted_motion') : t('out_of_order')}
-                                        style={{ fontSize: '0.85rem', padding: '0.5rem', ...(!m.enabled ? disabledStyle : {}) }}
-                                    >
-                                        {t('button_unlisted_motion')}
-                                    </button>
-                                ))}
-                            </div>
-                        </details>
-                    </div>
-                );
-
                 return (
                     <>
                         {subsidiarySection}
                         {privilegedSection}
                         {incidentalButtons}
-                        {expertSection}
                     </>
                 );
             })()}

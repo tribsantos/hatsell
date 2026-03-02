@@ -1,6 +1,8 @@
 {
   "button_call_to_order": "Abertura da Sessão",
   "button_complete_roll_call": "Concluir Chamada",
+  "button_start_count_check": "Iniciar Contagem",
+  "button_close_count_check": "Encerrar Contagem",
   "button_approve_minutes": "Aprovar Ata",
   "button_adopt_agenda": "Adotar Pauta",
   "button_next_agenda_item": "Próximo Item da Pauta",
@@ -58,6 +60,8 @@
   "tooltip_complete_roll_call": "Confirmar presença e estabelecer quórum",
   "tooltip_complete_roll_call_quorum_ready": "Quórum atingido. Você pode concluir a chamada agora ou continuar confirmando presenças.",
   "tooltip_complete_roll_call_no_quorum": "Defina um requisito de quórum primeiro (veja o painel de Membros)",
+  "tooltip_start_count_check": "Executar uma contagem de presença dos membros atuais",
+  "tooltip_close_count_check": "Encerrar a contagem atual e aplicar o resultado de presença",
   "tooltip_approve_minutes": "Aceitar a ata da última sessão como correta",
   "tooltip_adopt_agenda": "Adotar a pauta proposta como ordem dos trabalhos",
   "tooltip_next_agenda": "Avançar para o próximo item da pauta",

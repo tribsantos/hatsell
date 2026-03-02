@@ -47,6 +47,7 @@ const DEFAULT_MEETING_SETTINGS = {
     audioCues: false,
     showVoteDetails: false,
     expertMotionsEnabled: false,
+    legalValidityMode: 'not_applicable',
     language: 'en'
 };
 
@@ -456,6 +457,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
             ...prev,
             ...template.meetingSettings,
             language: prev.language,
+            legalValidityMode: prev.legalValidityMode,
             agendaItems: normalizeAgendaItems(nextAgendaItems, !!template.meetingSettings.agendaCustomSequence)
         }));
     };
@@ -886,19 +888,6 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         <div style={hintStyle}>{t('hint_meeting_name')}</div>
                     </div>
 
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle}>{t('label_language')}</label>
-                        <select
-                            value={meetingSettings.language}
-                            onChange={(e) => updateMeetingSettings('language', e.target.value)}
-                            style={inputStyle}
-                        >
-                            <option value="en">{t('language_en')}</option>
-                            <option value="pt-BR">{t('language_pt_br')}</option>
-                        </select>
-                        <div style={hintStyle}>{t('hint_language')}</div>
-                    </div>
-
                     {/* A) Agenda */}
                     <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd' }}>
                         <label style={labelStyle}>{t('label_agenda')}</label>
@@ -1017,7 +1006,45 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         <div style={hintStyle}>{t('hint_meeting_type')}</div>
                     </div>
 
-                    {/* D) Electronic Meeting Procedures */}
+                    {/* D) Legal Validity */}
+                    <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd' }}>
+                        <label style={labelStyle}>{t('label_legal_validity')}</label>
+                        <div style={radioGroupStyle}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                <input
+                                    type="radio"
+                                    name="legalValidityMode"
+                                    value="hatsell_only_bylaws"
+                                    checked={meetingSettings.legalValidityMode === 'hatsell_only_bylaws'}
+                                    onChange={() => updateMeetingSettings('legalValidityMode', 'hatsell_only_bylaws')}
+                                />
+                                {t('legal_validity_bylaws')}
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                <input
+                                    type="radio"
+                                    name="legalValidityMode"
+                                    value="adopt_hatsell_only_at_start"
+                                    checked={meetingSettings.legalValidityMode === 'adopt_hatsell_only_at_start'}
+                                    onChange={() => updateMeetingSettings('legalValidityMode', 'adopt_hatsell_only_at_start')}
+                                />
+                                {t('legal_validity_adopt_start')}
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                <input
+                                    type="radio"
+                                    name="legalValidityMode"
+                                    value="not_applicable"
+                                    checked={meetingSettings.legalValidityMode === 'not_applicable'}
+                                    onChange={() => updateMeetingSettings('legalValidityMode', 'not_applicable')}
+                                />
+                                {t('legal_validity_not_applicable')}
+                            </label>
+                        </div>
+                        <div style={hintStyle}>{t('hint_legal_validity')}</div>
+                    </div>
+
+                    {/* E) Electronic Meeting Procedures */}
                     {profile.meetingFormat !== 'in_person' && (
                         <div style={{ paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #ddd' }}>
                             <label style={labelStyle}>{t('label_electronic_procedures')}</label>
@@ -1049,7 +1076,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         </div>
                     )}
 
-                    {/* E) Opening Package */}
+                    {/* F) Opening Package */}
                     <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
                         <label style={labelStyle}>{t('label_opening_package')}</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -1073,7 +1100,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         <div style={hintStyle}>{t('hint_opening_package')}</div>
                     </div>
 
-                    {/* F) Timer Enforcement */}
+                    {/* G) Timer Enforcement */}
                     <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
                         <label style={labelStyle}>{t('label_timer_enforcement')}</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -1083,7 +1110,7 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         <div style={hintStyle}>{t('hint_timer_enforcement')}</div>
                     </div>
 
-                    {/* G) Audio Cues */}
+                    {/* H) Audio Cues */}
                     <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
                         <label style={labelStyle}>{t('label_audio_notifications')}</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -1093,28 +1120,14 @@ export default function GeneralSettings({ userName, onConfirm, onCancel }) {
                         <div style={hintStyle}>{t('hint_audio_notifications')}</div>
                     </div>
 
-                    {/* H) Vote Transparency */}
-                    <div style={{ borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>
+                    {/* I) Vote Transparency */}
+                    <div>
                         <label style={labelStyle}>{t('label_vote_transparency')}</label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                             <input type="checkbox" checked={meetingSettings.showVoteDetails} onChange={(e) => updateMeetingSettings('showVoteDetails', e.target.checked)} />
                             {t('vote_show_details')}
                         </label>
                         <div style={hintStyle}>{t('hint_vote_transparency')}</div>
-                    </div>
-
-                    {/* I) Expert Motions */}
-                    <div>
-                        <label style={labelStyle}>{t('label_expert_motions')}</label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                            <input
-                                type="checkbox"
-                                checked={!!meetingSettings.expertMotionsEnabled}
-                                onChange={(e) => updateMeetingSettings('expertMotionsEnabled', e.target.checked)}
-                            />
-                            {t('expert_motions_enable')}
-                        </label>
-                        <div style={hintStyle}>{t('hint_expert_motions')}</div>
                     </div>
                 </div>
 
